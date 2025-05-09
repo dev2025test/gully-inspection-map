@@ -2,159 +2,172 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Gully Inspection Map</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gully Inspection System - Photo Upload</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/togeojson"></script>
   <style>
     html, body { margin: 0; height: 100%; font-family: Arial, sans-serif; }
     #map { height: 100%; }
+    #loginScreen {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #f9f9f9; z-index: 9999; display: flex;
+      align-items: center; justify-content: center;
+    }
+    #loginBox {
+      background: white; padding: 20px; border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.2);
+    }
     #controlPanel {
-      position: absolute; bottom: 10px; left: 10px;
-      background: white; padding: 10px;
-      border-radius: 6px; z-index: 999;
-      box-shadow: 0 0 4px rgba(0,0,0,0.3);
+      position: absolute; top: 10px; left: 10px;
+      background: white; padding: 10px; z-index: 1000;
+      border-radius: 8px; box-shadow: 0 0 4px rgba(0,0,0,0.2);
+    }
+    .preview {
+      margin-top: 5px;
+      max-width: 100px;
+      max-height: 80px;
+      display: block;
     }
   </style>
 </head>
 <body>
-  <div id="map"></div>
-  <div id="controlPanel">
-    <input type="file" id="importFile" accept=".kml">
-    <button onclick="exportData()">Export CSV</button>
+  <div id="loginScreen">
+    <div id="loginBox">
+      <h2>Login</h2>
+      <label>Role:</label>
+      <select id="role">
+        <option value="Admin">Admin</option>
+        <option value="Operator">Operator</option>
+        <option value="Viewer">Viewer</option>
+      </select><br><br>
+      <label>Password:</label>
+      <input type="password" id="password"><br><br>
+      <button onclick="checkLogin()">Login</button>
+    </div>
   </div>
 
+  <div id="controlPanel" style="display:none;">
+    <input type="file" id="importFile" accept=".kml">
+  </div>
+
+  <div id="map"></div>
+
   <script>
-    const map = L.map('map').setView([51.9, -8.5], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const credentials = JSON.parse(localStorage.getItem('credentials') || '{"Admin":"admin123","Operator":"operator123","Viewer":"viewer123"}');
+    let currentRole = null;
+    let map;
+    const gullyMarkers = [];
 
-    const gullyData = [];
-    const localKey = 'gully_data';
+    function checkLogin() {
+      const role = document.getElementById("role").value;
+      const password = document.getElementById("password").value;
+      if (credentials[role] === password) {
+        currentRole = role;
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("controlPanel").style.display = role !== "Viewer" ? "block" : "none";
+        initMap();
+      } else {
+        alert("Invalid credentials");
+      }
+    }
 
-    function createDot(color) {
-      return L.divIcon({
-        className: '',
-        html: `<div style='width:14px;height:14px;border-radius:50%;background:${color};border:1px solid black'></div>`
+    function initMap() {
+      map = L.map('map').setView([51.9, -8.5], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+      document.getElementById('importFile').addEventListener('change', e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = () => {
+          const kml = new DOMParser().parseFromString(reader.result, 'text/xml');
+          const geojson = toGeoJSON.kml(kml);
+          geojson.features.forEach(f => {
+            if (f.geometry.type === 'Point') {
+              const [lng, lat] = f.geometry.coordinates;
+              addGullyMarker(lat, lng);
+            }
+          });
+        };
+        reader.readAsText(file);
       });
     }
 
-    function saveToLocal() {
-      const toSave = gullyData.map(({ marker, dataLog }) => ({
-        latlng: marker.getLatLng(),
-        dataLog
-      }));
-      localStorage.setItem(localKey, JSON.stringify(toSave));
-    }
+    function addGullyMarker(lat, lng) {
+      const marker = L.marker([lat, lng]).addTo(map);
+      const logKey = `gully_${lat.toFixed(6)}_${lng.toFixed(6)}`;
+      const saved = JSON.parse(localStorage.getItem(logKey) || "null");
 
-    function exportData() {
-      let csv = 'Latitude,Longitude,Date,Status,Note\n';
-      gullyData.forEach(({ dataLog }) => {
-        dataLog.forEach(d =>
-          csv += `${d.lat},${d.lng},${d.date},${d.status},"${d.note.replace(/"/g, '""')}"\n`);
-      });
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'gully_data.csv';
-      a.click();
-    }
+      marker.on('click', () => {
+        const popup = document.createElement('div');
+        const dateInput = document.createElement('input');
+        dateInput.type = 'date';
+        dateInput.value = new Date().toISOString().split('T')[0];
 
-    function popupFor(marker, latlng, dataLog) {
-      const popup = document.createElement('div');
-      const tick = document.createElement('input');
-      tick.type = 'checkbox';
-      popup.appendChild(document.createTextNode(' Inspection complete: '));
-      popup.appendChild(tick); popup.appendChild(document.createElement('br'));
-
-      const date = document.createElement('input');
-      date.type = 'date';
-      date.value = new Date().toISOString().split('T')[0];
-      date.disabled = true;
-      popup.appendChild(document.createTextNode(' Date: '));
-      popup.appendChild(date); popup.appendChild(document.createElement('br'));
-
-      const note = document.createElement('textarea');
-      note.disabled = true;
-      popup.appendChild(document.createTextNode(' Comment: '));
-      popup.appendChild(note); popup.appendChild(document.createElement('br'));
-
-      const drop = document.createElement('select');
-      ['Blocked', 'Clear', 'Remediation', 'Replacement', 'Broken'].forEach(v => {
-        const o = document.createElement('option');
-        o.value = v; o.text = v;
-        drop.appendChild(o);
-      });
-      drop.disabled = true;
-      popup.appendChild(document.createTextNode(' Status: '));
-      popup.appendChild(drop); popup.appendChild(document.createElement('br'));
-
-      tick.onchange = () => {
-        const enabled = tick.checked;
-        date.disabled = !enabled;
-        drop.disabled = !enabled;
-        note.disabled = !enabled;
-      };
-
-      const save = document.createElement('button');
-      save.innerText = 'Save';
-      save.onclick = () => {
-        if (!tick.checked) return alert('Tick inspection complete');
-        const val = drop.value;
-        const dat = date.value;
-        const msg = note.value;
-        const age = (Date.now() - new Date(dat)) / (1000 * 60 * 60 * 24 * 30.5);
-        let color = val === 'Clear'
-            ? age > 12 ? 'gray' : age > 6 ? 'green' : 'blue'
-            : val === 'Broken' ? 'orange'
-            : val === 'Remediation' ? 'red'
-            : val === 'Blocked' ? 'orange'
-            : 'gray';
-        marker.setIcon(createDot(color));
-        dataLog.push({ lat: latlng.lat, lng: latlng.lng, date: dat, status: val, note: msg });
-        saveToLocal();
-        marker.closePopup();
-      };
-      popup.appendChild(save);
-
-      const log = document.createElement('button');
-      log.innerText = 'View Log';
-      log.onclick = () => {
-        alert(dataLog.map(d => `${d.date}: ${d.status} - ${d.note}`).join('\n') || 'No log');
-      };
-      popup.appendChild(log);
-
-      marker.bindPopup(popup).openPopup();
-    }
-
-    function addMarker(latlng, logs=[]) {
-      const marker = L.marker(latlng, { icon: createDot('gray') }).addTo(map);
-      marker.on('click', () => popupFor(marker, latlng, logs));
-      gullyData.push({ marker, dataLog: logs });
-    }
-
-    document.getElementById('importFile').addEventListener('change', e => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const xml = new DOMParser().parseFromString(reader.result, 'text/xml');
-        const json = toGeoJSON.kml(xml);
-        json.features.forEach(f => {
-          if (f.geometry.type === 'Point') {
-            const [lng, lat] = f.geometry.coordinates;
-            addMarker({ lat, lng });
-          }
+        const status = document.createElement('select');
+        ['Clear', 'Blocked', 'Broken', 'Remediation', 'Replacement'].forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.innerText = s;
+          status.appendChild(opt);
         });
-      };
-      reader.readAsText(e.target.files[0]);
-    });
 
-    function loadLocal() {
-      const saved = localStorage.getItem(localKey);
-      if (!saved) return;
-      JSON.parse(saved).forEach(({ latlng, dataLog }) => addMarker(latlng, dataLog));
+        const comment = document.createElement('textarea');
+        comment.placeholder = "Enter comment...";
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/jpeg,image/png';
+
+        const imgPreview = document.createElement('img');
+        imgPreview.className = 'preview';
+        imgPreview.style.display = 'none';
+
+        fileInput.addEventListener('change', () => {
+          const file = fileInput.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = e => {
+            imgPreview.src = e.target.result;
+            imgPreview.style.display = 'block';
+          };
+          reader.readAsDataURL(file);
+        });
+
+        const save = document.createElement('button');
+        save.innerText = 'Save';
+        save.onclick = () => {
+          const data = {
+            lat, lng,
+            date: dateInput.value,
+            status: status.value,
+            comment: comment.value,
+            photo: imgPreview.src || null
+          };
+          localStorage.setItem(logKey, JSON.stringify(data));
+          marker.bindTooltip(status.value + " (" + dateInput.value + ")");
+          marker.closePopup();
+        };
+
+        popup.appendChild(document.createTextNode("Date: "));
+        popup.appendChild(dateInput); popup.appendChild(document.createElement('br'));
+        popup.appendChild(document.createTextNode("Status: "));
+        popup.appendChild(status); popup.appendChild(document.createElement('br'));
+        popup.appendChild(document.createTextNode("Comment: "));
+        popup.appendChild(comment); popup.appendChild(document.createElement('br'));
+        popup.appendChild(document.createTextNode("Photo: "));
+        popup.appendChild(fileInput); popup.appendChild(imgPreview); popup.appendChild(document.createElement('br'));
+        popup.appendChild(save);
+
+        marker.bindPopup(popup).openPopup();
+      });
+
+      if (saved) {
+        marker.bindTooltip(saved.status + " (" + saved.date + ")");
+      }
+
+      gullyMarkers.push(marker);
     }
-
-    loadLocal();
   </script>
 </body>
 </html>
