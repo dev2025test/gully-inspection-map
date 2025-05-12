@@ -133,6 +133,12 @@ function login() {
       reader.readAsText(file);
     });
 
+    
+    gullyData.length = 0;
+    for (const key in summaryCounts) {
+      summaryCounts[key] = 0;
+    }
+
     loadFromLocalStorage();
   } else {
     document.getElementById("loginError").innerText = 'Invalid username or password';
