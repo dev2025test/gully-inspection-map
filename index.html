@@ -20,6 +20,7 @@ document.getElementById('importFile').addEventListener('change', function() {
 
 // Auto-collapse the legend panel after 8 seconds if visible
 
+// Clears all gully markers and resets counters
 function resetMap() {
   if (!confirm("Are you sure you want to clear all gullies and reset the map?")) return;
   gullyData.forEach(({ marker }) => {
@@ -48,6 +49,7 @@ document.getElementById('importFile').addEventListener('change', function() {
 
 // Auto-collapse the legend panel after 8 seconds if visible
 
+// Clears all gully markers and resets counters
 function resetMap() {
   if (!confirm("Are you sure you want to clear all gullies and reset the map?")) return;
   gullyData.forEach(({ marker }) => {
@@ -83,6 +85,7 @@ function resetMap() {
   </style>
 </head>
 <body>
+<!-- Login Screen UI -->
 <div id="loginScreen">
   <div id="loginBox">
     <h2>Login</h2>
@@ -98,6 +101,7 @@ function resetMap() {
 
 
 <div id="map"></div>
+<!-- Control panel for import, export, logout -->
 <div id="controlPanel">
   <label for="importFile" style="background:#ddd;padding:6px 12px;border-radius:4px;cursor:pointer;">🗂️ Import</label>
 <input type="file" id="importFile" accept=".kml" style="display:none;">
@@ -107,6 +111,7 @@ function resetMap() {
   <button onclick="resetMap()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">♻️ Reset</button>
   <button onclick="logout()" style="margin-left: 10px;" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">🚪 Logout</button>
 </div>
+<!-- Summary tab with filter and status overview -->
 <div id="summary">
   <b>Summary</b><br>
   <div id="summaryContent"></div>
@@ -128,6 +133,7 @@ const gullyData = [];
 const summaryCounts = { Clear: 0, Broken: 0, Remediation: 0 , Replacement: 0, Unmarked: 0, Expired: 0};
 const storageKey = 'gully_inspections';
 
+// Handle user login based on credentials and role
 function login() {
   const user = document.getElementById("username").value.trim().toLowerCase();
   const pass = document.getElementById("password").value;
@@ -179,6 +185,7 @@ function createDot(color) {
 }
 
 
+// Updates the summary content based on gully status counts
 function updateSummary() {
   const total = gullyData.length;
   document.getElementById("summaryContent").innerHTML =
@@ -352,6 +359,7 @@ popup.appendChild(saveBtn);
   marker.bindPopup(popup).openPopup();
 }
 
+// Exports all inspection data to CSV including gully name
 function exportData() {
   let csv = 'Latitude,Longitude,Gully Name,Date,Status,Comment\n';
   gullyData.forEach(({ dataLog }) => {
@@ -378,6 +386,7 @@ document.getElementById('importFile').addEventListener('change', function() {
 
 // Auto-collapse the legend panel after 8 seconds if visible
 
+// Clears all gully markers and resets counters
 function resetMap() {
   if (!confirm("Are you sure you want to clear all gullies and reset the map?")) return;
   gullyData.forEach(({ marker }) => {
