@@ -11,10 +11,34 @@ function logout() {
   location.reload();
 }
 
+
+document.getElementById('importFile').addEventListener('change', function() {
+  const nameSpan = document.getElementById('fileNameDisplay');
+  nameSpan.textContent = this.files[0] ? this.files[0].name : '';
+});
+
+
+function toggleLegend() {
+  const panel = document.getElementById("legendPanel");
+  panel.style.display = (panel.style.display === "none") ? "block" : "none";
+}
+
 </script>
   <script src="https://unpkg.com/togeojson">
 function logout() {
   location.reload();
+}
+
+
+document.getElementById('importFile').addEventListener('change', function() {
+  const nameSpan = document.getElementById('fileNameDisplay');
+  nameSpan.textContent = this.files[0] ? this.files[0].name : '';
+});
+
+
+function toggleLegend() {
+  const panel = document.getElementById("legendPanel");
+  panel.style.display = (panel.style.display === "none") ? "block" : "none";
 }
 
 </script>
@@ -44,19 +68,43 @@ function logout() {
     <h2>Login</h2>
     <input id="username" placeholder="Username"><br><br>
     <input id="password" type="password" placeholder="Password"><br><br>
-    <button onclick="login()">Login</button>
+    <button onclick="login()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">Login</button>
     <p id="loginError" style="color:red;"></p>
   </div>
 </div>
 
 
+
+<div id="legend" style="position:absolute;bottom:10px;left:10px;z-index:999;background:white;padding:10px;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,0.3);font-size:0.85em;">
+  <b>Legend</b><br>
+  <span style="color:blue;">⬤</span> Clear<br>
+  <span style="color:orange;">⬤</span> Broken / Blocked<br>
+  <span style="color:yellow;">⬤</span> Replacement<br>
+  <span style="color:red;">⬤</span> Remediation<br>
+  <span style="color:gray;">⬤</span> Expired / Unmarked
+</div>
+
+
+<div style="position:absolute;bottom:10px;left:10px;z-index:999;">
+  <button onclick="toggleLegend()" style="padding:4px 8px;margin-bottom:4px;">🗺️ Legend</button>
+  <div id="legendPanel" style="background:white;padding:10px;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,0.3);font-size:0.85em;">
+    <b>Legend</b><br>
+    <span style="color:blue;">⬤</span> Clear<br>
+    <span style="color:orange;">⬤</span> Broken / Blocked<br>
+    <span style="color:yellow;">⬤</span> Replacement<br>
+    <span style="color:red;">⬤</span> Remediation<br>
+    <span style="color:gray;">⬤</span> Expired / Unmarked
+  </div>
+</div>
+
 <div id="map"></div>
 <div id="controlPanel">
-  <label for="importFile" style="background:#ddd;padding:6px 12px;border-radius:4px;cursor:pointer;">Import</label>
+  <label for="importFile" style="background:#ddd;padding:6px 12px;border-radius:4px;cursor:pointer;">🗂️ Import</label>
 <input type="file" id="importFile" accept=".kml" style="display:none;">
+<span id="fileNameDisplay" style="margin-left:10px;font-style:italic;color:#555;"></span>
   
-  <button onclick="exportData()">Export CSV</button>
-  <button onclick="logout()" style="margin-left: 10px;">Logout</button>
+  <button onclick="exportData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">💾 Export</button>
+  <button onclick="logout()" style="margin-left: 10px;" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">🚪 Logout</button>
 </div>
 <div id="summary">
   <b>Summary</b><br>
@@ -235,9 +283,9 @@ function showPopup(marker, latlng, dataLog) {
   };
 
   const saveBtn = document.createElement('button');
-  saveBtn.innerText = 'Save';
+  saveBtn.innerText = '💾 Save';
   const photoBtn = document.createElement('button');
-  photoBtn.innerText = 'Take Photo';
+  photoBtn.innerText = '📷 Take Photo';
   photoBtn.onclick = () => {
     photoInput.click();
   };
@@ -279,7 +327,7 @@ function showPopup(marker, latlng, dataLog) {
 popup.appendChild(saveBtn);
 
   const logBtn = document.createElement('button');
-  logBtn.innerText = 'View Log';
+  logBtn.innerText = '📋 View Log';
   logBtn.onclick = () => {
     alert(dataLog.map(d => `${d.date}: ${d.status} - ${d.comment}`).join('\n') || 'No entries');
   };
@@ -303,6 +351,18 @@ function exportData() {
 
 function logout() {
   location.reload();
+}
+
+
+document.getElementById('importFile').addEventListener('change', function() {
+  const nameSpan = document.getElementById('fileNameDisplay');
+  nameSpan.textContent = this.files[0] ? this.files[0].name : '';
+});
+
+
+function toggleLegend() {
+  const panel = document.getElementById("legendPanel");
+  panel.style.display = (panel.style.display === "none") ? "block" : "none";
 }
 
 </script>
