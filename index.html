@@ -128,6 +128,7 @@ function resetMap() {
 <script>
 let currentRole = null;
 let map;
+const importedFiles = new Set();  // Track imported file names
 const credentials = { admin: 'admin123', operator: 'operator123', viewer: 'viewer123' };
 const gullyData = [];
 const summaryCounts = { Clear: 0, Broken: 0, Remediation: 0 , Replacement: 0, Unmarked: 0, Expired: 0};
@@ -148,6 +149,13 @@ function login() {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     document.getElementById('importFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (importedFiles.has(file.name)) {
+    alert("This file has already been imported.");
+    return;
+  }
+  importedFiles.add(file.name);
+
       const file = e.target.files[0];
       const reader = new FileReader();
       reader.onload = () => {
