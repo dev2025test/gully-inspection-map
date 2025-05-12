@@ -1,86 +1,46 @@
+
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Gully Inspection Map (Local Save)</title>
+  <title>Gully Inspection Map (With Login)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js">
-    let currentRole = null;
-    const credentials = { admin: 'admin123', operator: 'operator123', viewer: 'viewer123' };
-    function login() {
-      const user = document.getElementById("username").value.trim().toLowerCase();
-      const pass = document.getElementById("password").value;
-      if (credentials[user] && credentials[user] === pass) {
-        currentRole = user;
-        document.getElementById("loginScreen").style.display = 'none';
-        document.getElementById("map").style.display = 'block';
-        document.getElementById("controlPanel").style.display = 'block';
-        document.getElementById("summary").style.display = 'block';
-      } else {
-        document.getElementById("loginError").innerText = 'Invalid username or password';
-      }
-    }
-
-    document.getElementById("map").style.display = 'none';
-    document.getElementById("controlPanel").style.display = 'none';
-    document.getElementById("summary").style.display = 'none';
+function logout() {
+  location.reload();
+}
 
 </script>
   <script src="https://unpkg.com/togeojson">
-    let currentRole = null;
-    const credentials = { admin: 'admin123', operator: 'operator123', viewer: 'viewer123' };
-    function login() {
-      const user = document.getElementById("username").value.trim().toLowerCase();
-      const pass = document.getElementById("password").value;
-      if (credentials[user] && credentials[user] === pass) {
-        currentRole = user;
-        document.getElementById("loginScreen").style.display = 'none';
-        document.getElementById("map").style.display = 'block';
-        document.getElementById("controlPanel").style.display = 'block';
-        document.getElementById("summary").style.display = 'block';
-      } else {
-        document.getElementById("loginError").innerText = 'Invalid username or password';
-      }
-    }
-
-    document.getElementById("map").style.display = 'none';
-    document.getElementById("controlPanel").style.display = 'none';
-    document.getElementById("summary").style.display = 'none';
+function logout() {
+  location.reload();
+}
 
 </script>
   <style>
     html, body { height: 100%; margin: 0; font-family: Arial, sans-serif; }
-    #map { height: 100%; }
-    #controlPanel {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      background: white;
-      padding: 10px;
-      border-radius: 6px;
-      box-shadow: 0 0 4px rgba(0,0,0,0.3);
-      z-index: 999;
+    #map { height: 100%; display: none; }
+    #loginScreen {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: #f5f5f5; display: flex; align-items: center; justify-content: center; z-index: 10000;
     }
-    #summary {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: white;
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 0.9em;
-      box-shadow: 0 0 4px rgba(0,0,0,0.3);
-      z-index: 999;
+    #loginBox {
+      background: white; padding: 20px; border-radius: 8px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.3); text-align: center;
     }
+    #controlPanel, #summary {
+      position: absolute; background: white; padding: 10px;
+      border-radius: 6px; box-shadow: 0 0 4px rgba(0,0,0,0.3); z-index: 999;
+    }
+    #controlPanel { bottom: 10px; left: 10px; display: none; }
+    #summary { top: 10px; right: 10px; font-size: 0.9em; display: none; }
     .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #000; }
   </style>
 </head>
 <body>
-  
-<!-- LOGIN SCREEN -->
-<div id="loginScreen" style="position:absolute;top:0;left:0;width:100%;height:100%;background:#f5f5f5;display:flex;align-items:center;justify-content:center;z-index:10000;">
-  <div style="background:white;padding:20px;border-radius:8px;box-shadow:0 0 6px rgba(0,0,0,0.3);text-align:center;">
+<div id="loginScreen">
+  <div id="loginBox">
     <h2>Login</h2>
     <input id="username" placeholder="Username"><br><br>
     <input id="password" type="password" placeholder="Password"><br><br>
@@ -89,183 +49,48 @@
   </div>
 </div>
 
-  <div id="map"></div>
-  <div id="controlPanel">
-    <input type="file" id="importFile" accept=".kml">
-    <button onclick="exportData()">Export CSV</button>
-  </div>
-  <div id="summary">
-    <b>Summary</b><br>
-    <div id="summaryContent"></div>
-    <label>Filter:</label>
-    <select id="filterStatus" onchange="filterByStatus()">
-      <option value="All">All</option>
-      <option value="Clear">Clear</option>
-      <option value="Broken">Broken</option>
-      <option value="Remediation">Remediation</option>
-    </select>
-  </div>
 
-  <script>
-    const map = L.map('map').setView([51.9, -8.5], 13);
+<div id="logoutPanel" style="position:absolute;bottom:10px;right:10px;z-index:1000;">
+  <button onclick="logout()" style="padding:5px 10px;">Logout</button>
+</div>
+
+<div id="map"></div>
+<div id="controlPanel">
+  <input type="file" id="importFile" accept=".kml">
+  <button onclick="exportData()">Export CSV</button>
+</div>
+<div id="summary">
+  <b>Summary</b><br>
+  <div id="summaryContent"></div>
+  <label>Filter:</label>
+  <select id="filterStatus" onchange="filterByStatus()">
+    <option value="All">All</option>
+    <option value="Clear">Clear</option>
+    <option value="Broken">Broken</option>
+    <option value="Remediation">Remediation</option>
+  </select>
+</div>
+
+<script>
+let currentRole = null;
+let map;
+const credentials = { admin: 'admin123', operator: 'operator123', viewer: 'viewer123' };
+const gullyData = [];
+const summaryCounts = { Clear: 0, Broken: 0, Remediation: 0 };
+const storageKey = 'gully_inspections';
+
+function login() {
+  const user = document.getElementById("username").value.trim().toLowerCase();
+  const pass = document.getElementById("password").value;
+  if (credentials[user] && credentials[user] === pass) {
+    currentRole = user;
+    document.getElementById("loginScreen").style.display = 'none';
+    document.getElementById("map").style.display = 'block';
+    document.getElementById("controlPanel").style.display = 'block';
+    document.getElementById("summary").style.display = 'block';
+
+    map = L.map('map').setView([51.9, -8.5], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-    const gullyData = [];
-    const summaryCounts = { Clear: 0, Broken: 0, Remediation: 0 };
-    const storageKey = 'gully_inspections';
-
-    function createDot(color) {
-      return L.divIcon({
-        className: '',
-        html: `<div class='dot' style='background:${color}'></div>`
-      });
-    }
-
-    function updateSummary() {
-      const total = gullyData.length;
-      document.getElementById("summaryContent").innerHTML = `
-        Total: ${total}<br>
-        Clear: ${summaryCounts.Clear}<br>
-        Broken: ${summaryCounts.Broken}<br>
-        Remediation: ${summaryCounts.Remediation}<br>
-      `;
-    }
-
-    function filterByStatus() {
-      const selected = document.getElementById("filterStatus").value;
-      gullyData.forEach(({ marker, status }) => {
-        if (selected === 'All' || status === selected) {
-          marker.addTo(map);
-        } else {
-          map.removeLayer(marker);
-        }
-      });
-    }
-
-    function saveToLocalStorage() {
-      const simplified = gullyData.map(({ marker, dataLog }) => ({
-        latlng: marker.getLatLng(),
-        dataLog
-      }));
-      localStorage.setItem(storageKey, JSON.stringify(simplified));
-    }
-
-    function loadFromLocalStorage() {
-      const saved = localStorage.getItem(storageKey);
-      if (!saved) return;
-      JSON.parse(saved).forEach(entry => {
-        const marker = L.marker(entry.latlng, { icon: createDot('gray') }).addTo(map);
-        const dataLog = entry.dataLog || [];
-        let lastStatus = 'Unmarked';
-
-        if (dataLog.length > 0) {
-          const last = dataLog[dataLog.length - 1];
-          const ageMs = Date.now() - new Date(last.date).getTime();
-          const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.5);
-          if (last.status === 'Clear') {
-            lastStatus = ageMonths > 12 ? 'Expired' : ageMonths > 6 ? 'Aged' : 'Clear';
-          } else {
-            lastStatus = last.status;
-          }
-          const color = lastStatus === 'Clear' ? 'blue'
-                      : lastStatus === 'Aged' ? 'green'
-                      : lastStatus === 'Expired' ? 'gray'
-                      : lastStatus === 'Broken' ? 'orange'
-                      : lastStatus === 'Remediation' ? 'red'
-                      : 'gray';
-          marker.setIcon(createDot(color));
-          marker.bindTooltip(`${last.status} (${last.date})`);
-        }
-
-        marker.on('click', () => showPopup(marker, entry.latlng, dataLog));
-        gullyData.push({ marker, dataLog, status: lastStatus });
-      });
-      updateSummary();
-    }
-
-    
-    function showPopup(marker, latlng, dataLog) {
-      const popup = document.createElement('div');
-
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      popup.appendChild(document.createTextNode(' Inspection complete: '));
-      popup.appendChild(checkbox); popup.appendChild(document.createElement('br'));
-
-      const dateInput = document.createElement('input');
-      dateInput.type = 'date';
-      const today = new Date().toISOString().split('T')[0];
-      dateInput.value = today;
-      dateInput.max = today;
-      popup.appendChild(document.createTextNode(' Date: '));
-      popup.appendChild(dateInput); popup.appendChild(document.createElement('br'));
-
-      const note = document.createElement('textarea');
-      popup.appendChild(document.createTextNode(' Comment: '));
-      popup.appendChild(note); popup.appendChild(document.createElement('br'));
-
-      const dropdown = document.createElement('select');
-      ['Blocked', 'Clear', 'Remediation', 'Replacement', 'Broken'].forEach(opt => {
-        const option = document.createElement('option');
-        option.value = opt;
-        option.innerText = opt;
-        dropdown.appendChild(option);
-      });
-      popup.appendChild(document.createTextNode(' Status: '));
-      popup.appendChild(dropdown); popup.appendChild(document.createElement('br'));
-
-      const editable = (currentRole === 'admin' || currentRole === 'operator');
-      const adminOnly = (currentRole === 'admin');
-
-      checkbox.disabled = !editable;
-      dateInput.disabled = true;
-      note.disabled = true;
-      dropdown.disabled = true;
-
-      checkbox.onchange = () => {
-        const enable = checkbox.checked;
-        dateInput.disabled = !enable;
-        dropdown.disabled = !enable;
-        note.disabled = !enable;
-      };
-
-      const saveBtn = document.createElement('button');
-      saveBtn.innerText = 'Save';
-      saveBtn.disabled = !editable;
-      saveBtn.onclick = () => {
-        if (!checkbox.checked) return alert('Tick inspection complete');
-        const status = dropdown.value;
-        const date = dateInput.value;
-        const comment = note.value;
-        if (!date) return alert('Date required');
-        const ageMs = Date.now() - new Date(date).getTime();
-        const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.5);
-
-        let iconColor = 'gray';
-        if (status === 'Clear') iconColor = ageMonths > 12 ? 'gray' : ageMonths > 6 ? 'green' : 'blue';
-        else if (status === 'Broken') iconColor = 'orange';
-        else if (status === 'Remediation') iconColor = 'red';
-        else if (status === 'Blocked') iconColor = 'orange';
-
-        marker.setIcon(createDot(iconColor));
-        marker.bindTooltip(`${status} (${date})`);
-        dataLog.push({ lat: latlng.lat, lng: latlng.lng, date, status, comment });
-        saveToLocalStorage();
-        marker.closePopup();
-      };
-      popup.appendChild(saveBtn);
-
-      const logBtn = document.createElement('button');
-      logBtn.innerText = 'View Log';
-      logBtn.onclick = () => {
-        alert(dataLog.map(d => `${d.date}: ${d.status} - ${d.comment}`).join('
-') || 'No entries');
-      };
-      popup.appendChild(logBtn);
-
-      marker.bindPopup(popup).openPopup();
-    }
-
 
     document.getElementById('importFile').addEventListener('change', e => {
       const file = e.target.files[0];
@@ -288,41 +113,167 @@
       reader.readAsText(file);
     });
 
-    function exportData() {
-      let csv = 'Latitude,Longitude,Date,Status,Comment\n';
-      gullyData.forEach(({ dataLog }) => {
-        dataLog.forEach(d =>
-          csv += `${d.lat},${d.lng},${d.date},${d.status},"${d.comment.replace(/"/g, '""')}"\n`);
-      });
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'gully_inspections.csv';
-      link.click();
-    }
-
-    // Load saved data
     loadFromLocalStorage();
-  
-    let currentRole = null;
-    const credentials = { admin: 'admin123', operator: 'operator123', viewer: 'viewer123' };
-    function login() {
-      const user = document.getElementById("username").value.trim().toLowerCase();
-      const pass = document.getElementById("password").value;
-      if (credentials[user] && credentials[user] === pass) {
-        currentRole = user;
-        document.getElementById("loginScreen").style.display = 'none';
-        document.getElementById("map").style.display = 'block';
-        document.getElementById("controlPanel").style.display = 'block';
-        document.getElementById("summary").style.display = 'block';
-      } else {
-        document.getElementById("loginError").innerText = 'Invalid username or password';
-      }
-    }
+  } else {
+    document.getElementById("loginError").innerText = 'Invalid username or password';
+  }
+}
 
-    document.getElementById("map").style.display = 'none';
-    document.getElementById("controlPanel").style.display = 'none';
-    document.getElementById("summary").style.display = 'none';
+function createDot(color) {
+  return L.divIcon({ className: '', html: `<div class='dot' style='background:${color}'></div>` });
+}
+
+function updateSummary() {
+  const total = gullyData.length;
+  document.getElementById("summaryContent").innerHTML =
+    `Total: ${total}<br>Clear: ${summaryCounts.Clear}<br>Broken: ${summaryCounts.Broken}<br>Remediation: ${summaryCounts.Remediation}`;
+}
+
+function filterByStatus() {
+  const selected = document.getElementById("filterStatus").value;
+  gullyData.forEach(({ marker, status }) => {
+    if (selected === 'All' || status === selected) {
+      marker.addTo(map);
+    } else {
+      map.removeLayer(marker);
+    }
+  });
+}
+
+function saveToLocalStorage() {
+  const simplified = gullyData.map(({ marker, dataLog }) => ({
+    latlng: marker.getLatLng(), dataLog
+  }));
+  localStorage.setItem(storageKey, JSON.stringify(simplified));
+}
+
+function loadFromLocalStorage() {
+  const saved = localStorage.getItem(storageKey);
+  if (!saved) return;
+  JSON.parse(saved).forEach(entry => {
+    const marker = L.marker(entry.latlng, { icon: createDot('gray') }).addTo(map);
+    const dataLog = entry.dataLog || [];
+    let lastStatus = 'Unmarked';
+
+    if (dataLog.length > 0) {
+      const last = dataLog[dataLog.length - 1];
+      const ageMs = Date.now() - new Date(last.date).getTime();
+      const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.5);
+      lastStatus = (last.status === 'Clear') ?
+        (ageMonths > 12 ? 'Expired' : ageMonths > 6 ? 'Aged' : 'Clear') : last.status;
+      const color = lastStatus === 'Clear' ? 'blue'
+                  : lastStatus === 'Aged' ? 'green'
+                  : lastStatus === 'Expired' ? 'gray'
+                  : lastStatus === 'Broken' ? 'orange'
+                  : lastStatus === 'Remediation' ? 'red' : 'gray';
+      marker.setIcon(createDot(color));
+      marker.bindTooltip(`${last.status} (${last.date})`);
+    }
+    marker.on('click', () => showPopup(marker, entry.latlng, dataLog));
+    gullyData.push({ marker, dataLog, status: lastStatus });
+  });
+  updateSummary();
+}
+
+function showPopup(marker, latlng, dataLog) {
+  const popup = document.createElement('div');
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  popup.appendChild(document.createTextNode(' Inspection complete: '));
+  popup.appendChild(checkbox); popup.appendChild(document.createElement('br'));
+
+  const dateInput = document.createElement('input');
+  dateInput.type = 'date';
+  const today = new Date().toISOString().split('T')[0];
+  dateInput.value = today;
+  dateInput.max = today;
+  popup.appendChild(document.createTextNode(' Date: '));
+  popup.appendChild(dateInput); popup.appendChild(document.createElement('br'));
+
+  const note = document.createElement('textarea');
+  popup.appendChild(document.createTextNode(' Comment: '));
+  popup.appendChild(note); popup.appendChild(document.createElement('br'));
+
+  const dropdown = document.createElement('select');
+  ['Blocked', 'Clear', 'Remediation', 'Replacement', 'Broken'].forEach(opt => {
+    const option = document.createElement('option');
+    option.value = opt;
+    option.innerText = opt;
+    dropdown.appendChild(option);
+  });
+  popup.appendChild(document.createTextNode(' Status: '));
+  popup.appendChild(dropdown); popup.appendChild(document.createElement('br'));
+
+  const editable = (currentRole === 'admin' || currentRole === 'operator');
+  const adminOnly = (currentRole === 'admin');
+
+  checkbox.disabled = !editable;
+  dateInput.disabled = !adminOnly;
+  note.disabled = !adminOnly;
+  dropdown.disabled = !adminOnly;
+
+  checkbox.onchange = () => {
+    const enable = checkbox.checked;
+    if (adminOnly) {
+      dateInput.disabled = !enable;
+      dropdown.disabled = !enable;
+      note.disabled = !enable;
+    }
+  };
+
+  const saveBtn = document.createElement('button');
+  saveBtn.innerText = 'Save';
+  saveBtn.disabled = !editable;
+  saveBtn.onclick = () => {
+    if (!checkbox.checked) return alert('Tick inspection complete');
+    const status = dropdown.value;
+    const date = dateInput.value;
+    const comment = note.value;
+    if (!date) return alert('Date required');
+    const ageMs = Date.now() - new Date(date).getTime();
+    const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.5);
+
+    let iconColor = 'gray';
+    if (status === 'Clear') iconColor = ageMonths > 12 ? 'gray' : ageMonths > 6 ? 'green' : 'blue';
+    else if (status === 'Broken') iconColor = 'orange';
+    else if (status === 'Remediation') iconColor = 'red';
+    else if (status === 'Blocked') iconColor = 'orange';
+
+    marker.setIcon(createDot(iconColor));
+    marker.bindTooltip(`${status} (${date})`);
+    dataLog.push({ lat: latlng.lat, lng: latlng.lng, date, status, comment });
+    saveToLocalStorage();
+    marker.closePopup();
+  };
+  popup.appendChild(saveBtn);
+
+  const logBtn = document.createElement('button');
+  logBtn.innerText = 'View Log';
+  logBtn.onclick = () => {
+    alert(dataLog.map(d => `${d.date}: ${d.status} - ${d.comment}`).join('\n') || 'No entries');
+  };
+  popup.appendChild(logBtn);
+
+  marker.bindPopup(popup).openPopup();
+}
+
+function exportData() {
+  let csv = 'Latitude,Longitude,Date,Status,Comment\n';
+  gullyData.forEach(({ dataLog }) => {
+    dataLog.forEach(d =>
+      csv += `${d.lat},${d.lng},${d.date},${d.status},"${d.comment.replace(/"/g, '""')}"\n`);
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'gully_inspections.csv';
+  link.click();
+}
+
+function logout() {
+  location.reload();
+}
 
 </script>
 </body>
