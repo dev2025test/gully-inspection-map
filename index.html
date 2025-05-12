@@ -128,7 +128,7 @@ function resetMap() {
 <script>
 let currentRole = null;
 let map;
-const importedFiles = new Set();  // Track imported file names
+const importedFiles = new Set(); // Track imported file names
 const credentials = { admin: 'admin123', operator: 'operator123', viewer: 'viewer123' };
 const gullyData = [];
 const summaryCounts = { Clear: 0, Broken: 0, Remediation: 0 , Replacement: 0, Unmarked: 0, Expired: 0};
@@ -155,8 +155,6 @@ function login() {
     return;
   }
   importedFiles.add(file.name);
-
-      const file = e.target.files[0];
       const reader = new FileReader();
       reader.onload = () => {
         const kml = new DOMParser().parseFromString(reader.result, 'text/xml');
