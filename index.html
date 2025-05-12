@@ -178,11 +178,19 @@ function createDot(color) {
   return L.divIcon({ className: '', html: `<div class='dot' style='background:${color}'></div>` });
 }
 
+
 function updateSummary() {
   const total = gullyData.length;
   document.getElementById("summaryContent").innerHTML =
-    `Total: ${total}<br>Clear: ${summaryCounts.Clear}<br>Broken: ${summaryCounts.Broken}<br>Remediation: ${summaryCounts.Remediation}`;
+    `Total: ${total}<br>
+     <span style='color:yellow;'>⬤</span> Replacement: ${summaryCounts.Replacement} - Asset to be replaced<br>
+     <span style='color:blue;'>⬤</span> Clear: ${summaryCounts.Clear} - Functioning as intended<br>
+     <span style='color:orange;'>⬤</span> Broken: ${summaryCounts.Broken} - Requires urgent repair<br>
+     <span style='color:red;'>⬤</span> Remediation: ${summaryCounts.Remediation} - Needs maintenance intervention<br>
+     <span style='color:gray;'>⬤</span> Expired: ${summaryCounts.Expired} - Last inspection over 12 months<br>
+     <span style='color:lightgray;'>⬤</span> Unmarked: ${summaryCounts.Unmarked} - No inspection data yet`;
 }
+
 
 function filterByStatus() {
   const selected = document.getElementById("filterStatus").value;
