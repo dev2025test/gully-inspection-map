@@ -166,11 +166,14 @@ function loadFromLocalStorage() {
                   : lastStatus === 'Aged' ? 'green'
                   : lastStatus === 'Expired' ? 'gray'
                   : lastStatus === 'Broken' ? 'orange'
-                  : lastStatus === 'Remediation' ? 'red' : 'gray';
+                  : lastStatus === 'Remediation' ? 'red'
+                  : lastStatus === 'Replacement' ? 'yellow'
+                  : 'gray';
       marker.setIcon(createDot(color));
       marker.bindTooltip(`${last.status} (${last.date})`);
     }
     marker.on('click', () => showPopup(marker, entry.latlng, dataLog));
+    if (summaryCounts[lastStatus] !== undefined) summaryCounts[lastStatus]++;
     if (summaryCounts[lastStatus] !== undefined) summaryCounts[lastStatus]++;
     gullyData.push({ marker, dataLog, status: lastStatus });
   });
