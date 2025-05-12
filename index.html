@@ -50,14 +50,12 @@ function logout() {
 </div>
 
 
-<div id="logoutPanel" style="position:absolute;top:10px;left:10px;z-index:1000;">
-  <button onclick="logout()" style="padding:5px 10px;">Logout</button>
-</div>
-
 <div id="map"></div>
 <div id="controlPanel">
   <input type="file" id="importFile" accept=".kml">
+  
   <button onclick="exportData()">Export CSV</button>
+  <button onclick="logout()" style="margin-left: 10px;">Logout</button>
 </div>
 <div id="summary">
   <b>Summary</b><br>
