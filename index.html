@@ -11,13 +11,25 @@ function logout() {
   location.reload();
 }
 
+
+function toggleControls() {
+  const panel = document.getElementById("controlWrapper");
+  panel.style.display = (panel.style.display === "none") ? "block" : "none";
+}
 </script>
+
   <script src="https://unpkg.com/togeojson">
 function logout() {
   location.reload();
 }
 
+
+function toggleControls() {
+  const panel = document.getElementById("controlWrapper");
+  panel.style.display = (panel.style.display === "none") ? "block" : "none";
+}
 </script>
+
   <style>
     html, body { height: 100%; margin: 0; font-family: Arial, sans-serif; }
     #map { height: 100%; display: none; }
@@ -39,6 +51,21 @@ function logout() {
   </style>
 </head>
 <body>
+
+<script>
+window.onload = function () {
+  document.getElementById("map").style.display = 'none';
+  document.getElementById("controlPanel").style.display = 'none';
+  document.getElementById("summary").style.display = 'none';
+};
+
+function toggleControls() {
+  const panel = document.getElementById("controlWrapper");
+  panel.style.display = (panel.style.display === "none") ? "block" : "none";
+}
+</script>
+
+
 <div id="loginScreen">
   <div id="loginBox">
     <h2>Login</h2>
@@ -50,18 +77,36 @@ function logout() {
 </div>
 
 
-<div id="logoutPanel" style="position:absolute;bottom:10px;right:10px;z-index:1000;">
+
+
+<div id="controlToggle" style="position:absolute;bottom:10px;right:10px;z-index:1001;">
+  <button onclick="toggleControls()" style="padding:5px 10px;">Toggle Panel</button>
+</div>
+
+<div id="controlWrapper" style="position:absolute;bottom:50px;right:10px;z-index:1000;background:#fff;padding:10px;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,0.3); font-size: 0.9em;">
+  <div id="summary">
+    <b>Summary</b><br>
+    <div id="summaryContent"></div>
+    <label>Filter:</label>
+    <select id="filterStatus" onchange="filterByStatus()">
+      <option value="All">All</option>
+      <option value="Clear">Clear</option>
+      <option value="Broken">Broken</option>
+      <option value="Remediation">Remediation</option>
+    </select>
+  </div>
+  <br>
+  <div id="controlPanel">
+    <input type="file" id="importFile" accept=".kml"><br><br>
+    <button onclick="exportData()">Export CSV</button>
+  </div>
+  <br>
   <button onclick="logout()" style="padding:5px 10px;">Logout</button>
 </div>
 
 <div id="map"></div>
-<div id="controlPanel">
-  <input type="file" id="importFile" accept=".kml">
-  <button onclick="exportData()">Export CSV</button>
-</div>
-<div id="summary">
-  <b>Summary</b><br>
-  <div id="summaryContent"></div>
+
+
   <label>Filter:</label>
   <select id="filterStatus" onchange="filterByStatus()">
     <option value="All">All</option>
@@ -230,6 +275,38 @@ function showPopup(marker, latlng, dataLog) {
     const status = dropdown.value;
     const date = dateInput.value;
     const comment = note.value;
+    const photoFile = photoInput.files[0];
+    if (!date) return alert('Date required');
+
+    const reader = new FileReader();
+    reader.onload = function () {
+      const photoData = reader.result || "";
+      const ageMs = Date.now() - new Date(date).getTime();
+      const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.5);
+
+      let iconColor = 'gray';
+      if (status === 'Clear') iconColor = ageMonths > 12 ? 'gray' : ageMonths > 6 ? 'green' : 'blue';
+      else if (status === 'Broken') iconColor = 'orange';
+      else if (status === 'Remediation') iconColor = 'red';
+      else if (status === 'Blocked') iconColor = 'orange';
+
+      marker.setIcon(createDot(iconColor));
+      marker.bindTooltip(`${status} (${date})`);
+      dataLog.push({ lat: latlng.lat, lng: latlng.lng, date, status, comment, photo: photoData });
+      saveToLocalStorage();
+      marker.closePopup();
+    };
+    if (photoFile) {
+      reader.readAsDataURL(photoFile);
+    } else {
+      reader.onload();
+    }
+    return;
+
+    if (!checkbox.checked) return alert('Tick inspection complete');
+    const status = dropdown.value;
+    const date = dateInput.value;
+    const comment = note.value;
     if (!date) return alert('Date required');
     const ageMs = Date.now() - new Date(date).getTime();
     const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.5);
@@ -275,6 +352,12 @@ function logout() {
   location.reload();
 }
 
+
+function toggleControls() {
+  const panel = document.getElementById("controlWrapper");
+  panel.style.display = (panel.style.display === "none") ? "block" : "none";
+}
 </script>
+
 </body>
 </html>
