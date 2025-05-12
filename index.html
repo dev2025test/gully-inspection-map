@@ -204,6 +204,14 @@ function showPopup(marker, latlng, dataLog) {
   });
   popup.appendChild(document.createTextNode(' Status: '));
   popup.appendChild(dropdown); popup.appendChild(document.createElement('br'));
+  const photoInput = document.createElement('input');
+  photoInput.type = 'file';
+  photoInput.accept = 'image/*';
+  photoInput.capture = 'environment';
+  popup.appendChild(document.createTextNode(' Take Photo: '));
+  popup.appendChild(photoInput);
+  popup.appendChild(document.createElement('br'));
+
 
   const editable = (currentRole === 'admin' || currentRole === 'operator');
   const adminOnly = (currentRole === 'admin');
@@ -224,6 +232,12 @@ function showPopup(marker, latlng, dataLog) {
 
   const saveBtn = document.createElement('button');
   saveBtn.innerText = 'Save';
+  const photoBtn = document.createElement('button');
+  photoBtn.innerText = 'Take Photo';
+  photoBtn.onclick = () => {
+    photoInput.click();
+  };
+
   saveBtn.disabled = !editable;
   saveBtn.onclick = () => {
     if (!checkbox.checked) return alert('Tick inspection complete');
@@ -242,11 +256,23 @@ function showPopup(marker, latlng, dataLog) {
 
     marker.setIcon(createDot(iconColor));
     marker.bindTooltip(`${status} (${date})`);
-    dataLog.push({ lat: latlng.lat, lng: latlng.lng, date, status, comment });
-    saveToLocalStorage();
-    marker.closePopup();
+    const photoFile = photoInput.files[0];
+    const reader = new FileReader();
+    reader.onload = function () {
+      const photoData = reader.result || "";
+      dataLog.push({ lat: latlng.lat, lng: latlng.lng, date, status, comment, photo: photoData });
+      saveToLocalStorage();
+      marker.closePopup();
+    };
+    if (photoFile) {
+      reader.readAsDataURL(photoFile);
+    } else {
+      reader.onload();
+    }
+    return;
   };
-  popup.appendChild(saveBtn);
+  popup.appendChild(photoBtn);
+popup.appendChild(saveBtn);
 
   const logBtn = document.createElement('button');
   logBtn.innerText = 'View Log';
