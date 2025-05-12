@@ -344,7 +344,7 @@ popup.appendChild(saveBtn);
 }
 
 function exportData() {
-  let csv = 'Latitude,Longitude,Date,Status,Comment\n';
+  let csv = 'Latitude,Longitude,Gully Name,Date,Status,Comment\n';
   gullyData.forEach(({ dataLog }) => {
     dataLog.forEach(d =>
       csv += `${d.lat},${d.lng},${d.date},${d.status},"${d.comment.replace(/"/g, '""')}"\n`);
