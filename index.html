@@ -18,11 +18,7 @@ document.getElementById('importFile').addEventListener('change', function() {
 });
 
 
-function toggleLegend() {
-  const panel = document.getElementById("legendPanel");
-  panel.style.display = (panel.style.display === "none") ? "block" : "none";
-}
-
+// Auto-collapse the legend panel after 8 seconds if visible
 </script>
   <script src="https://unpkg.com/togeojson">
 function logout() {
@@ -36,11 +32,7 @@ document.getElementById('importFile').addEventListener('change', function() {
 });
 
 
-function toggleLegend() {
-  const panel = document.getElementById("legendPanel");
-  panel.style.display = (panel.style.display === "none") ? "block" : "none";
-}
-
+// Auto-collapse the legend panel after 8 seconds if visible
 </script>
   <style>
     html, body { height: 100%; margin: 0; font-family: Arial, sans-serif; }
@@ -75,27 +67,7 @@ function toggleLegend() {
 
 
 
-<div id="legend" style="position:absolute;bottom:10px;left:10px;z-index:999;background:white;padding:10px;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,0.3);font-size:0.85em;">
-  <b>Legend</b><br>
-  <span style="color:blue;">⬤</span> Clear<br>
-  <span style="color:orange;">⬤</span> Broken / Blocked<br>
-  <span style="color:yellow;">⬤</span> Replacement<br>
-  <span style="color:red;">⬤</span> Remediation<br>
-  <span style="color:gray;">⬤</span> Expired / Unmarked
-</div>
 
-
-<div style="position:absolute;top:10px;right:10px;z-index:999;">
-  <button onclick="toggleLegend()" style="padding:4px 8px;margin-bottom:4px;">🗺️ Legend</button>
-  <div id="legendPanel" style="background:white;padding:10px;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,0.3);font-size:0.85em;">
-    <b>Legend</b><br>
-    <span style="color:blue;">⬤</span> Clear<br>
-    <span style="color:orange;">⬤</span> Broken / Blocked<br>
-    <span style="color:yellow;">⬤</span> Replacement<br>
-    <span style="color:red;">⬤</span> Remediation<br>
-    <span style="color:gray;">⬤</span> Expired / Unmarked
-  </div>
-</div>
 
 <div id="map"></div>
 <div id="controlPanel">
@@ -360,11 +332,7 @@ document.getElementById('importFile').addEventListener('change', function() {
 });
 
 
-function toggleLegend() {
-  const panel = document.getElementById("legendPanel");
-  panel.style.display = (panel.style.display === "none") ? "block" : "none";
-}
-
+// Auto-collapse the legend panel after 8 seconds if visible
 </script>
 </body>
 </html>
