@@ -39,15 +39,6 @@ function logout() {
   </style>
 </head>
 <body>
-
-<script>
-window.onload = function () {
-  document.getElementById("map").style.display = 'none';
-  document.getElementById("controlPanel").style.display = 'none';
-  document.getElementById("summary").style.display = 'none';
-};
-</script>
-
 <div id="loginScreen">
   <div id="loginBox">
     <h2>Login</h2>
@@ -59,11 +50,14 @@ window.onload = function () {
 </div>
 
 
+<div id="logoutPanel" style="position:absolute;top:10px;left:10px;z-index:1000;">
+  <button onclick="logout()" style="padding:5px 10px;">Logout</button>
+</div>
+
 <div id="map"></div>
 <div id="controlPanel">
-  <label for="importFile" style="margin-right:10px;">Import File:</label><input type="file" id="importFile" accept=".kml">
+  <input type="file" id="importFile" accept=".kml">
   <button onclick="exportData()">Export CSV</button>
-  <button onclick="logout()" style="margin-left:10px;padding:5px 10px;">Logout</button>
 </div>
 <div id="summary">
   <b>Summary</b><br>
@@ -81,7 +75,6 @@ window.onload = function () {
 <script>
 let currentRole = null;
 let map;
-const importedFiles = new Set();
 const credentials = { admin: 'admin123', operator: 'operator123', viewer: 'viewer123' };
 const gullyData = [];
 const summaryCounts = { Clear: 0, Broken: 0, Remediation: 0 , Replacement: 0};
@@ -101,12 +94,6 @@ function login() {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     document.getElementById('importFile').addEventListener('change', e => {
-      const file = e.target.files[0];
-      if (importedFiles.has(file.name)) {
-        alert("This file has already been imported.");
-        return;
-      }
-      importedFiles.add(file.name);
       const file = e.target.files[0];
       const reader = new FileReader();
       reader.onload = () => {
