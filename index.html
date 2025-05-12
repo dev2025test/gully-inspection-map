@@ -319,7 +319,8 @@ function showPopup(marker, latlng, dataLog) {
     const reader = new FileReader();
     reader.onload = function () {
       const photoData = reader.result || "";
-      dataLog.push({ lat: latlng.lat, lng: latlng.lng, date, status, comment, photo: photoData });
+      const gullyName = `Gully_${latlng.lat.toFixed(5)}_${latlng.lng.toFixed(5)}`;
+    dataLog.push({ lat: latlng.lat, lng: latlng.lng, name: gullyName, date, status, comment, photo: photoData });
       saveToLocalStorage();
       marker.closePopup();
     };
