@@ -19,6 +19,20 @@ document.getElementById('importFile').addEventListener('change', function() {
 
 
 // Auto-collapse the legend panel after 8 seconds if visible
+
+function resetMap() {
+  if (!confirm("Are you sure you want to clear all gullies and reset the map?")) return;
+  gullyData.forEach(({ marker }) => {
+    map.removeLayer(marker);
+  });
+  gullyData.length = 0;
+  for (const key in summaryCounts) {
+    summaryCounts[key] = 0;
+  }
+  updateSummary();
+  localStorage.removeItem(storageKey);
+}
+
 </script>
   <script src="https://unpkg.com/togeojson">
 function logout() {
@@ -33,6 +47,20 @@ document.getElementById('importFile').addEventListener('change', function() {
 
 
 // Auto-collapse the legend panel after 8 seconds if visible
+
+function resetMap() {
+  if (!confirm("Are you sure you want to clear all gullies and reset the map?")) return;
+  gullyData.forEach(({ marker }) => {
+    map.removeLayer(marker);
+  });
+  gullyData.length = 0;
+  for (const key in summaryCounts) {
+    summaryCounts[key] = 0;
+  }
+  updateSummary();
+  localStorage.removeItem(storageKey);
+}
+
 </script>
   <style>
     html, body { height: 100%; margin: 0; font-family: Arial, sans-serif; }
@@ -76,6 +104,7 @@ document.getElementById('importFile').addEventListener('change', function() {
 <span id="fileNameDisplay" style="margin-left:10px;font-style:italic;color:#555;"></span>
   
   <button onclick="exportData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">💾 Export</button>
+  <button onclick="resetMap()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">♻️ Reset</button>
   <button onclick="logout()" style="margin-left: 10px;" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">🚪 Logout</button>
 </div>
 <div id="summary">
@@ -339,6 +368,20 @@ document.getElementById('importFile').addEventListener('change', function() {
 
 
 // Auto-collapse the legend panel after 8 seconds if visible
+
+function resetMap() {
+  if (!confirm("Are you sure you want to clear all gullies and reset the map?")) return;
+  gullyData.forEach(({ marker }) => {
+    map.removeLayer(marker);
+  });
+  gullyData.length = 0;
+  for (const key in summaryCounts) {
+    summaryCounts[key] = 0;
+  }
+  updateSummary();
+  localStorage.removeItem(storageKey);
+}
+
 </script>
 </body>
 </html>
