@@ -50,7 +50,7 @@ function logout() {
 </div>
 
 
-<div id="logoutPanel" style="position:absolute;bottom:10px;right:10px;z-index:1000;">
+<div id="logoutPanel" style="position:absolute;top:10px;left:10px;z-index:1000;">
   <button onclick="logout()" style="padding:5px 10px;">Logout</button>
 </div>
 
@@ -226,38 +226,6 @@ function showPopup(marker, latlng, dataLog) {
   saveBtn.innerText = 'Save';
   saveBtn.disabled = !editable;
   saveBtn.onclick = () => {
-    if (!checkbox.checked) return alert('Tick inspection complete');
-    const status = dropdown.value;
-    const date = dateInput.value;
-    const comment = note.value;
-    const photoFile = photoInput.files[0];
-    if (!date) return alert('Date required');
-
-    const reader = new FileReader();
-    reader.onload = function () {
-      const photoData = reader.result || "";
-      const ageMs = Date.now() - new Date(date).getTime();
-      const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.5);
-
-      let iconColor = 'gray';
-      if (status === 'Clear') iconColor = ageMonths > 12 ? 'gray' : ageMonths > 6 ? 'green' : 'blue';
-      else if (status === 'Broken') iconColor = 'orange';
-      else if (status === 'Remediation') iconColor = 'red';
-      else if (status === 'Blocked') iconColor = 'orange';
-
-      marker.setIcon(createDot(iconColor));
-      marker.bindTooltip(`${status} (${date})`);
-      dataLog.push({ lat: latlng.lat, lng: latlng.lng, date, status, comment, photo: photoData });
-      saveToLocalStorage();
-      marker.closePopup();
-    };
-    if (photoFile) {
-      reader.readAsDataURL(photoFile);
-    } else {
-      reader.onload();
-    }
-    return;
-
     if (!checkbox.checked) return alert('Tick inspection complete');
     const status = dropdown.value;
     const date = dateInput.value;
