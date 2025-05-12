@@ -68,8 +68,7 @@ function logout() {
     <option value="Clear">Clear</option>
     <option value="Broken">Broken</option>
     <option value="Remediation">Remediation</option>
-    <option value="Replacement">Replacement</option>
-</select>
+  </select>
 </div>
 
 <script>
@@ -77,7 +76,7 @@ let currentRole = null;
 let map;
 const credentials = { admin: 'admin123', operator: 'operator123', viewer: 'viewer123' };
 const gullyData = [];
-const summaryCounts = { Clear: 0, Broken: 0, Remediation: 0 , Replacement: 0};
+const summaryCounts = { Clear: 0, Broken: 0, Remediation: 0 };
 const storageKey = 'gully_inspections';
 
 function login() {
@@ -166,15 +165,11 @@ function loadFromLocalStorage() {
                   : lastStatus === 'Aged' ? 'green'
                   : lastStatus === 'Expired' ? 'gray'
                   : lastStatus === 'Broken' ? 'orange'
-                  : lastStatus === 'Remediation' ? 'red'
-                  : lastStatus === 'Replacement' ? 'yellow'
-                  : 'gray';
+                  : lastStatus === 'Remediation' ? 'red' : 'gray';
       marker.setIcon(createDot(color));
       marker.bindTooltip(`${last.status} (${last.date})`);
     }
     marker.on('click', () => showPopup(marker, entry.latlng, dataLog));
-    if (summaryCounts[lastStatus] !== undefined) summaryCounts[lastStatus]++;
-    if (summaryCounts[lastStatus] !== undefined) summaryCounts[lastStatus]++;
     gullyData.push({ marker, dataLog, status: lastStatus });
   });
   updateSummary();
@@ -209,14 +204,6 @@ function showPopup(marker, latlng, dataLog) {
   });
   popup.appendChild(document.createTextNode(' Status: '));
   popup.appendChild(dropdown); popup.appendChild(document.createElement('br'));
-  const photoInput = document.createElement('input');
-  photoInput.type = 'file';
-  photoInput.accept = 'image/*';
-  photoInput.capture = 'environment';
-  popup.appendChild(document.createTextNode(' Take Photo: '));
-  popup.appendChild(photoInput);
-  popup.appendChild(document.createElement('br'));
-
 
   const editable = (currentRole === 'admin' || currentRole === 'operator');
   const adminOnly = (currentRole === 'admin');
@@ -237,12 +224,6 @@ function showPopup(marker, latlng, dataLog) {
 
   const saveBtn = document.createElement('button');
   saveBtn.innerText = 'Save';
-  const photoBtn = document.createElement('button');
-  photoBtn.innerText = 'Take Photo';
-  photoBtn.onclick = () => {
-    photoInput.click();
-  };
-
   saveBtn.disabled = !editable;
   saveBtn.onclick = () => {
     if (!checkbox.checked) return alert('Tick inspection complete');
@@ -261,23 +242,11 @@ function showPopup(marker, latlng, dataLog) {
 
     marker.setIcon(createDot(iconColor));
     marker.bindTooltip(`${status} (${date})`);
-    const photoFile = photoInput.files[0];
-    const reader = new FileReader();
-    reader.onload = function () {
-      const photoData = reader.result || "";
-      dataLog.push({ lat: latlng.lat, lng: latlng.lng, date, status, comment, photo: photoData });
-      saveToLocalStorage();
-      marker.closePopup();
-    };
-    if (photoFile) {
-      reader.readAsDataURL(photoFile);
-    } else {
-      reader.onload();
-    }
-    return;
+    dataLog.push({ lat: latlng.lat, lng: latlng.lng, date, status, comment });
+    saveToLocalStorage();
+    marker.closePopup();
   };
-  popup.appendChild(photoBtn);
-popup.appendChild(saveBtn);
+  popup.appendChild(saveBtn);
 
   const logBtn = document.createElement('button');
   logBtn.innerText = 'View Log';
