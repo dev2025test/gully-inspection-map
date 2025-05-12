@@ -52,7 +52,8 @@ function logout() {
 
 <div id="map"></div>
 <div id="controlPanel">
-  <input type="file" id="importFile" accept=".kml">
+  <label for="importFile" style="background:#ddd;padding:6px 12px;border-radius:4px;cursor:pointer;">Import</label>
+<input type="file" id="importFile" accept=".kml" style="display:none;">
   
   <button onclick="exportData()">Export CSV</button>
   <button onclick="logout()" style="margin-left: 10px;">Logout</button>
