@@ -51,6 +51,32 @@ function saveGullyData() {
   link.click();
 }
 
+
+let deleteMode = false;
+
+function enableDeleteMode() {
+  if (currentRole !== 'admin') {
+    alert("Only admins can delete gullies.");
+    return;
+  }
+  alert("Click any gully marker to delete it. This will remove the inspection data.");
+  deleteMode = true;
+
+  gullyData.forEach(({ marker }, index) => {
+    marker.on('click', function onDeleteClick(e) {
+      if (!deleteMode) return;
+      if (confirm("Delete this gully point?")) {
+        map.removeLayer(marker);
+        gullyData.splice(index, 1);
+        updateSummary();
+        saveToLocalStorage();
+        deleteMode = false;
+      }
+      marker.off('click', onDeleteClick); // clean up
+    });
+  });
+}
+
 </script>
   <script src="https://unpkg.com/togeojson">
 function logout() {
@@ -95,6 +121,32 @@ function saveGullyData() {
   link.href = URL.createObjectURL(blob);
   link.download = 'gully_data_backup.json';
   link.click();
+}
+
+
+let deleteMode = false;
+
+function enableDeleteMode() {
+  if (currentRole !== 'admin') {
+    alert("Only admins can delete gullies.");
+    return;
+  }
+  alert("Click any gully marker to delete it. This will remove the inspection data.");
+  deleteMode = true;
+
+  gullyData.forEach(({ marker }, index) => {
+    marker.on('click', function onDeleteClick(e) {
+      if (!deleteMode) return;
+      if (confirm("Delete this gully point?")) {
+        map.removeLayer(marker);
+        gullyData.splice(index, 1);
+        updateSummary();
+        saveToLocalStorage();
+        deleteMode = false;
+      }
+      marker.off('click', onDeleteClick); // clean up
+    });
+  });
 }
 
 </script>
@@ -147,6 +199,7 @@ font-weight:bold;"></div>
   <button onclick="exportData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">💾 Export</button>
   <button onclick="resetMap()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">♻️ Reset</button>
   <button onclick="saveGullyData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">💾 Save Gullies</button>
+  <button onclick="enableDeleteMode()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">🗑️ Delete Gully</button>
   <button onclick="logout()" style="margin-left: 10px;" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">🚪 Logout</button>
 </div>
 <!-- Summary tab with filter and status overview -->
@@ -480,6 +533,32 @@ function saveGullyData() {
   link.href = URL.createObjectURL(blob);
   link.download = 'gully_data_backup.json';
   link.click();
+}
+
+
+let deleteMode = false;
+
+function enableDeleteMode() {
+  if (currentRole !== 'admin') {
+    alert("Only admins can delete gullies.");
+    return;
+  }
+  alert("Click any gully marker to delete it. This will remove the inspection data.");
+  deleteMode = true;
+
+  gullyData.forEach(({ marker }, index) => {
+    marker.on('click', function onDeleteClick(e) {
+      if (!deleteMode) return;
+      if (confirm("Delete this gully point?")) {
+        map.removeLayer(marker);
+        gullyData.splice(index, 1);
+        updateSummary();
+        saveToLocalStorage();
+        deleteMode = false;
+      }
+      marker.off('click', onDeleteClick); // clean up
+    });
+  });
 }
 
 </script>
