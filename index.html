@@ -34,6 +34,23 @@ function resetMap() {
   localStorage.removeItem(storageKey);
 }
 
+
+function saveGullyData() {
+  if (currentRole !== 'admin') {
+    alert("Only admins can save gully data.");
+    return;
+  }
+  const data = gullyData.map(({ marker, dataLog }) => ({
+    latlng: marker.getLatLng(),
+    dataLog
+  }));
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'gully_data_backup.json';
+  link.click();
+}
+
 </script>
   <script src="https://unpkg.com/togeojson">
 function logout() {
@@ -61,6 +78,23 @@ function resetMap() {
   }
   updateSummary();
   localStorage.removeItem(storageKey);
+}
+
+
+function saveGullyData() {
+  if (currentRole !== 'admin') {
+    alert("Only admins can save gully data.");
+    return;
+  }
+  const data = gullyData.map(({ marker, dataLog }) => ({
+    latlng: marker.getLatLng(),
+    dataLog
+  }));
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'gully_data_backup.json';
+  link.click();
 }
 
 </script>
@@ -112,6 +146,7 @@ font-weight:bold;"></div>
   
   <button onclick="exportData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">💾 Export</button>
   <button onclick="resetMap()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">♻️ Reset</button>
+  <button onclick="saveGullyData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">💾 Save Gullies</button>
   <button onclick="logout()" style="margin-left: 10px;" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">🚪 Logout</button>
 </div>
 <!-- Summary tab with filter and status overview -->
@@ -428,6 +463,23 @@ function resetMap() {
   }
   updateSummary();
   localStorage.removeItem(storageKey);
+}
+
+
+function saveGullyData() {
+  if (currentRole !== 'admin') {
+    alert("Only admins can save gully data.");
+    return;
+  }
+  const data = gullyData.map(({ marker, dataLog }) => ({
+    latlng: marker.getLatLng(),
+    dataLog
+  }));
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'gully_data_backup.json';
+  link.click();
 }
 
 </script>
