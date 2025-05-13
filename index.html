@@ -310,59 +310,31 @@ function showPopup(marker, latlng, dataLog) {
     }
   };
 
+  
   const saveBtn = document.createElement('button');
   saveBtn.innerText = '💾 Save';
+
   const photoBtn = document.createElement('button');
   photoBtn.innerText = '📷 Take Photo';
   photoBtn.onclick = () => {
     photoInput.click();
   };
 
-  saveBtn.disabled = !editable;
-  saveBtn.onclick = () => {
-    if (!checkbox.checked) return alert('Tick inspection complete');
-    const status = dropdown.value;
-    const date = dateInput.value;
-    const comment = note.value;
-    if (!date) return alert('Date required');
-    const ageMs = Date.now() - new Date(date).getTime();
-    const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.5);
-
-    let iconColor = 'gray';
-    if (status === 'Clear') iconColor = ageMonths > 12 ? 'gray' : ageMonths > 6 ? 'green' : 'blue';
-    else if (status === 'Broken') iconColor = 'orange';
-    else if (status === 'Remediation') iconColor = 'red';
-    else if (status === 'Blocked') iconColor = 'orange';
-
-    marker.setIcon(createDot(iconColor));
-    marker.bindTooltip(`${status} (${date})`);
-    const photoFile = photoInput.files[0];
-    const reader = new FileReader();
-    reader.onload = function () {
-      const photoData = reader.result || "";
-      const gullyName = `Gully_${latlng.lat.toFixed(5)}_${latlng.lng.toFixed(5)}`;
-    dataLog.push({ lat: latlng.lat, lng: latlng.lng, name: gullyName, date, status, comment, photo: photoData });
-      saveToLocalStorage();
-      marker.closePopup();
-    };
-    if (photoFile) {
-      reader.readAsDataURL(photoFile);
-    } else {
-      reader.onload();
-    }
-    return;
-  };
-  popup.appendChild(photoBtn);
-popup.appendChild(saveBtn);
-
   const logBtn = document.createElement('button');
   logBtn.innerText = '📋 View Log';
   logBtn.onclick = () => {
-    alert(dataLog.map(d => `${d.date}: ${d.status} - ${d.comment}`).join('\n') || 'No entries');
+    alert(dataLog.map(d => `${d.date}: ${d.status} - ${d.comment}`).join('
+') || 'No entries');
   };
-  popup.appendChild(logBtn);
 
+  if (currentRole === 'admin' || currentRole === 'operator') {
+    popup.appendChild(photoBtn);
+    popup.appendChild(saveBtn);
+  }
+
+  popup.appendChild(logBtn);
   marker.bindPopup(popup).openPopup();
+
 }
 
 // Exports all inspection data to CSV including gully name
