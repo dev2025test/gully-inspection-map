@@ -453,7 +453,8 @@ function showPopup(marker, latlng, dataLog) {
       const gullyName = `Gully_${latlng.lat.toFixed(5)}_${latlng.lng.toFixed(5)}`;
     dataLog.push({ lat: latlng.lat, lng: latlng.lng, name: gullyName, date, status, comment, photo: photoData });
       saveToLocalStorage();
-      marker.closePopup();
+      updateSummary();
+    marker.closePopup();
     };
     if (photoFile) {
       reader.readAsDataURL(photoFile);
