@@ -302,10 +302,37 @@ function createDot(color) {
 
 
 // Updates the summary content based on gully status counts
+
 function updateSummary() {
+  const counts = {
+    Clear: 0,
+    Broken: 0,
+    Remediation: 0,
+    Replacement: 0,
+    Expired: 0,
+    Unmarked: 0
+  };
+
+  gullyData.forEach(g => {
+    const last = g.dataLog[g.dataLog.length - 1];
+    if (last && counts[last.status] !== undefined) {
+      counts[last.status]++;
+    } else {
+      counts.Unmarked++;
+    }
+  });
+
   const total = gullyData.length;
   document.getElementById("summaryContent").innerHTML =
     `Total: ${total}<br>
+     <span style='color:yellow;'>⬤</span> Replacement: ${counts.Replacement} - Asset to be replaced<br>
+     <span style='color:blue;'>⬤</span> Clear: ${counts.Clear} - Functioning as intended<br>
+     <span style='color:orange;'>⬤</span> Broken: ${counts.Broken} - Requires urgent repair<br>
+     <span style='color:red;'>⬤</span> Remediation: ${counts.Remediation} - Needs maintenance intervention<br>
+     <span style='color:gray;'>⬤</span> Expired: ${counts.Expired} - Last inspection over 12 months<br>
+     <span style='color:lightgray;'>⬤</span> Unmarked: ${counts.Unmarked} - No inspection data yet`;
+}
+<br>
      <span style='color:yellow;'>⬤</span> Replacement: ${summaryCounts.Replacement} - Asset to be replaced<br>
      <span style='color:blue;'>⬤</span> Clear: ${summaryCounts.Clear} - Functioning as intended<br>
      <span style='color:orange;'>⬤</span> Broken: ${summaryCounts.Broken} - Requires urgent repair<br>
