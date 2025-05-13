@@ -85,6 +85,9 @@ function resetMap() {
   </style>
 </head>
 <body>
+<div id="roleBanner" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);
+background:#eee;padding:8px 20px;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,0.3);z-index:1001;
+font-weight:bold;"></div>
 <!-- Login Screen UI -->
 <div id="loginScreen">
   <div id="loginBox">
@@ -140,11 +143,27 @@ function login() {
   const pass = document.getElementById("password").value;
   if (credentials[user] && credentials[user] === pass) {
     currentRole = user;
+    document.getElementById("roleBanner").innerText = "Logged in as: " + user.toUpperCase();
+    if (user !== 'admin') {
+      const importBtn = document.getElementById("importFile");
+      const exportBtn = document.querySelector("button[onclick='exportData()']");
+      const resetBtn = document.querySelector("button[onclick='resetMap()']");
+      if (importBtn) { importBtn.disabled = true; importBtn.style.opacity = 0.5; importBtn.title = 'Disabled'; }
+      if (exportBtn) { exportBtn.disabled = true; exportBtn.style.opacity = 0.5; exportBtn.title = 'Disabled'; }
+      if (resetBtn) { resetBtn.disabled = true; resetBtn.style.opacity = 0.5; resetBtn.title = 'Disabled'; }
+    }
+    if (user === 'viewer') {
+      const logoutBtn = document.querySelector("button[onclick='logout()']");
+      document.querySelectorAll("#controlPanel button").forEach(btn => {
+        if (btn !== logoutBtn) {
+          btn.disabled = true;
+          btn.style.opacity = 0.5;
+          btn.title = 'Viewer access only';
+        }
+      });
+    }
     document.getElementById("loginScreen").style.display = 'none';
     document.getElementById("map").style.display = 'block';
-    if (currentRole !== 'admin') {
-      document.getElementById("controlPanel").style.display = 'none';
-    }
     document.getElementById("controlPanel").style.display = 'block';
     document.getElementById("summary").style.display = 'block';
 
@@ -321,8 +340,7 @@ function showPopup(marker, latlng, dataLog) {
     photoInput.click();
   };
 
-  saveBtn.disabled = !(currentRole === 'admin' || currentRole === 'operator');
-  photoBtn.disabled = !(currentRole === 'admin' || currentRole === 'operator');
+  saveBtn.disabled = !editable;
   saveBtn.onclick = () => {
     if (!checkbox.checked) return alert('Tick inspection complete');
     const status = dropdown.value;
@@ -356,8 +374,10 @@ function showPopup(marker, latlng, dataLog) {
     }
     return;
   };
-  popup.appendChild(photoBtn);
-popup.appendChild(saveBtn);
+  if (currentRole === 'admin' || currentRole === 'operator') {
+    popup.appendChild(photoBtn);
+    popup.appendChild(saveBtn);
+  }
 
   const logBtn = document.createElement('button');
   logBtn.innerText = '📋 View Log';
