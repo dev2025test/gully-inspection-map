@@ -26,11 +26,8 @@ function resetMap() {
   gullyData.forEach(({ marker }) => {
     map.removeLayer(marker);
   });
-  gullyData.length = 0;
-  for (const key in summaryCounts) {
-    summaryCounts[key] = 0;
-  }
-  updateSummary();
+    updateSummary();
+        saveToLocalStorage();
   localStorage.removeItem(storageKey);
 }
 
@@ -70,6 +67,7 @@ function enableDeleteMode() {
         gullyData.splice(index, 1);
         updateSummary();
         saveToLocalStorage();
+        saveToLocalStorage();
         deleteMode = false;
       }
       marker.off('click', onDeleteClick); // clean up
@@ -98,11 +96,8 @@ function resetMap() {
   gullyData.forEach(({ marker }) => {
     map.removeLayer(marker);
   });
-  gullyData.length = 0;
-  for (const key in summaryCounts) {
-    summaryCounts[key] = 0;
-  }
-  updateSummary();
+    updateSummary();
+        saveToLocalStorage();
   localStorage.removeItem(storageKey);
 }
 
@@ -141,6 +136,7 @@ function enableDeleteMode() {
         map.removeLayer(marker);
         gullyData.splice(index, 1);
         updateSummary();
+        saveToLocalStorage();
         saveToLocalStorage();
         deleteMode = false;
       }
@@ -257,6 +253,7 @@ function login() {
 
     map = L.map('map').setView([51.9, -8.5], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    loadFromLocalStorage();
 
     document.getElementById('importFile').addEventListener('change', e => {
   const file = e.target.files[0];
@@ -280,16 +277,13 @@ function login() {
           }
         });
         updateSummary();
+        saveToLocalStorage();
       };
       reader.readAsText(file);
     });
 
     
-    gullyData.length = 0;
-    for (const key in summaryCounts) {
-      summaryCounts[key] = 0;
-    }
-
+    
     loadFromLocalStorage();
   } else {
     document.getElementById("loginError").innerText = 'Invalid username or password';
@@ -383,6 +377,7 @@ function loadFromLocalStorage() {
     gullyData.push({ marker, dataLog, status: lastStatus });
   });
   updateSummary();
+        saveToLocalStorage();
 }
 
 function showPopup(marker, latlng, dataLog) {
@@ -474,6 +469,7 @@ function showPopup(marker, latlng, dataLog) {
     dataLog.push({ lat: latlng.lat, lng: latlng.lng, name: gullyName, date, status, comment, photo: photoData });
       saveToLocalStorage();
       updateSummary();
+        saveToLocalStorage();
     marker.closePopup();
     };
     if (photoFile) {
@@ -531,11 +527,8 @@ function resetMap() {
   gullyData.forEach(({ marker }) => {
     map.removeLayer(marker);
   });
-  gullyData.length = 0;
-  for (const key in summaryCounts) {
-    summaryCounts[key] = 0;
-  }
-  updateSummary();
+    updateSummary();
+        saveToLocalStorage();
   localStorage.removeItem(storageKey);
 }
 
@@ -574,6 +567,7 @@ function enableDeleteMode() {
         map.removeLayer(marker);
         gullyData.splice(index, 1);
         updateSummary();
+        saveToLocalStorage();
         saveToLocalStorage();
         deleteMode = false;
       }
