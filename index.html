@@ -26,8 +26,11 @@ function resetMap() {
   gullyData.forEach(({ marker }) => {
     map.removeLayer(marker);
   });
-    updateSummary();
-        saveToLocalStorage();
+  gullyData.length = 0;
+  for (const key in summaryCounts) {
+    summaryCounts[key] = 0;
+  }
+  updateSummary();
   localStorage.removeItem(storageKey);
 }
 
@@ -66,7 +69,6 @@ function enableDeleteMode() {
         map.removeLayer(marker);
         gullyData.splice(index, 1);
         updateSummary();
-        saveToLocalStorage();
         saveToLocalStorage();
         deleteMode = false;
       }
@@ -96,8 +98,11 @@ function resetMap() {
   gullyData.forEach(({ marker }) => {
     map.removeLayer(marker);
   });
-    updateSummary();
-        saveToLocalStorage();
+  gullyData.length = 0;
+  for (const key in summaryCounts) {
+    summaryCounts[key] = 0;
+  }
+  updateSummary();
   localStorage.removeItem(storageKey);
 }
 
@@ -136,7 +141,6 @@ function enableDeleteMode() {
         map.removeLayer(marker);
         gullyData.splice(index, 1);
         updateSummary();
-        saveToLocalStorage();
         saveToLocalStorage();
         deleteMode = false;
       }
@@ -253,7 +257,6 @@ function login() {
 
     map = L.map('map').setView([51.9, -8.5], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    loadFromLocalStorage();
 
     document.getElementById('importFile').addEventListener('change', e => {
   const file = e.target.files[0];
@@ -277,13 +280,16 @@ function login() {
           }
         });
         updateSummary();
-        saveToLocalStorage();
       };
       reader.readAsText(file);
     });
 
     
-    
+    gullyData.length = 0;
+    for (const key in summaryCounts) {
+      summaryCounts[key] = 0;
+    }
+
     loadFromLocalStorage();
   } else {
     document.getElementById("loginError").innerText = 'Invalid username or password';
@@ -347,11 +353,28 @@ function saveToLocalStorage() {
   localStorage.setItem(storageKey, JSON.stringify(simplified));
 }
 
+
 function loadFromLocalStorage() {
   const saved = localStorage.getItem(storageKey);
   if (!saved) return;
-  JSON.parse(saved).forEach(entry => {
-    const marker = L.marker(entry.latlng, { icon: createDot('gray') }).addTo(map);
+
+  // Clear previous gullies from map and gullyData
+  gullyData.forEach(({ marker }) => {
+    map.removeLayer(marker);
+  });
+  gullyData.length = 0;
+
+  const entries = JSON.parse(saved);
+  entries.forEach(entry => {
+    const marker = L.circleMarker(entry.latlng, { radius: 6, color: 'gray', fillColor: 'gray', fillOpacity: 1 }).addTo(map);
+    const status = entry.dataLog.length ? entry.dataLog[entry.dataLog.length - 1].status : 'Unmarked';
+    gullyData.push({ marker, dataLog: entry.dataLog, status });
+    marker.on('click', () => showPopup(marker, entry.latlng, entry.dataLog));
+  });
+
+  updateSummary();
+}
+).addTo(map);
     const dataLog = entry.dataLog || [];
     let lastStatus = 'Unmarked';
 
@@ -377,7 +400,6 @@ function loadFromLocalStorage() {
     gullyData.push({ marker, dataLog, status: lastStatus });
   });
   updateSummary();
-        saveToLocalStorage();
 }
 
 function showPopup(marker, latlng, dataLog) {
@@ -469,7 +491,6 @@ function showPopup(marker, latlng, dataLog) {
     dataLog.push({ lat: latlng.lat, lng: latlng.lng, name: gullyName, date, status, comment, photo: photoData });
       saveToLocalStorage();
       updateSummary();
-        saveToLocalStorage();
     marker.closePopup();
     };
     if (photoFile) {
@@ -527,8 +548,11 @@ function resetMap() {
   gullyData.forEach(({ marker }) => {
     map.removeLayer(marker);
   });
-    updateSummary();
-        saveToLocalStorage();
+  gullyData.length = 0;
+  for (const key in summaryCounts) {
+    summaryCounts[key] = 0;
+  }
+  updateSummary();
   localStorage.removeItem(storageKey);
 }
 
@@ -567,7 +591,6 @@ function enableDeleteMode() {
         map.removeLayer(marker);
         gullyData.splice(index, 1);
         updateSummary();
-        saveToLocalStorage();
         saveToLocalStorage();
         deleteMode = false;
       }
