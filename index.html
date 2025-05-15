@@ -26,8 +26,11 @@ function resetMap() {
   gullyData.forEach(({ marker }) => {
     map.removeLayer(marker);
   });
-    updateSummary();
-        saveToLocalStorage();
+  gullyData.length = 0;
+  for (const key in summaryCounts) {
+    summaryCounts[key] = 0;
+  }
+  updateSummary();
   localStorage.removeItem(storageKey);
 }
 
@@ -66,7 +69,6 @@ function enableDeleteMode() {
         map.removeLayer(marker);
         gullyData.splice(index, 1);
         updateSummary();
-        saveToLocalStorage();
         saveToLocalStorage();
         deleteMode = false;
       }
@@ -96,8 +98,11 @@ function resetMap() {
   gullyData.forEach(({ marker }) => {
     map.removeLayer(marker);
   });
-    updateSummary();
-        saveToLocalStorage();
+  gullyData.length = 0;
+  for (const key in summaryCounts) {
+    summaryCounts[key] = 0;
+  }
+  updateSummary();
   localStorage.removeItem(storageKey);
 }
 
@@ -136,7 +141,6 @@ function enableDeleteMode() {
         map.removeLayer(marker);
         gullyData.splice(index, 1);
         updateSummary();
-        saveToLocalStorage();
         saveToLocalStorage();
         deleteMode = false;
       }
@@ -276,13 +280,16 @@ function login() {
           }
         });
         updateSummary();
-        saveToLocalStorage();
       };
       reader.readAsText(file);
     });
 
     
-    
+    gullyData.length = 0;
+    for (const key in summaryCounts) {
+      summaryCounts[key] = 0;
+    }
+
     loadFromLocalStorage();
   } else {
     document.getElementById("loginError").innerText = 'Invalid username or password';
@@ -325,14 +332,7 @@ function updateSummary() {
      <span style='color:gray;'>⬤</span> Expired: ${counts.Expired} - Last inspection over 12 months<br>
      <span style='color:lightgray;'>⬤</span> Unmarked: ${counts.Unmarked} - No inspection data yet`;
 }
-<br>
-     <span style='color:yellow;'>⬤</span> Replacement: ${summaryCounts.Replacement} - Asset to be replaced<br>
-     <span style='color:blue;'>⬤</span> Clear: ${summaryCounts.Clear} - Functioning as intended<br>
-     <span style='color:orange;'>⬤</span> Broken: ${summaryCounts.Broken} - Requires urgent repair<br>
-     <span style='color:red;'>⬤</span> Remediation: ${summaryCounts.Remediation} - Needs maintenance intervention<br>
-     <span style='color:gray;'>⬤</span> Expired: ${summaryCounts.Expired} - Last inspection over 12 months<br>
-     <span style='color:lightgray;'>⬤</span> Unmarked: ${summaryCounts.Unmarked} - No inspection data yet`;
-}
+
 
 
 function filterByStatus() {
@@ -383,7 +383,6 @@ function loadFromLocalStorage() {
     gullyData.push({ marker, dataLog, status: lastStatus });
   });
   updateSummary();
-        saveToLocalStorage();
 }
 
 function showPopup(marker, latlng, dataLog) {
@@ -475,7 +474,6 @@ function showPopup(marker, latlng, dataLog) {
     dataLog.push({ lat: latlng.lat, lng: latlng.lng, name: gullyName, date, status, comment, photo: photoData });
       saveToLocalStorage();
       updateSummary();
-        saveToLocalStorage();
     marker.closePopup();
     };
     if (photoFile) {
@@ -533,8 +531,11 @@ function resetMap() {
   gullyData.forEach(({ marker }) => {
     map.removeLayer(marker);
   });
-    updateSummary();
-        saveToLocalStorage();
+  gullyData.length = 0;
+  for (const key in summaryCounts) {
+    summaryCounts[key] = 0;
+  }
+  updateSummary();
   localStorage.removeItem(storageKey);
 }
 
@@ -573,7 +574,6 @@ function enableDeleteMode() {
         map.removeLayer(marker);
         gullyData.splice(index, 1);
         updateSummary();
-        saveToLocalStorage();
         saveToLocalStorage();
         deleteMode = false;
       }
