@@ -1,4 +1,26 @@
+# Firebase
+.firebase/
+firebase-debug.log
+.firebaserc
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
 .DS_Store
-node_modules/
+
+# Logs
 *.log
+
+# Dependencies
+node_modules/
+
+# Build output
 dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local 
