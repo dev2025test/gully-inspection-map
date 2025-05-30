@@ -141,8 +141,39 @@ function setupUIForRole(role) {
 }
 
 function initMap() {
-  map = L.map('map').setView([51.9, -8.5], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  // Add custom CSS to ensure markers are always on top
+  const customCSS = `
+    .gully-marker {
+      z-index: 1000 !important;
+    }
+    .dot {
+      z-index: 1000 !important;
+      opacity: 1 !important;
+    }
+    .leaflet-marker-icon {
+      z-index: 1000 !important;
+    }
+    .leaflet-marker-pane {
+      z-index: 600 !important;
+    }
+    .leaflet-popup-pane {
+      z-index: 700 !important;
+    }
+  `;
+  const style = document.createElement('style');
+  style.textContent = customCSS;
+  document.head.appendChild(style);
+
+  map = L.map('map', {
+    preferCanvas: false, // Use DOM elements for better z-index control
+    zoomControl: true,
+    maxZoom: 19
+  }).setView([51.9, -8.5], 13);
+  
+  // Add tile layer with explicit z-index
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    zIndex: 100
+  }).addTo(map);
   
   // Add scale control
   L.control.scale().addTo(map);
@@ -151,13 +182,63 @@ function initMap() {
 }
 
 function createDot(color) {
-  // Change to a more visible marker style
   return L.divIcon({
-    className: '',
-    html: `<div class='dot' style='background:${color};width:12px;height:12px;border-radius:50%;border:2px solid black;box-shadow:0 0 3px #fff'></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8]
+    className: 'gully-marker', // Added specific class for styling
+    html: `<div class='dot' style='background:${color};width:20px;height:20px;border-radius:50%;border:3px solid black;box-shadow:0 0 4px white, 0 0 6px black;'></div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12]
   });
+}
+
+function addGullyToMap(latlng, gullyId) {
+  console.log('Adding gully at:', latlng); // Debug log
+  
+  // Create a more visible marker with explicit z-index
+  const marker = L.marker([latlng.lat, latlng.lng], {
+    icon: createDot('#FF0000'), // Bright red color
+    zIndexOffset: 1000,
+    riseOnHover: true,
+    riseOffset: 2000
+  });
+  
+  // Add a permanent tooltip for debugging
+  marker.bindTooltip(`Gully ${gullyId}`, {
+    permanent: true,
+    direction: 'top',
+    offset: [0, -10],
+    className: 'gully-tooltip'
+  });
+  
+  // Add the marker to the map with explicit z-index handling
+  marker.addTo(map);
+  
+  // Force marker to front
+  marker.getElement().style.zIndex = '1000';
+  
+  marker.on('click', () => {
+    if (deleteMode) {
+      handleGullyDelete(gullyId, marker);
+    } else {
+      showInspectionPopup(marker, gullyId, latlng);
+    }
+  });
+  
+  db.ref(`gullies/${gullyId}`).set({
+    location: latlng,
+    created: firebase.database.ServerValue.TIMESTAMP
+  });
+  
+  gullyData.push({ marker, id: gullyId });
+  updateSummary();
+  
+  // Force marker to front again after a short delay
+  setTimeout(() => {
+    marker.getElement().style.zIndex = '1000';
+    marker.bringToFront();
+  }, 100);
+  
+  return marker;
 }
 
 function handleKMLImport(event) {
@@ -170,7 +251,7 @@ function handleKMLImport(event) {
   importedFiles.add(file.name);
   const reader = new FileReader();
   
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
       const kml = new DOMParser().parseFromString(reader.result, 'text/xml');
       const geojson = toGeoJSON.kml(kml);
@@ -183,31 +264,90 @@ function handleKMLImport(event) {
 
       let pointsAdded = 0;
       let bounds = L.latLngBounds([]);
+      let markers = [];
       
-      geojson.features.forEach((f, index) => {
+      // Process points sequentially to avoid race conditions
+      for (const f of geojson.features) {
         if (f.geometry && f.geometry.type === 'Point' && f.geometry.coordinates) {
           const [lng, lat] = f.geometry.coordinates;
           console.log('Processing point:', { lng, lat }); // Debug coordinates
           
           if (isValidCoordinate(lng, lat)) {
-            const gullyId = `gully_${Date.now()}_${index}`;
-            const marker = addGullyToMap({ lat, lng }, gullyId);
+            const gullyId = `gully_${Date.now()}_${pointsAdded}`;
+            
+            // Wait for Firebase write to complete before proceeding
+            await db.ref(`gullies/${gullyId}`).set({
+              location: { lat, lng },
+              created: firebase.database.ServerValue.TIMESTAMP
+            });
+            
+            const marker = L.marker([lat, lng], {
+              icon: createDot('#FF0000'),
+              zIndexOffset: 1000,
+              riseOnHover: true,
+              riseOffset: 2000
+            }).addTo(map);
+            
+            // Add click handler
+            marker.on('click', () => {
+              if (deleteMode) {
+                handleGullyDelete(gullyId, marker);
+              } else {
+                showInspectionPopup(marker, gullyId, { lat, lng });
+              }
+            });
+            
+            // Force marker to front
+            marker.getElement().style.zIndex = '1000';
+            marker.bringToFront();
+            
+            markers.push(marker);
             bounds.extend([lat, lng]);
             pointsAdded++;
+            
+            // Add to gullyData array
+            gullyData.push({ marker, id: gullyId });
+            
             console.log('Added point:', { lat, lng, gullyId }); // Debug successful add
           } else {
             console.warn('Invalid coordinates:', { lng, lat }); // Debug invalid coordinates
           }
         }
-      });
+      }
       
       if (pointsAdded > 0) {
         alert(`Successfully imported ${pointsAdded} gully points`);
+        
+        // Update the summary
+        updateSummary();
+        
         // Adjust map view to show all points
         map.fitBounds(bounds, { 
           padding: [50, 50],
           maxZoom: 18
         });
+        
+        // Bring all markers to front again after map adjustment
+        markers.forEach(marker => {
+          if (marker && marker.getElement()) {
+            marker.getElement().style.zIndex = '1000';
+            marker.bringToFront();
+          }
+        });
+        
+        // Set up a periodic check to ensure markers stay visible
+        const ensureMarkersVisible = setInterval(() => {
+          markers.forEach(marker => {
+            if (marker && marker.getElement()) {
+              marker.getElement().style.zIndex = '1000';
+              marker.bringToFront();
+            }
+          });
+        }, 1000);
+        
+        // Clear the interval after 5 seconds
+        setTimeout(() => clearInterval(ensureMarkersVisible), 5000);
+        
         console.log('Map bounds updated:', bounds); // Debug bounds
       } else {
         alert('No valid gully points found in the KML file');
@@ -230,37 +370,6 @@ function isValidCoordinate(lng, lat) {
   return !isNaN(lng) && !isNaN(lat) && 
          lng >= -180 && lng <= 180 && 
          lat >= -90 && lat <= 90;
-}
-
-function addGullyToMap(latlng, gullyId) {
-  console.log('Adding gully at:', latlng); // Debug log
-  
-  // Create a more visible marker
-  const marker = L.marker([latlng.lat, latlng.lng], {
-    icon: createDot('red'), // Start with red to make it more visible
-    zIndexOffset: 1000 // Ensure markers are above other map elements
-  }).addTo(map);
-  
-  // Add a popup with coordinates for debugging
-  marker.bindTooltip(`Lat: ${latlng.lat.toFixed(6)}<br>Lng: ${latlng.lng.toFixed(6)}`);
-  
-  marker.on('click', () => {
-    if (deleteMode) {
-      handleGullyDelete(gullyId, marker);
-    } else {
-      showInspectionPopup(marker, gullyId, latlng);
-    }
-  });
-  
-  db.ref(`gullies/${gullyId}`).set({
-    location: latlng,
-    created: firebase.database.ServerValue.TIMESTAMP
-  });
-  
-  gullyData.push({ marker, id: gullyId });
-  updateSummary();
-  
-  return marker; // Return marker for bounds calculation
 }
 
 function showInspectionPopup(marker, gullyId, latlng) {
@@ -408,13 +517,13 @@ async function viewGullyHistory(gullyId) {
 
 function loadGullyData() {
   db.ref('gullies').on('value', snapshot => {
-    // Clear existing markers
-    gullyData.forEach(({ marker }) => map.removeLayer(marker));
-    gullyData.length = 0;
-    
     const data = snapshot.val() || {};
+    const currentIds = new Set(gullyData.map(g => g.id));
     
     Object.entries(data).forEach(([id, gully]) => {
+      // Skip if marker already exists
+      if (currentIds.has(id)) return;
+      
       const marker = L.marker(gully.location, { icon: createDot('gray') }).addTo(map);
       
       // Get last inspection
