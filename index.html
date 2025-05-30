@@ -108,7 +108,7 @@ function login() {
       return db.ref("users/" + uid + "/role").once("value");
     })
     .then(snapshot => {
-      currentRole = snapshot.val() || "viewer";
+      currentRole = snapshot.val() || "admin";
       document.getElementById("roleBanner").innerText = "Logged in as: " + currentRole.toUpperCase();
       
       // Setup UI based on role
