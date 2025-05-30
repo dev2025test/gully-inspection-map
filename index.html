@@ -253,20 +253,31 @@ function handleKMLImport(event) {
   
   reader.onload = async () => {
     try {
+      console.log('File read successfully, parsing KML...'); // Debug log
       const kml = new DOMParser().parseFromString(reader.result, 'text/xml');
       const geojson = toGeoJSON.kml(kml);
-      console.log('Parsed GeoJSON:', geojson); // Debug log
+      console.log('Parsed GeoJSON:', JSON.stringify(geojson, null, 2)); // More detailed debug log
       
       if (!geojson.features || geojson.features.length === 0) {
         alert('No valid points found in KML file');
         return;
       }
 
+      console.log(`Found ${geojson.features.length} features in KML`); // Debug log
+
       let pointsAdded = 0;
       let bounds = L.latLngBounds([]);
       let markers = [];
       
-      // Process points sequentially to avoid race conditions
+      // Clear any existing markers first
+      gullyData.forEach(({ marker }) => {
+        if (marker) {
+          map.removeLayer(marker);
+        }
+      });
+      gullyData.length = 0;
+      
+      // Process points
       for (const f of geojson.features) {
         if (f.geometry && f.geometry.type === 'Point' && f.geometry.coordinates) {
           const [lng, lat] = f.geometry.coordinates;
@@ -274,86 +285,77 @@ function handleKMLImport(event) {
           
           if (isValidCoordinate(lng, lat)) {
             const gullyId = `gully_${Date.now()}_${pointsAdded}`;
+            console.log('Creating marker for:', { gullyId, lat, lng }); // Debug log
             
-            // Wait for Firebase write to complete before proceeding
-            await db.ref(`gullies/${gullyId}`).set({
-              location: { lat, lng },
-              created: firebase.database.ServerValue.TIMESTAMP
-            });
-            
-            const marker = L.marker([lat, lng], {
-              icon: createDot('#FF0000'),
-              zIndexOffset: 1000,
-              riseOnHover: true,
-              riseOffset: 2000
-            }).addTo(map);
-            
-            // Add click handler
-            marker.on('click', () => {
-              if (deleteMode) {
-                handleGullyDelete(gullyId, marker);
-              } else {
-                showInspectionPopup(marker, gullyId, { lat, lng });
-              }
-            });
-            
-            // Force marker to front
-            marker.getElement().style.zIndex = '1000';
-            marker.bringToFront();
-            
-            markers.push(marker);
-            bounds.extend([lat, lng]);
-            pointsAdded++;
-            
-            // Add to gullyData array
-            gullyData.push({ marker, id: gullyId });
-            
-            console.log('Added point:', { lat, lng, gullyId }); // Debug successful add
+            try {
+              // Create marker first
+              const marker = new L.Marker([lat, lng], {
+                icon: new L.DivIcon({
+                  className: 'custom-div-icon',
+                  html: "<div style='background-color:#ff0000;width:15px;height:15px;border-radius:50%;border:2px solid black'></div>",
+                  iconSize: [20, 20],
+                  iconAnchor: [10, 10]
+                })
+              });
+              
+              // Add it to the map
+              marker.addTo(map);
+              console.log('Marker added to map:', marker); // Debug log
+              
+              // Set up click handler
+              marker.on('click', () => {
+                if (deleteMode) {
+                  handleGullyDelete(gullyId, marker);
+                } else {
+                  showInspectionPopup(marker, gullyId, { lat, lng });
+                }
+              });
+              
+              // Store in arrays
+              markers.push(marker);
+              gullyData.push({ marker, id: gullyId });
+              bounds.extend([lat, lng]);
+              pointsAdded++;
+              
+              // Save to Firebase
+              await db.ref(`gullies/${gullyId}`).set({
+                location: { lat, lng },
+                created: firebase.database.ServerValue.TIMESTAMP
+              });
+              
+              console.log('Point successfully added:', { lat, lng, gullyId }); // Debug log
+            } catch (err) {
+              console.error('Error creating marker:', err);
+            }
           } else {
-            console.warn('Invalid coordinates:', { lng, lat }); // Debug invalid coordinates
+            console.warn('Invalid coordinates:', { lng, lat });
           }
         }
       }
       
       if (pointsAdded > 0) {
-        alert(`Successfully imported ${pointsAdded} gully points`);
+        console.log(`Added ${pointsAdded} markers to the map`); // Debug log
         
-        // Update the summary
-        updateSummary();
+        // Fit bounds with padding
+        const paddedBounds = bounds.pad(0.2); // Add 20% padding
+        map.fitBounds(paddedBounds);
         
-        // Adjust map view to show all points
-        map.fitBounds(bounds, { 
-          padding: [50, 50],
-          maxZoom: 18
-        });
-        
-        // Bring all markers to front again after map adjustment
+        // Force markers to front
         markers.forEach(marker => {
-          if (marker && marker.getElement()) {
-            marker.getElement().style.zIndex = '1000';
-            marker.bringToFront();
+          if (marker) {
+            marker.setZIndexOffset(1000);
           }
         });
         
-        // Set up a periodic check to ensure markers stay visible
-        const ensureMarkersVisible = setInterval(() => {
-          markers.forEach(marker => {
-            if (marker && marker.getElement()) {
-              marker.getElement().style.zIndex = '1000';
-              marker.bringToFront();
-            }
-          });
-        }, 1000);
+        // Update the display
+        updateSummary();
         
-        // Clear the interval after 5 seconds
-        setTimeout(() => clearInterval(ensureMarkersVisible), 5000);
-        
-        console.log('Map bounds updated:', bounds); // Debug bounds
+        alert(`Successfully imported ${pointsAdded} gully points`);
       } else {
         alert('No valid gully points found in the KML file');
       }
     } catch (error) {
-      console.error('Error importing KML:', error);
+      console.error('Error in KML import:', error);
       alert('Error importing KML file: ' + error.message);
     }
   };
@@ -363,6 +365,7 @@ function handleKMLImport(event) {
     alert('Error reading file: ' + error.message);
   };
   
+  console.log('Starting file read...'); // Debug log
   reader.readAsText(file);
 }
 
@@ -518,32 +521,33 @@ async function viewGullyHistory(gullyId) {
 function loadGullyData() {
   db.ref('gullies').on('value', snapshot => {
     const data = snapshot.val() || {};
-    const currentIds = new Set(gullyData.map(g => g.id));
+    const existingIds = new Set(gullyData.map(g => g.id));
     
+    // Only add new markers
     Object.entries(data).forEach(([id, gully]) => {
-      // Skip if marker already exists
-      if (currentIds.has(id)) return;
-      
-      const marker = L.marker(gully.location, { icon: createDot('gray') }).addTo(map);
-      
-      // Get last inspection
-      const inspections = gully.inspections || {};
-      const lastInspection = Object.values(inspections)
-        .sort((a, b) => b.timestamp - a.timestamp)[0];
-      
-      if (lastInspection) {
-        updateMarkerStatus(marker, lastInspection.status);
+      if (!existingIds.has(id)) {
+        console.log('Loading gully from Firebase:', id); // Debug log
+        const marker = new L.Marker(gully.location, {
+          icon: new L.DivIcon({
+            className: 'custom-div-icon',
+            html: "<div style='background-color:#ff0000;width:15px;height:15px;border-radius:50%;border:2px solid black'></div>",
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+          })
+        }).addTo(map);
+        
+        marker.setZIndexOffset(1000);
+        
+        marker.on('click', () => {
+          if (deleteMode) {
+            handleGullyDelete(id, marker);
+          } else {
+            showInspectionPopup(marker, id, gully.location);
+          }
+        });
+        
+        gullyData.push({ marker, id });
       }
-      
-      marker.on('click', () => {
-        if (deleteMode) {
-          handleGullyDelete(id, marker);
-        } else {
-          showInspectionPopup(marker, id, gully.location);
-        }
-      });
-      
-      gullyData.push({ marker, id });
     });
     
     updateSummary();
