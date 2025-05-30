@@ -370,141 +370,87 @@ function isValidCoordinate(lng, lat) {
          lat >= -90 && lat <= 90;
 }
 
-function showInspectionPopup(marker, gullyId, latlng) {
-  const popup = document.createElement('div');
-  popup.className = 'popup-form';
-  
-  // Create form elements
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  
-  const dateInput = document.createElement('input');
-  dateInput.type = 'date';
-  dateInput.value = new Date().toISOString().split('T')[0];
-  
-  const statusSelect = document.createElement('select');
-  ['Clear', 'Blocked', 'Broken', 'Remediation', 'Replacement'].forEach(status => {
-    const option = document.createElement('option');
-    option.value = status;
-    option.text = status;
-    statusSelect.appendChild(option);
-  });
-  
-  const commentArea = document.createElement('textarea');
-  commentArea.placeholder = 'Add inspection comments...';
-  
-  const photoInput = document.createElement('input');
-  photoInput.type = 'file';
-  photoInput.accept = 'image/*';
-  
-  // Add elements to popup
-  popup.appendChild(document.createTextNode('Inspection Complete: '));
-  popup.appendChild(checkbox);
-  popup.appendChild(document.createElement('br'));
-  
-  popup.appendChild(document.createTextNode('Date: '));
-  popup.appendChild(dateInput);
-  popup.appendChild(document.createElement('br'));
-  
-  popup.appendChild(document.createTextNode('Status: '));
-  popup.appendChild(statusSelect);
-  popup.appendChild(document.createElement('br'));
-  
-  popup.appendChild(document.createTextNode('Comments: '));
-  popup.appendChild(commentArea);
-  popup.appendChild(document.createElement('br'));
-  
-  popup.appendChild(document.createTextNode('Photo: '));
-  popup.appendChild(photoInput);
-  popup.appendChild(document.createElement('br'));
-  
-  // Save button
-  const saveBtn = document.createElement('button');
-  saveBtn.innerText = '💾 Save';
-  saveBtn.onclick = () => saveInspection(gullyId, {
-    date: dateInput.value,
-    status: statusSelect.value,
-    comment: commentArea.value,
-    complete: checkbox.checked,
-    location: latlng
-  }, photoInput.files[0], marker);
-  
-  popup.appendChild(saveBtn);
-  
-  // View history button
-  const historyBtn = document.createElement('button');
-  historyBtn.innerText = '📋 History';
-  historyBtn.onclick = () => viewGullyHistory(gullyId);
-  popup.appendChild(historyBtn);
-  
-  // Set permissions
-  const canEdit = currentRole === 'admin' || currentRole === 'operator';
-  checkbox.disabled = !canEdit;
-  dateInput.disabled = !canEdit;
-  statusSelect.disabled = !canEdit;
-  commentArea.disabled = !canEdit;
-  photoInput.disabled = !canEdit;
-  saveBtn.disabled = !canEdit;
-  
-  marker.bindPopup(popup).openPopup();
-}
-
 async function saveInspection(gullyId, data, photoFile, marker) {
+  console.log('Starting inspection save for gully:', gullyId);
+  console.log('Inspection data:', data);
+  
   if (!data.complete) {
     alert('Please mark inspection as complete');
     return;
   }
   
+  if (!auth.currentUser) {
+    alert('You must be logged in to save inspections');
+    return;
+  }
+
   try {
     // Check if user has permission
     if (currentRole !== 'admin' && currentRole !== 'operator') {
       throw new Error('You do not have permission to save inspections');
     }
 
-    // Get gully reference first
-    const gullyRef = db.ref(`gullies/${gullyId}`);
-    const gullySnapshot = await gullyRef.once('value');
-    const gullyData = gullySnapshot.val();
-
-    if (!gullyData) {
-      throw new Error('Gully not found');
-    }
-
-    // Upload photo if provided
-    let photoURL = null;
-    if (photoFile) {
-      const photoRef = storage.ref(`photos/${gullyId}/${Date.now()}_${photoFile.name}`);
-      await photoRef.put(photoFile);
-      photoURL = await photoRef.getDownloadURL();
-    }
-    
-    // Create inspection data
+    // Create inspection data first
     const inspectionData = {
-      ...data,
-      timestamp: firebase.database.ServerValue.TIMESTAMP,
+      date: data.date,
+      status: data.status,
+      comment: data.comment,
+      complete: data.complete,
+      location: data.location,
+      timestamp: Date.now(),
       inspector: auth.currentUser.email,
-      inspectorId: auth.currentUser.uid,
-      photoURL
+      inspectorId: auth.currentUser.uid
     };
+
+    console.log('Prepared inspection data:', inspectionData);
+
+    // Handle photo upload if present
+    if (photoFile) {
+      console.log('Uploading photo...');
+      try {
+        const photoRef = storage.ref(`photos/${gullyId}/${Date.now()}_${photoFile.name}`);
+        await photoRef.put(photoFile);
+        inspectionData.photoURL = await photoRef.getDownloadURL();
+        console.log('Photo uploaded successfully:', inspectionData.photoURL);
+      } catch (photoError) {
+        console.error('Photo upload failed:', photoError);
+        // Continue with save even if photo fails
+      }
+    }
+
+    // Save to Firebase
+    console.log('Saving to Firebase...');
+    
+    // Get a reference to the gully
+    const gullyRef = db.ref(`gullies/${gullyId}`);
+    
+    // Create a new inspection entry
+    const newInspectionRef = gullyRef.child('inspections').push();
     
     // Save inspection data
-    await gullyRef.child('inspections').push(inspectionData);
-    
-    // Update gully status
+    await newInspectionRef.set(inspectionData);
+    console.log('Inspection data saved successfully');
+
+    // Update gully main record
     await gullyRef.update({
       lastInspection: inspectionData.timestamp,
+      lastInspectionBy: auth.currentUser.email,
       status: data.status
     });
-    
+    console.log('Gully status updated');
+
     // Update marker appearance
     updateMarkerStatus(marker, data.status);
     marker.closePopup();
+    
+    // Update summary display
     updateSummary();
     
     alert('Inspection saved successfully');
+    
   } catch (error) {
-    console.error('Error saving inspection:', error);
-    alert('Error saving inspection: ' + error.message);
+    console.error('Error in saveInspection:', error);
+    alert(`Error saving inspection: ${error.message}\nPlease check console for details.`);
   }
 }
 
