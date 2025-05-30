@@ -46,7 +46,19 @@ font-weight:bold;"></div>
     <p id="loginError" style="color:red;"></p>
   </div>
 </div>
-
+const firebaseConfig = {
+    apiKey: "AIzaSyBsteq-tHQdiDcRk5UBg52AwAxpVcq67cw",
+    authDomain: "gullytest3.firebaseapp.com",
+    databaseURL: "https://gullytest3-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "gullytest3",
+    storageBucket: "gullytest3.appspot.com",
+    messagingSenderId: "876083677912",
+    appId: "1:876083677912:web:065de0c7cca446b78f65ad"
+  };
+    firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+  const storage = firebase.storage();
 <div id="map"></div>
 
 <div id="controlPanel">
