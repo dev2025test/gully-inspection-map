@@ -242,6 +242,11 @@ function addGullyToMap(latlng, gullyId) {
 }
 
 function handleKMLImport(event) {
+  if (currentRole !== 'admin') {
+    alert('Only administrators can import KML files');
+    return;
+  }
+
   const file = event.target.files[0];
   if (importedFiles.has(file.name)) {
     alert("This file has already been imported.");
@@ -253,17 +258,16 @@ function handleKMLImport(event) {
   
   reader.onload = async () => {
     try {
-      console.log('File read successfully, parsing KML...'); // Debug log
+      console.log('File read successfully, parsing KML...');
       const kml = new DOMParser().parseFromString(reader.result, 'text/xml');
       const geojson = toGeoJSON.kml(kml);
-      console.log('Parsed GeoJSON:', JSON.stringify(geojson, null, 2)); // More detailed debug log
       
       if (!geojson.features || geojson.features.length === 0) {
         alert('No valid points found in KML file');
         return;
       }
 
-      console.log(`Found ${geojson.features.length} features in KML`); // Debug log
+      console.log(`Found ${geojson.features.length} features in KML`);
 
       let pointsAdded = 0;
       let bounds = L.latLngBounds([]);
@@ -281,18 +285,16 @@ function handleKMLImport(event) {
       for (const f of geojson.features) {
         if (f.geometry && f.geometry.type === 'Point' && f.geometry.coordinates) {
           const [lng, lat] = f.geometry.coordinates;
-          console.log('Processing point:', { lng, lat }); // Debug coordinates
           
           if (isValidCoordinate(lng, lat)) {
             const gullyId = `gully_${Date.now()}_${pointsAdded}`;
-            console.log('Creating marker for:', { gullyId, lat, lng }); // Debug log
             
             try {
-              // Create marker first
+              // Create marker first with grey color
               const marker = new L.Marker([lat, lng], {
                 icon: new L.DivIcon({
                   className: 'custom-div-icon',
-                  html: "<div style='background-color:#ff0000;width:15px;height:15px;border-radius:50%;border:2px solid black'></div>",
+                  html: "<div style='background-color:#808080;width:15px;height:15px;border-radius:50%;border:2px solid black'></div>",
                   iconSize: [20, 20],
                   iconAnchor: [10, 10]
                 })
@@ -300,7 +302,6 @@ function handleKMLImport(event) {
               
               // Add it to the map
               marker.addTo(map);
-              console.log('Marker added to map:', marker); // Debug log
               
               // Set up click handler
               marker.on('click', () => {
@@ -317,27 +318,24 @@ function handleKMLImport(event) {
               bounds.extend([lat, lng]);
               pointsAdded++;
               
-              // Save to Firebase
+              // Save to Firebase with proper user reference
               await db.ref(`gullies/${gullyId}`).set({
                 location: { lat, lng },
-                created: firebase.database.ServerValue.TIMESTAMP
+                created: firebase.database.ServerValue.TIMESTAMP,
+                createdBy: auth.currentUser.uid,
+                status: 'Unmarked'
               });
               
-              console.log('Point successfully added:', { lat, lng, gullyId }); // Debug log
             } catch (err) {
               console.error('Error creating marker:', err);
             }
-          } else {
-            console.warn('Invalid coordinates:', { lng, lat });
           }
         }
       }
       
       if (pointsAdded > 0) {
-        console.log(`Added ${pointsAdded} markers to the map`); // Debug log
-        
         // Fit bounds with padding
-        const paddedBounds = bounds.pad(0.2); // Add 20% padding
+        const paddedBounds = bounds.pad(0.2);
         map.fitBounds(paddedBounds);
         
         // Force markers to front
@@ -347,9 +345,7 @@ function handleKMLImport(event) {
           }
         });
         
-        // Update the display
         updateSummary();
-        
         alert(`Successfully imported ${pointsAdded} gully points`);
       } else {
         alert('No valid gully points found in the KML file');
@@ -365,7 +361,6 @@ function handleKMLImport(event) {
     alert('Error reading file: ' + error.message);
   };
   
-  console.log('Starting file read...'); // Debug log
   reader.readAsText(file);
 }
 
@@ -461,45 +456,66 @@ async function saveInspection(gullyId, data, photoFile, marker) {
   }
   
   try {
+    // Check if user has permission
+    if (currentRole !== 'admin' && currentRole !== 'operator') {
+      throw new Error('You do not have permission to save inspections');
+    }
+
+    // Get gully reference first
+    const gullyRef = db.ref(`gullies/${gullyId}`);
+    const gullySnapshot = await gullyRef.once('value');
+    const gullyData = gullySnapshot.val();
+
+    if (!gullyData) {
+      throw new Error('Gully not found');
+    }
+
     // Upload photo if provided
     let photoURL = null;
     if (photoFile) {
-      const photoRef = storage.ref(`photos/${gullyId}/${Date.now()}`);
+      const photoRef = storage.ref(`photos/${gullyId}/${Date.now()}_${photoFile.name}`);
       await photoRef.put(photoFile);
       photoURL = await photoRef.getDownloadURL();
     }
     
-    // Save inspection data
+    // Create inspection data
     const inspectionData = {
       ...data,
       timestamp: firebase.database.ServerValue.TIMESTAMP,
       inspector: auth.currentUser.email,
+      inspectorId: auth.currentUser.uid,
       photoURL
     };
     
-    await db.ref(`gullies/${gullyId}/inspections`).push(inspectionData);
+    // Save inspection data
+    await gullyRef.child('inspections').push(inspectionData);
+    
+    // Update gully status
+    await gullyRef.update({
+      lastInspection: inspectionData.timestamp,
+      status: data.status
+    });
     
     // Update marker appearance
     updateMarkerStatus(marker, data.status);
     marker.closePopup();
     updateSummary();
     
+    alert('Inspection saved successfully');
   } catch (error) {
+    console.error('Error saving inspection:', error);
     alert('Error saving inspection: ' + error.message);
   }
 }
 
 function updateMarkerStatus(marker, status) {
-  const colors = {
-    Clear: 'blue',
-    Blocked: 'orange',
-    Broken: 'red',
-    Remediation: 'purple',
-    Replacement: 'yellow',
-    Expired: 'gray'
-  };
-  
-  marker.setIcon(createDot(colors[status] || 'gray'));
+  const color = getStatusColor(status);
+  marker.setIcon(new L.DivIcon({
+    className: 'custom-div-icon',
+    html: `<div style='background-color:${color};width:15px;height:15px;border-radius:50%;border:2px solid black'></div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+  }));
 }
 
 async function viewGullyHistory(gullyId) {
@@ -523,14 +539,18 @@ function loadGullyData() {
     const data = snapshot.val() || {};
     const existingIds = new Set(gullyData.map(g => g.id));
     
-    // Only add new markers
     Object.entries(data).forEach(([id, gully]) => {
       if (!existingIds.has(id)) {
-        console.log('Loading gully from Firebase:', id); // Debug log
+        console.log('Loading gully from Firebase:', id);
+        
+        // Determine color based on status
+        const status = gully.status || 'Unmarked';
+        const color = getStatusColor(status);
+        
         const marker = new L.Marker(gully.location, {
           icon: new L.DivIcon({
             className: 'custom-div-icon',
-            html: "<div style='background-color:#ff0000;width:15px;height:15px;border-radius:50%;border:2px solid black'></div>",
+            html: `<div style='background-color:${color};width:15px;height:15px;border-radius:50%;border:2px solid black'></div>`,
             iconSize: [20, 20],
             iconAnchor: [10, 10]
           })
@@ -552,6 +572,19 @@ function loadGullyData() {
     
     updateSummary();
   });
+}
+
+function getStatusColor(status) {
+  const colors = {
+    Clear: '#0000FF', // Blue
+    Blocked: '#FFA500', // Orange
+    Broken: '#FF0000', // Red
+    Remediation: '#800080', // Purple
+    Replacement: '#FFFF00', // Yellow
+    Expired: '#808080', // Gray
+    Unmarked: '#808080' // Gray
+  };
+  return colors[status] || '#808080';
 }
 
 function updateSummary() {
