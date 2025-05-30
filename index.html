@@ -133,10 +133,27 @@ function login() {
   auth.signInWithEmailAndPassword(email, password)
     .then(userCredential => {
       const uid = userCredential.user.uid;
-      return db.ref("users/" + uid + "/role").once("value");
+      console.log('User logged in:', uid);
+      
+      // Check if user exists in users collection
+      return db.ref("users/" + uid).once("value").then(snapshot => {
+        if (!snapshot.exists()) {
+          // If user doesn't exist, create them as admin (for first user)
+          console.log('Creating new user with admin role');
+          return db.ref("users/" + uid).set({
+            email: email,
+            role: 'admin',
+            created: firebase.database.ServerValue.TIMESTAMP
+          });
+        } else {
+          console.log('Existing user data:', snapshot.val());
+          return snapshot;
+        }
+      });
     })
     .then(snapshot => {
-      currentRole = snapshot.val() || "admin";
+      currentRole = snapshot.val().role || "admin";
+      console.log('Current user role:', currentRole);
       document.getElementById("roleBanner").innerText = "Logged in as: " + currentRole.toUpperCase();
       
       // Setup UI based on role
@@ -147,11 +164,12 @@ function login() {
       document.getElementById("map").style.display = 'block';
       document.getElementById("controlPanel").style.display = 'block';
       document.getElementById("summary").style.display = 'block';
-      
+
       initMap();
       loadGullyData();
     })
     .catch(error => {
+      console.error('Login error:', error);
       document.getElementById("loginError").textContent = "❌ " + error.message;
     });
 }
@@ -468,6 +486,8 @@ function showInspectionPopup(marker, gullyId, latlng) {
 async function saveInspection(gullyId, data, photoFile, marker) {
   console.log('Starting inspection save for gully:', gullyId);
   console.log('Inspection data:', data);
+  console.log('Current user role:', currentRole);
+  console.log('Current user:', auth.currentUser?.uid);
   
   if (!data.complete) {
     alert('Please mark inspection as complete');
@@ -485,16 +505,26 @@ async function saveInspection(gullyId, data, photoFile, marker) {
       throw new Error('You do not have permission to save inspections');
     }
 
-    // Create inspection data first
+    // Verify user role in database
+    const userRoleSnapshot = await db.ref(`users/${auth.currentUser.uid}/role`).once('value');
+    const userRole = userRoleSnapshot.val();
+    console.log('Verified user role from database:', userRole);
+
+    if (userRole !== 'admin' && userRole !== 'operator') {
+      throw new Error('Your role does not allow saving inspections');
+    }
+
+    // Create inspection data
     const inspectionData = {
       date: data.date,
       status: data.status,
       comment: data.comment,
       complete: data.complete,
       location: data.location,
-      timestamp: Date.now(),
+      timestamp: firebase.database.ServerValue.TIMESTAMP,
       inspector: auth.currentUser.email,
-      inspectorId: auth.currentUser.uid
+      inspectorId: auth.currentUser.uid,
+      inspectorRole: userRole
     };
 
     console.log('Prepared inspection data:', inspectionData);
@@ -509,7 +539,6 @@ async function saveInspection(gullyId, data, photoFile, marker) {
         console.log('Photo uploaded successfully:', inspectionData.photoURL);
       } catch (photoError) {
         console.error('Photo upload failed:', photoError);
-        // Continue with save even if photo fails
       }
     }
 
@@ -530,7 +559,9 @@ async function saveInspection(gullyId, data, photoFile, marker) {
     await gullyRef.update({
       lastInspection: inspectionData.timestamp,
       lastInspectionBy: auth.currentUser.email,
-      status: data.status
+      status: data.status,
+      updatedBy: auth.currentUser.uid,
+      updatedByRole: userRole
     });
     console.log('Gully status updated');
 
