@@ -46,6 +46,7 @@ font-weight:bold;"></div>
     <p id="loginError" style="color:red;"></p>
   </div>
 </div>
+
 <div id="map"></div>
 
 <div id="controlPanel">
@@ -107,7 +108,7 @@ function login() {
       return db.ref("users/" + uid + "/role").once("value");
     })
     .then(snapshot => {
-      currentRole = snapshot.val() || "admin";
+      currentRole = snapshot.val() || "viewer";
       document.getElementById("roleBanner").innerText = "Logged in as: " + currentRole.toUpperCase();
       
       // Setup UI based on role
@@ -143,13 +144,19 @@ function initMap() {
   map = L.map('map').setView([51.9, -8.5], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   
+  // Add scale control
+  L.control.scale().addTo(map);
+  
   document.getElementById('importFile').addEventListener('change', handleKMLImport);
 }
 
 function createDot(color) {
+  // Change to a more visible marker style
   return L.divIcon({
     className: '',
-    html: `<div class='dot' style='background:${color}'></div>`
+    html: `<div class='dot' style='background:${color};width:12px;height:12px;border-radius:50%;border:2px solid black;box-shadow:0 0 3px #fff'></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
   });
 }
 
@@ -164,23 +171,78 @@ function handleKMLImport(event) {
   const reader = new FileReader();
   
   reader.onload = () => {
-    const kml = new DOMParser().parseFromString(reader.result, 'text/xml');
-    const geojson = toGeoJSON.kml(kml);
-    
-    geojson.features.forEach((f, index) => {
-      if (f.geometry.type === 'Point') {
-        const [lng, lat] = f.geometry.coordinates;
-        const gullyId = `gully_${Date.now()}_${index}`;
-        addGullyToMap({ lat, lng }, gullyId);
+    try {
+      const kml = new DOMParser().parseFromString(reader.result, 'text/xml');
+      const geojson = toGeoJSON.kml(kml);
+      console.log('Parsed GeoJSON:', geojson); // Debug log
+      
+      if (!geojson.features || geojson.features.length === 0) {
+        alert('No valid points found in KML file');
+        return;
       }
-    });
+
+      let pointsAdded = 0;
+      let bounds = L.latLngBounds([]);
+      
+      geojson.features.forEach((f, index) => {
+        if (f.geometry && f.geometry.type === 'Point' && f.geometry.coordinates) {
+          const [lng, lat] = f.geometry.coordinates;
+          console.log('Processing point:', { lng, lat }); // Debug coordinates
+          
+          if (isValidCoordinate(lng, lat)) {
+            const gullyId = `gully_${Date.now()}_${index}`;
+            const marker = addGullyToMap({ lat, lng }, gullyId);
+            bounds.extend([lat, lng]);
+            pointsAdded++;
+            console.log('Added point:', { lat, lng, gullyId }); // Debug successful add
+          } else {
+            console.warn('Invalid coordinates:', { lng, lat }); // Debug invalid coordinates
+          }
+        }
+      });
+      
+      if (pointsAdded > 0) {
+        alert(`Successfully imported ${pointsAdded} gully points`);
+        // Adjust map view to show all points
+        map.fitBounds(bounds, { 
+          padding: [50, 50],
+          maxZoom: 18
+        });
+        console.log('Map bounds updated:', bounds); // Debug bounds
+      } else {
+        alert('No valid gully points found in the KML file');
+      }
+    } catch (error) {
+      console.error('Error importing KML:', error);
+      alert('Error importing KML file: ' + error.message);
+    }
+  };
+  
+  reader.onerror = (error) => {
+    console.error('Error reading file:', error);
+    alert('Error reading file: ' + error.message);
   };
   
   reader.readAsText(file);
 }
 
+function isValidCoordinate(lng, lat) {
+  return !isNaN(lng) && !isNaN(lat) && 
+         lng >= -180 && lng <= 180 && 
+         lat >= -90 && lat <= 90;
+}
+
 function addGullyToMap(latlng, gullyId) {
-  const marker = L.marker(latlng, { icon: createDot('gray') }).addTo(map);
+  console.log('Adding gully at:', latlng); // Debug log
+  
+  // Create a more visible marker
+  const marker = L.marker([latlng.lat, latlng.lng], {
+    icon: createDot('red'), // Start with red to make it more visible
+    zIndexOffset: 1000 // Ensure markers are above other map elements
+  }).addTo(map);
+  
+  // Add a popup with coordinates for debugging
+  marker.bindTooltip(`Lat: ${latlng.lat.toFixed(6)}<br>Lng: ${latlng.lng.toFixed(6)}`);
   
   marker.on('click', () => {
     if (deleteMode) {
@@ -197,6 +259,8 @@ function addGullyToMap(latlng, gullyId) {
   
   gullyData.push({ marker, id: gullyId });
   updateSummary();
+  
+  return marker; // Return marker for bounds calculation
 }
 
 function showInspectionPopup(marker, gullyId, latlng) {
