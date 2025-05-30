@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Gully Inspection - Full System</title>
+  <title>Gully Inspection System</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -12,165 +12,525 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
   <script src="https://unpkg.com/togeojson@0.16.0/togeojson.js"></script>
   <style>
-    html, body { margin: 0; height: 100%; font-family: Arial; }
-    #map { height: 100%; }
-    #login, #app-container { display: none; padding: 1em; }
+    html, body { height: 100%; margin: 0; font-family: Arial, sans-serif; }
+    #map { height: 100%; display: none; }
+    #loginScreen {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: #f5f5f5; display: flex; align-items: center; justify-content: center; z-index: 10000;
+    }
+    #loginBox {
+      background: white; padding: 20px; border-radius: 8px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.3); text-align: center;
+    }
+    #controlPanel, #summary {
+      position: absolute; background: white; padding: 10px;
+      border-radius: 6px; box-shadow: 0 0 4px rgba(0,0,0,0.3); z-index: 999;
+    }
+    #controlPanel { bottom: 10px; left: 10px; display: none; }
+    #summary { top: 10px; right: 10px; font-size: 0.9em; display: none; }
+    .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #000; }
     .popup-form input, .popup-form select, .popup-form textarea { width: 100%; margin-bottom: 6px; }
   </style>
 </head>
 <body>
-<div id="login">
-  <h2>Login</h2>
-  <input type="email" id="email" placeholder="Email"><br><br>
-  <input type="password" id="password" placeholder="Password"><br><br>
-  <button onclick="login()">Login</button>
-  <div id="login-status"></div>
+<div id="roleBanner" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);
+background:#eee;padding:8px 20px;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,0.3);z-index:1001;
+font-weight:bold;"></div>
+
+<div id="loginScreen">
+  <div id="loginBox">
+    <h2>Login</h2>
+    <input type="email" id="email" placeholder="Email"><br><br>
+    <input type="password" id="password" placeholder="Password"><br><br>
+    <button onclick="login()">Login</button>
+    <p id="loginError" style="color:red;"></p>
+  </div>
 </div>
 
-<div id="app-container">
-  <input type="file" id="kml-upload" accept=".kml" onchange="importKML(event)">
-  <button onclick="exportCSV()">📤 Export CSV</button>
-  <div id="map"></div>
+<div id="map"></div>
+
+<div id="controlPanel">
+  <label for="importFile" style="background:#ddd;padding:6px 12px;border-radius:4px;cursor:pointer;">🗂️ Import</label>
+  <input type="file" id="importFile" accept=".kml" style="display:none;">
+  <span id="fileNameDisplay" style="margin-left:10px;font-style:italic;color:#555;"></span>
+  
+  <button onclick="exportData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">💾 Export CSV</button>
+  <button onclick="resetMap()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">♻️ Reset</button>
+  <button onclick="saveGullyData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">💾 Backup JSON</button>
+  <button onclick="enableDeleteMode()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">🗑️ Delete Gully</button>
+  <button onclick="logout()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">🚪 Logout</button>
+</div>
+
+<div id="summary">
+  <b>Summary</b><br>
+  <div id="summaryContent"></div>
+  <label>Filter:</label>
+  <select id="filterStatus" onchange="filterByStatus()">
+    <option value="All">All</option>
+    <option value="Clear">Clear</option>
+    <option value="Broken">Broken</option>
+    <option value="Remediation">Remediation</option>
+    <option value="Replacement">Replacement</option>
+    <option value="Blocked">Blocked</option>
+    <option value="Expired">Expired</option>
+  </select>
 </div>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBsteq-tHQdiDcRk5UBg52AwAxpVcq67cw",
-    authDomain: "gullytest3.firebaseapp.com",
-    databaseURL: "https://gullytest3-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "gullytest3",
-    storageBucket: "gullytest3.appspot.com",
-    messagingSenderId: "876083677912",
-    appId: "1:876083677912:web:065de0c7cca446b78f65ad"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyBsteq-tHQdiDcRk5UBg52AwAxpVcq67cw",
+  authDomain: "gullytest3.firebaseapp.com",
+  databaseURL: "https://gullytest3-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "gullytest3",
+  storageBucket: "gullytest3.appspot.com",
+  messagingSenderId: "876083677912",
+  appId: "1:876083677912:web:065de0c7cca446b78f65ad"
+};
 
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.database();
-  const storage = firebase.storage();
-  let userRole = "viewer";
-  let map;
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+const storage = firebase.storage();
 
-  window.onload = () => {
-    document.getElementById("login").style.display = "block";
-  };
+let currentRole = null;
+let map;
+const importedFiles = new Set();
+const gullyData = [];
+let deleteMode = false;
 
-  function login() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    auth.signInWithEmailAndPassword(email, password)
-      .then(userCredential => {
-        const uid = userCredential.user.uid;
-        db.ref("users/" + uid + "/role").once("value").then(snapshot => {
-          userRole = snapshot.val() || "viewer";
-          document.getElementById("login").style.display = "none";
-          document.getElementById("app-container").style.display = "block";
-          initMap();
-        });
-      })
-      .catch(error => {
-        document.getElementById("login-status").textContent = "❌ " + error.message;
-      });
+function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  
+  auth.signInWithEmailAndPassword(email, password)
+    .then(userCredential => {
+      const uid = userCredential.user.uid;
+      return db.ref("users/" + uid + "/role").once("value");
+    })
+    .then(snapshot => {
+      currentRole = snapshot.val() || "viewer";
+      document.getElementById("roleBanner").innerText = "Logged in as: " + currentRole.toUpperCase();
+      
+      // Setup UI based on role
+      setupUIForRole(currentRole);
+      
+      // Initialize map and load data
+      document.getElementById("loginScreen").style.display = 'none';
+      document.getElementById("map").style.display = 'block';
+      document.getElementById("controlPanel").style.display = 'block';
+      document.getElementById("summary").style.display = 'block';
+      
+      initMap();
+      loadGullyData();
+    })
+    .catch(error => {
+      document.getElementById("loginError").textContent = "❌ " + error.message;
+    });
+}
+
+function setupUIForRole(role) {
+  const isAdmin = role === 'admin';
+  const isOperator = role === 'operator';
+  
+  document.getElementById("importFile").disabled = !isAdmin;
+  document.querySelectorAll("#controlPanel button").forEach(btn => {
+    if (btn.innerText.includes('Logout')) return;
+    btn.disabled = !isAdmin;
+    btn.style.opacity = btn.disabled ? 0.5 : 1;
+  });
+}
+
+function initMap() {
+  map = L.map('map').setView([51.9, -8.5], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  
+  document.getElementById('importFile').addEventListener('change', handleKMLImport);
+}
+
+function createDot(color) {
+  return L.divIcon({
+    className: '',
+    html: `<div class='dot' style='background:${color}'></div>`
+  });
+}
+
+function handleKMLImport(event) {
+  const file = event.target.files[0];
+  if (importedFiles.has(file.name)) {
+    alert("This file has already been imported.");
+    return;
   }
-
-  function initMap() {
-    map = L.map('map').setView([51.9, -8.47], 14);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-  }
-
-  function importKML(event) {
-    const file = event.target.files[0];
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const parser = new DOMParser();
-      const kml = parser.parseFromString(e.target.result, "text/xml");
-      const geojson = toGeoJSON.kml(kml);
-      geojson.features.forEach((f, i) => {
+  
+  importedFiles.add(file.name);
+  const reader = new FileReader();
+  
+  reader.onload = () => {
+    const kml = new DOMParser().parseFromString(reader.result, 'text/xml');
+    const geojson = toGeoJSON.kml(kml);
+    
+    geojson.features.forEach((f, index) => {
+      if (f.geometry.type === 'Point') {
         const [lng, lat] = f.geometry.coordinates;
-        const marker = L.marker([lat, lng]).addTo(map);
-        marker.on('click', () => openPopup(marker, `gully_${Date.now()}_${i}`));
+        const gullyId = `gully_${Date.now()}_${index}`;
+        addGullyToMap({ lat, lng }, gullyId);
+      }
+    });
+  };
+  
+  reader.readAsText(file);
+}
+
+function addGullyToMap(latlng, gullyId) {
+  const marker = L.marker(latlng, { icon: createDot('gray') }).addTo(map);
+  
+  marker.on('click', () => {
+    if (deleteMode) {
+      handleGullyDelete(gullyId, marker);
+    } else {
+      showInspectionPopup(marker, gullyId, latlng);
+    }
+  });
+  
+  db.ref(`gullies/${gullyId}`).set({
+    location: latlng,
+    created: firebase.database.ServerValue.TIMESTAMP
+  });
+  
+  gullyData.push({ marker, id: gullyId });
+  updateSummary();
+}
+
+function showInspectionPopup(marker, gullyId, latlng) {
+  const popup = document.createElement('div');
+  popup.className = 'popup-form';
+  
+  // Create form elements
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  
+  const dateInput = document.createElement('input');
+  dateInput.type = 'date';
+  dateInput.value = new Date().toISOString().split('T')[0];
+  
+  const statusSelect = document.createElement('select');
+  ['Clear', 'Blocked', 'Broken', 'Remediation', 'Replacement'].forEach(status => {
+    const option = document.createElement('option');
+    option.value = status;
+    option.text = status;
+    statusSelect.appendChild(option);
+  });
+  
+  const commentArea = document.createElement('textarea');
+  commentArea.placeholder = 'Add inspection comments...';
+  
+  const photoInput = document.createElement('input');
+  photoInput.type = 'file';
+  photoInput.accept = 'image/*';
+  
+  // Add elements to popup
+  popup.appendChild(document.createTextNode('Inspection Complete: '));
+  popup.appendChild(checkbox);
+  popup.appendChild(document.createElement('br'));
+  
+  popup.appendChild(document.createTextNode('Date: '));
+  popup.appendChild(dateInput);
+  popup.appendChild(document.createElement('br'));
+  
+  popup.appendChild(document.createTextNode('Status: '));
+  popup.appendChild(statusSelect);
+  popup.appendChild(document.createElement('br'));
+  
+  popup.appendChild(document.createTextNode('Comments: '));
+  popup.appendChild(commentArea);
+  popup.appendChild(document.createElement('br'));
+  
+  popup.appendChild(document.createTextNode('Photo: '));
+  popup.appendChild(photoInput);
+  popup.appendChild(document.createElement('br'));
+  
+  // Save button
+  const saveBtn = document.createElement('button');
+  saveBtn.innerText = '💾 Save';
+  saveBtn.onclick = () => saveInspection(gullyId, {
+    date: dateInput.value,
+    status: statusSelect.value,
+    comment: commentArea.value,
+    complete: checkbox.checked,
+    location: latlng
+  }, photoInput.files[0], marker);
+  
+  popup.appendChild(saveBtn);
+  
+  // View history button
+  const historyBtn = document.createElement('button');
+  historyBtn.innerText = '📋 History';
+  historyBtn.onclick = () => viewGullyHistory(gullyId);
+  popup.appendChild(historyBtn);
+  
+  // Set permissions
+  const canEdit = currentRole === 'admin' || currentRole === 'operator';
+  checkbox.disabled = !canEdit;
+  dateInput.disabled = !canEdit;
+  statusSelect.disabled = !canEdit;
+  commentArea.disabled = !canEdit;
+  photoInput.disabled = !canEdit;
+  saveBtn.disabled = !canEdit;
+  
+  marker.bindPopup(popup).openPopup();
+}
+
+async function saveInspection(gullyId, data, photoFile, marker) {
+  if (!data.complete) {
+    alert('Please mark inspection as complete');
+    return;
+  }
+  
+  try {
+    // Upload photo if provided
+    let photoURL = null;
+    if (photoFile) {
+      const photoRef = storage.ref(`photos/${gullyId}/${Date.now()}`);
+      await photoRef.put(photoFile);
+      photoURL = await photoRef.getDownloadURL();
+    }
+    
+    // Save inspection data
+    const inspectionData = {
+      ...data,
+      timestamp: firebase.database.ServerValue.TIMESTAMP,
+      inspector: auth.currentUser.email,
+      photoURL
+    };
+    
+    await db.ref(`gullies/${gullyId}/inspections`).push(inspectionData);
+    
+    // Update marker appearance
+    updateMarkerStatus(marker, data.status);
+    marker.closePopup();
+    updateSummary();
+    
+  } catch (error) {
+    alert('Error saving inspection: ' + error.message);
+  }
+}
+
+function updateMarkerStatus(marker, status) {
+  const colors = {
+    Clear: 'blue',
+    Blocked: 'orange',
+    Broken: 'red',
+    Remediation: 'purple',
+    Replacement: 'yellow',
+    Expired: 'gray'
+  };
+  
+  marker.setIcon(createDot(colors[status] || 'gray'));
+}
+
+async function viewGullyHistory(gullyId) {
+  try {
+    const snapshot = await db.ref(`gullies/${gullyId}/inspections`).once('value');
+    const inspections = snapshot.val() || {};
+    
+    const history = Object.values(inspections)
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map(i => `${new Date(i.timestamp).toLocaleDateString()}: ${i.status} - ${i.comment}`)
+      .join('\n');
+    
+    alert(history || 'No inspection history');
+  } catch (error) {
+    alert('Error loading history: ' + error.message);
+  }
+}
+
+function loadGullyData() {
+  db.ref('gullies').on('value', snapshot => {
+    // Clear existing markers
+    gullyData.forEach(({ marker }) => map.removeLayer(marker));
+    gullyData.length = 0;
+    
+    const data = snapshot.val() || {};
+    
+    Object.entries(data).forEach(([id, gully]) => {
+      const marker = L.marker(gully.location, { icon: createDot('gray') }).addTo(map);
+      
+      // Get last inspection
+      const inspections = gully.inspections || {};
+      const lastInspection = Object.values(inspections)
+        .sort((a, b) => b.timestamp - a.timestamp)[0];
+      
+      if (lastInspection) {
+        updateMarkerStatus(marker, lastInspection.status);
+      }
+      
+      marker.on('click', () => {
+        if (deleteMode) {
+          handleGullyDelete(id, marker);
+        } else {
+          showInspectionPopup(marker, id, gully.location);
+        }
       });
-    };
-    reader.readAsText(file);
-  }
-
-  function openPopup(marker, id) {
-    const popup = document.createElement("div");
-    popup.className = "popup-form";
-
-    const inspection = document.createElement("input");
-    inspection.type = "checkbox";
-    inspection.disabled = (userRole !== "admin" && userRole !== "operator");
-
-    const date = document.createElement("input");
-    date.type = "date";
-    date.valueAsDate = new Date();
-    date.disabled = (userRole !== "admin");
-
-    const comment = document.createElement("textarea");
-    comment.placeholder = "Comment";
-    comment.disabled = (userRole !== "admin");
-
-    const status = document.createElement("select");
-    ["", "Clear", "Blocked", "Broken", "Remediation"].forEach(opt => {
-      const o = document.createElement("option");
-      o.text = opt;
-      status.add(o);
+      
+      gullyData.push({ marker, id });
     });
-    status.disabled = (userRole !== "admin");
+    
+    updateSummary();
+  });
+}
 
-    const photo = document.createElement("input");
-    photo.type = "file";
-    photo.accept = "image/*";
-    photo.disabled = (userRole !== "admin");
-
-    const saveBtn = document.createElement("button");
-    saveBtn.innerText = "Save";
-    saveBtn.onclick = async () => {
-      const data = {
-        inspectionComplete: inspection.checked,
-        date: date.value,
-        comment: comment.value,
-        status: status.value
-      };
-      if (photo.files[0]) {
-        const ref = storage.ref('photos/' + id);
-        await ref.put(photo.files[0]);
-        data.photoURL = await ref.getDownloadURL();
+function updateSummary() {
+  const counts = {
+    Clear: 0,
+    Blocked: 0,
+    Broken: 0,
+    Remediation: 0,
+    Replacement: 0,
+    Expired: 0,
+    Unmarked: 0
+  };
+  
+  gullyData.forEach(({ id }) => {
+    db.ref(`gullies/${id}/inspections`).orderByChild('timestamp').limitToLast(1).once('value', snapshot => {
+      const lastInspection = Object.values(snapshot.val() || {})[0];
+      if (!lastInspection) {
+        counts.Unmarked++;
+      } else {
+        const ageMonths = (Date.now() - lastInspection.timestamp) / (1000 * 60 * 60 * 24 * 30.5);
+        if (ageMonths > 12) {
+          counts.Expired++;
+        } else {
+          counts[lastInspection.status]++;
+        }
       }
-      db.ref("gullies/" + id).set(data);
-      marker.closePopup();
-    };
-
-    popup.append("Inspection", inspection, document.createElement("br"),
-                 "Status", status, document.createElement("br"),
-                 "Date", date, document.createElement("br"),
-                 "Comment", comment, document.createElement("br"),
-                 "Photo", photo, document.createElement("br"),
-                 saveBtn);
-
-    marker.bindPopup(popup).openPopup();
-  }
-
-  function exportCSV() {
-    db.ref("gullies").once("value").then(snapshot => {
-      const data = snapshot.val();
-      if (!data) return;
-      const rows = [["ID","Date","Status","Comment","Inspected","PhotoURL"]];
-      for (const id in data) {
-        const d = data[id];
-        rows.push([id, d.date, d.status, d.comment, d.inspectionComplete, d.photoURL || ""]);
-      }
-      const csv = rows.map(r => r.join(",")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "gullies_export.csv";
-      a.click();
-      URL.revokeObjectURL(url);
+      
+      document.getElementById("summaryContent").innerHTML = `
+        Total: ${gullyData.length}<br>
+        <span style='color:blue;'>⬤</span> Clear: ${counts.Clear}<br>
+        <span style='color:orange;'>⬤</span> Blocked: ${counts.Blocked}<br>
+        <span style='color:red;'>⬤</span> Broken: ${counts.Broken}<br>
+        <span style='color:purple;'>⬤</span> Remediation: ${counts.Remediation}<br>
+        <span style='color:yellow;'>⬤</span> Replacement: ${counts.Replacement}<br>
+        <span style='color:gray;'>⬤</span> Expired: ${counts.Expired}<br>
+        <span style='color:lightgray;'>⬤</span> Unmarked: ${counts.Unmarked}
+      `;
     });
+  });
+}
+
+function filterByStatus() {
+  const selected = document.getElementById("filterStatus").value;
+  gullyData.forEach(({ id, marker }) => {
+    if (selected === 'All') {
+      marker.addTo(map);
+      return;
+    }
+    
+    db.ref(`gullies/${id}/inspections`).orderByChild('timestamp').limitToLast(1).once('value', snapshot => {
+      const lastInspection = Object.values(snapshot.val() || {})[0];
+      const status = lastInspection ? lastInspection.status : 'Unmarked';
+      
+      if (status === selected) {
+        marker.addTo(map);
+      } else {
+        map.removeLayer(marker);
+      }
+    });
+  });
+}
+
+function exportData() {
+  if (currentRole !== 'admin') {
+    alert('Only administrators can export data');
+    return;
   }
+  
+  db.ref('gullies').once('value', snapshot => {
+    const data = snapshot.val() || {};
+    let csv = 'Gully ID,Latitude,Longitude,Last Inspection,Status,Comment\n';
+    
+    Object.entries(data).forEach(([id, gully]) => {
+      const inspections = Object.values(gully.inspections || {})
+        .sort((a, b) => b.timestamp - a.timestamp);
+      const last = inspections[0] || {};
+      
+      csv += `${id},${gully.location.lat},${gully.location.lng},${last.date || ''},${last.status || ''},"${(last.comment || '').replace(/"/g, '""')}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'gully_inspections.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+function saveGullyData() {
+  if (currentRole !== 'admin') {
+    alert('Only administrators can backup data');
+    return;
+  }
+  
+  db.ref('gullies').once('value', snapshot => {
+    const data = snapshot.val();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'gully_data_backup.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+function resetMap() {
+  if (currentRole !== 'admin' || !confirm('Are you sure you want to reset all data? This cannot be undone.')) {
+    return;
+  }
+  
+  db.ref('gullies').remove()
+    .then(() => {
+      gullyData.forEach(({ marker }) => map.removeLayer(marker));
+      gullyData.length = 0;
+      updateSummary();
+    })
+    .catch(error => alert('Error resetting data: ' + error.message));
+}
+
+function enableDeleteMode() {
+  if (currentRole !== 'admin') {
+    alert('Only administrators can delete gullies');
+    return;
+  }
+  
+  deleteMode = true;
+  alert('Click any gully marker to delete it. This will remove all inspection data.');
+}
+
+function handleGullyDelete(gullyId, marker) {
+  if (!deleteMode || currentRole !== 'admin') return;
+  
+  if (confirm('Delete this gully and all its inspection data?')) {
+    db.ref(`gullies/${gullyId}`).remove()
+      .then(() => {
+        map.removeLayer(marker);
+        gullyData = gullyData.filter(g => g.id !== gullyId);
+        updateSummary();
+        deleteMode = false;
+      })
+      .catch(error => alert('Error deleting gully: ' + error.message));
+  }
+}
+
+function logout() {
+  auth.signOut().then(() => location.reload());
+}
+
+// Initialize the application
+window.onload = () => {
+  document.getElementById("loginScreen").style.display = "block";
+};
 </script>
 </body>
 </html>
