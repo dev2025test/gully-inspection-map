@@ -15,13 +15,13 @@ const users = [
     initials: 'SD'
   },
   {
-    email: 'Richard_Daly@corkcity.ie',
+    email: 'richard_daly@corkcity.ie',
     password: 'Operator123!@#',
     role: 'operator',
     initials: 'RD'
   },
   {
-    email: 'John_ocallaghan@corkcity.ie',
+    email: 'john_ocallaghan@corkcity.ie',
     password: 'Operator123!@#',
     role: 'operator',
     initials: 'JO'
@@ -36,6 +36,7 @@ const users = [
 
 async function deleteUserIfExists(email) {
   try {
+    email = email.toLowerCase();
     const user = await admin.auth().getUserByEmail(email);
     await admin.auth().deleteUser(user.uid);
     console.log(`Deleted existing user: ${email}`);
@@ -46,16 +47,31 @@ async function deleteUserIfExists(email) {
   }
 }
 
+async function cleanupDatabase() {
+  try {
+    // Remove all existing users from the database
+    await admin.database().ref('users').remove();
+    console.log('Cleaned up existing database entries');
+  } catch (error) {
+    console.error('Error cleaning up database:', error);
+  }
+}
+
 async function setupUsers() {
   try {
+    // First, clean up the database
+    await cleanupDatabase();
+
     for (const user of users) {
       try {
-        // First, delete the user if they exist
-        await deleteUserIfExists(user.email);
+        const email = user.email.toLowerCase();
+        
+        // Delete the user if they exist in Authentication
+        await deleteUserIfExists(email);
 
         // Create new user in Authentication
         const userRecord = await admin.auth().createUser({
-          email: user.email,
+          email: email,
           password: user.password,
           emailVerified: true
         });
@@ -64,13 +80,13 @@ async function setupUsers() {
 
         // Set user role and initials in Realtime Database
         await admin.database().ref(`users/${userRecord.uid}`).set({
-          email: user.email,
+          email: email,
           role: user.role,
           initials: user.initials,
           created: admin.database.ServerValue.TIMESTAMP
         });
 
-        console.log(`Set role '${user.role}' and initials '${user.initials}' for user:`, user.email);
+        console.log(`Set role '${user.role}' and initials '${user.initials}' for user:`, email);
       } catch (error) {
         console.error(`Error processing user ${user.email}:`, error);
       }
