@@ -30,28 +30,18 @@
   "database": {
     "rules": {
       "users": {
+        ".read": "auth != null",
         "$uid": {
-          ".read": "$uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin'",
-          ".write": "root.child('users').child(auth.uid).child('role').val() === 'admin'"
+          ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
         }
       },
       "gullies": {
         ".read": "auth != null",
-        ".write": "root.child('users').child(auth.uid).child('role').val() === 'admin'",
         "$gullyId": {
-          "lastInspection": {
-            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'operator')"
-          },
+          ".read": "auth != null",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'operator')",
           "inspections": {
-            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'operator')"
-          },
-          "status": {
-            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'operator')"
-          },
-          "updatedBy": {
-            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'operator')"
-          },
-          "updatedByRole": {
+            ".read": "auth != null",
             ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'operator')"
           }
         }
@@ -59,6 +49,7 @@
       "gully_history": {
         ".read": "auth != null",
         "$gullyId": {
+          ".read": "auth != null",
           ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'operator')"
         }
       }

@@ -552,9 +552,6 @@ function showInspectionPopup(marker, gullyId, latlng) {
 
 async function saveInspection(gullyId, data, photoFile, marker) {
   console.log('Starting inspection save for gully:', gullyId);
-  console.log('Inspection data:', data);
-  console.log('Current user role:', currentRole);
-  console.log('Current user:', auth.currentUser?.uid);
   
   if (!data.complete) {
     alert('Please mark inspection as complete');
@@ -567,15 +564,8 @@ async function saveInspection(gullyId, data, photoFile, marker) {
   }
 
   try {
-    // Check if user has permission
-    if (currentRole !== 'admin' && currentRole !== 'operator') {
-      throw new Error('You do not have permission to save inspections');
-    }
-
     // Get current user data
     const userData = window.currentUserData;
-    console.log('Current user data:', userData);
-
     if (!userData || (userData.role !== 'admin' && userData.role !== 'operator')) {
       throw new Error('Your role does not allow saving inspections');
     }
@@ -587,69 +577,55 @@ async function saveInspection(gullyId, data, photoFile, marker) {
       comment: data.comment,
       complete: data.complete,
       location: data.location,
-      timestamp: firebase.database.ServerValue.TIMESTAMP,
+      timestamp: Date.now(),
       inspector: auth.currentUser.email,
       inspectorId: auth.currentUser.uid,
       inspectorRole: userData.role,
       inspectorInitials: userData.initials || userData.email.substring(0, 2).toUpperCase()
     };
 
-    console.log('Prepared inspection data:', inspectionData);
-
     // Handle photo upload if present
     if (photoFile) {
-      console.log('Uploading photo...');
       try {
         const photoRef = storage.ref(`photos/${gullyId}/${Date.now()}_${photoFile.name}`);
         await photoRef.put(photoFile);
         inspectionData.photoURL = await photoRef.getDownloadURL();
-        console.log('Photo uploaded successfully:', inspectionData.photoURL);
+        console.log('Photo uploaded successfully');
       } catch (photoError) {
         console.error('Photo upload failed:', photoError);
+        // Continue without photo if upload fails
       }
     }
 
-    // Save to Firebase
-    console.log('Saving to Firebase...');
+    // Save inspection data
+    const gullyRef = db.ref(`gullies/${gullyId}`);
+    const historyRef = db.ref(`gully_history/${gullyId}`);
     
-    try {
-      // Save to gully_history first
-      const historyRef = db.ref(`gully_history/${gullyId}`).push();
-      await historyRef.set(inspectionData);
-      console.log('Saved to history successfully');
-      
-      // Get a reference to the gully
-      const gullyRef = db.ref(`gullies/${gullyId}`);
-      
-      // Update all required fields in a single transaction
-      const updates = {
-        [`inspections/${Date.now()}`]: inspectionData,
-        'lastInspection': inspectionData.timestamp,
-        'status': data.status,
-        'updatedBy': auth.currentUser.uid,
-        'updatedByRole': userData.role
-      };
-      
-      await gullyRef.update(updates);
-      console.log('Updated gully data successfully');
-
-      // Update marker appearance
-      updateMarkerStatus(marker, data.status);
-      
-      // Close popup and show success message
-      marker.closePopup();
-      alert('Inspection saved successfully');
-      
-      // Reopen the inspection form for another inspection if needed
-      showInspectionPopup(marker, gullyId, data.location);
-      
-      // Update summary display
-      updateSummary();
-      
-    } catch (dbError) {
-      console.error('Database operation failed:', dbError);
-      throw new Error(`Database operation failed: ${dbError.message}`);
-    }
+    // Create unique inspection ID
+    const inspectionId = Date.now().toString();
+    
+    // Prepare updates
+    const updates = {};
+    updates[`/gullies/${gullyId}/inspections/${inspectionId}`] = inspectionData;
+    updates[`/gully_history/${gullyId}/${inspectionId}`] = inspectionData;
+    updates[`/gullies/${gullyId}/status`] = data.status;
+    updates[`/gullies/${gullyId}/lastInspection`] = inspectionData;
+    
+    // Apply all updates in one transaction
+    await db.ref().update(updates);
+    
+    console.log('Inspection saved successfully');
+    
+    // Update marker
+    updateMarkerStatus(marker, data.status);
+    
+    // Show success and reopen form
+    alert('Inspection saved successfully');
+    marker.closePopup();
+    showInspectionPopup(marker, gullyId, data.location);
+    
+    // Update summary
+    updateSummary();
     
   } catch (error) {
     console.error('Error in saveInspection:', error);
