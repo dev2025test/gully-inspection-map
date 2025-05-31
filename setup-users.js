@@ -11,17 +11,26 @@ const users = [
   {
     email: 'shane_dorgan@corkcity.ie',
     password: 'Admin123!@#',  // You should change this password
-    role: 'admin'
+    role: 'admin',
+    initials: 'SD'
   },
   {
-    email: 'operator@corkcity.ie',
-    password: 'Operator123!@#',  // You should change this password
-    role: 'operator'
+    email: 'Richard_Daly@corkcity.ie',
+    password: 'Operator123!@#',
+    role: 'operator',
+    initials: 'RD'
+  },
+  {
+    email: 'John_ocallaghan@corkcity.ie',
+    password: 'Operator123!@#',
+    role: 'operator',
+    initials: 'JO'
   },
   {
     email: 'viewer@corkcity.ie',
     password: 'Viewer123!@#',  // You should change this password
-    role: 'viewer'
+    role: 'viewer',
+    initials: 'VW'
   }
 ];
 
@@ -53,14 +62,15 @@ async function setupUsers() {
 
         console.log('Created user:', userRecord.uid);
 
-        // Set user role in Realtime Database
+        // Set user role and initials in Realtime Database
         await admin.database().ref(`users/${userRecord.uid}`).set({
           email: user.email,
           role: user.role,
+          initials: user.initials,
           created: admin.database.ServerValue.TIMESTAMP
         });
 
-        console.log(`Set role '${user.role}' for user:`, user.email);
+        console.log(`Set role '${user.role}' and initials '${user.initials}' for user:`, user.email);
       } catch (error) {
         console.error(`Error processing user ${user.email}:`, error);
       }
@@ -79,7 +89,7 @@ async function setupUsers() {
     const dbUsers = usersSnapshot.val();
     console.log('\nUsers in Database:');
     for (const [uid, userData] of Object.entries(dbUsers)) {
-      console.log(`- ${userData.email} (Role: ${userData.role})`);
+      console.log(`- ${userData.email} (Role: ${userData.role}, Initials: ${userData.initials})`);
     }
 
     process.exit(0);

@@ -562,12 +562,12 @@ async function saveInspection(gullyId, data, photoFile, marker) {
       throw new Error('You do not have permission to save inspections');
     }
 
-    // Verify user role in database
-    const userRoleSnapshot = await db.ref(`users/${auth.currentUser.uid}/role`).once('value');
-    const userRole = userRoleSnapshot.val();
-    console.log('Verified user role from database:', userRole);
+    // Verify user role and get initials from database
+    const userSnapshot = await db.ref(`users/${auth.currentUser.uid}`).once('value');
+    const userData = userSnapshot.val();
+    console.log('Verified user data from database:', userData);
 
-    if (userRole !== 'admin' && userRole !== 'operator') {
+    if (userData.role !== 'admin' && userData.role !== 'operator') {
       throw new Error('Your role does not allow saving inspections');
     }
 
@@ -581,7 +581,8 @@ async function saveInspection(gullyId, data, photoFile, marker) {
       timestamp: firebase.database.ServerValue.TIMESTAMP,
       inspector: auth.currentUser.email,
       inspectorId: auth.currentUser.uid,
-      inspectorRole: userRole
+      inspectorRole: userData.role,
+      inspectorInitials: userData.initials || ''
     };
 
     console.log('Prepared inspection data:', inspectionData);
@@ -615,10 +616,10 @@ async function saveInspection(gullyId, data, photoFile, marker) {
     // Update gully main record
     await gullyRef.update({
       lastInspection: inspectionData.timestamp,
-      lastInspectionBy: auth.currentUser.email,
+      lastInspectionBy: `${auth.currentUser.email} (${userData.initials})`,
       status: data.status,
       updatedBy: auth.currentUser.uid,
-      updatedByRole: userRole
+      updatedByRole: userData.role
     });
     console.log('Gully status updated');
 
@@ -784,14 +785,14 @@ function exportData() {
   
   db.ref('gullies').once('value', snapshot => {
     const data = snapshot.val() || {};
-    let csv = 'Gully ID,Latitude,Longitude,Last Inspection,Status,Comment\n';
+    let csv = 'Gully ID,Latitude,Longitude,Last Inspection,Status,Inspector,Initials,Comment\n';
     
     Object.entries(data).forEach(([id, gully]) => {
       const inspections = Object.values(gully.inspections || {})
         .sort((a, b) => b.timestamp - a.timestamp);
       const last = inspections[0] || {};
       
-      csv += `${id},${gully.location.lat},${gully.location.lng},${last.date || ''},${last.status || ''},"${(last.comment || '').replace(/"/g, '""')}"\n`;
+      csv += `${id},${gully.location.lat},${gully.location.lng},${last.date || ''},${last.status || ''},${last.inspector || ''},${last.inspectorInitials || ''},"${(last.comment || '').replace(/"/g, '""')}"\n`;
     });
     
     const blob = new Blob([csv], { type: 'text/csv' });
