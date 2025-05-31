@@ -1,0 +1,19 @@
+{
+  "users": {
+    "user1": {
+      "email": "shane_dorgan@corkcity.ie",
+      "role": "admin",
+      "created": {".sv": "timestamp"}
+    },
+    "user2": {
+      "email": "operator@corkcity.ie",
+      "role": "operator",
+      "created": {".sv": "timestamp"}
+    },
+    "user3": {
+      "email": "viewer@corkcity.ie",
+      "role": "viewer",
+      "created": {".sv": "timestamp"}
+    }
+  }
+} 

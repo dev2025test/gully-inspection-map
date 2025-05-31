@@ -85,6 +85,7 @@ font-weight:bold;"></div>
   <button onclick="resetMap()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">♻️ Reset</button>
   <button onclick="saveGullyData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">💾 Backup JSON</button>
   <button onclick="enableDeleteMode()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">🗑️ Delete Gully</button>
+  <button onclick="enableEditMode()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">✏️ Edit Gully</button>
   <button onclick="logout()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">🚪 Logout</button>
 </div>
 
@@ -125,6 +126,7 @@ const importedFiles = new Set();
 const gullyData = [];
 let deleteMode = false;
 let currentMarker = null;
+let editMode = false;
 
 function login() {
   const email = document.getElementById("email").value;
@@ -438,88 +440,104 @@ function showInspectionPopup(marker, gullyId, latlng) {
   console.log('Opening inspection popup for gully:', gullyId);
   currentMarker = marker; // Store current marker reference
   
-  const popup = L.popup({
-    maxWidth: 300,
-    className: 'inspection-popup'
-  });
-
-  const formContent = `
-    <div class="popup-form" style="padding: 10px;">
-      <div style="margin-bottom: 10px;">
-        <label>
-          <input type="checkbox" id="complete" style="margin-right: 5px;">
-          Inspection Complete
-        </label>
-      </div>
-      
-      <div style="margin-bottom: 10px;">
-        <label>Date:</label><br>
-        <input type="date" id="date" value="${new Date().toISOString().split('T')[0]}" style="width: 100%;">
-      </div>
-      
-      <div style="margin-bottom: 10px;">
-        <label>Status:</label><br>
-        <select id="status" style="width: 100%;">
-          <option value="Clear">Clear</option>
-          <option value="Blocked">Blocked</option>
-          <option value="Broken">Broken</option>
-          <option value="Remediation">Remediation</option>
-          <option value="Replacement">Replacement</option>
-        </select>
-      </div>
-      
-      <div style="margin-bottom: 10px;">
-        <label>Comments:</label><br>
-        <textarea id="comment" placeholder="Add inspection comments..." style="width: 100%; height: 60px;"></textarea>
-      </div>
-      
-      <div style="margin-bottom: 10px;">
-        <label>Photo:</label><br>
-        <input type="file" id="photo" accept="image/*">
-      </div>
-      
-      <div style="margin-top: 15px;">
-        <button id="saveButton" style="margin-right: 10px;">💾 Save</button>
-        <button id="historyButton">📋 History</button>
-      </div>
-    </div>
-  `;
-
-  popup.setContent(formContent);
-  marker.bindPopup(popup).openPopup();
-
-  // Set up event handlers after popup is added to DOM
-  setTimeout(() => {
-    const canEdit = currentRole === 'admin' || currentRole === 'operator';
-    const elements = document.querySelectorAll('.popup-form input, .popup-form select, .popup-form textarea');
-    elements.forEach(el => {
-      el.disabled = !canEdit;
-    });
+  // First, fetch the current gully data
+  db.ref(`gullies/${gullyId}`).once('value').then(snapshot => {
+    const gullyData = snapshot.val();
     
-    // Set up save button handler
-    const saveButton = document.getElementById('saveButton');
-    if (saveButton) {
-      saveButton.disabled = !canEdit;
-      saveButton.addEventListener('click', () => {
-        const formData = {
-          complete: document.getElementById('complete').checked,
-          date: document.getElementById('date').value,
-          status: document.getElementById('status').value,
-          comment: document.getElementById('comment').value,
-          location: latlng
-        };
-        
-        const photoFile = document.getElementById('photo').files[0];
-        saveInspection(gullyId, formData, photoFile, marker);
-      });
-    }
+    const popup = L.popup({
+      maxWidth: 300,
+      className: 'inspection-popup'
+    });
 
-    // Set up history button handler
-    const historyButton = document.getElementById('historyButton');
-    if (historyButton) {
-      historyButton.addEventListener('click', () => viewGullyHistory(gullyId));
-    }
-  }, 100);
+    const formContent = `
+      <div class="popup-form" style="padding: 10px;">
+        ${editMode && currentRole === 'admin' ? `
+          <div style="margin-bottom: 10px; background: #fff3cd; padding: 8px; border-radius: 4px;">
+            <strong>Edit Mode Active</strong><br>
+            <label>Location:</label><br>
+            <input type="text" id="lat" value="${latlng.lat.toFixed(6)}" style="width: 48%; margin-right: 2%;" ${currentRole !== 'admin' ? 'disabled' : ''}>
+            <input type="text" id="lng" value="${latlng.lng.toFixed(6)}" style="width: 48%;" ${currentRole !== 'admin' ? 'disabled' : ''}>
+            <button onclick="updateGullyLocation('${gullyId}')" style="margin-top: 5px; width: 100%;">Update Location</button>
+          </div>
+        ` : ''}
+        <div style="margin-bottom: 10px;">
+          <label>
+            <input type="checkbox" id="complete" style="margin-right: 5px;">
+            Inspection Complete
+          </label>
+        </div>
+        
+        <div style="margin-bottom: 10px;">
+          <label>Date:</label><br>
+          <input type="date" id="date" value="${new Date().toISOString().split('T')[0]}" style="width: 100%;">
+        </div>
+        
+        <div style="margin-bottom: 10px;">
+          <label>Status:</label><br>
+          <select id="status" style="width: 100%;">
+            <option value="Clear">Clear</option>
+            <option value="Blocked">Blocked</option>
+            <option value="Broken">Broken</option>
+            <option value="Remediation">Remediation</option>
+            <option value="Replacement">Replacement</option>
+          </select>
+        </div>
+        
+        <div style="margin-bottom: 10px;">
+          <label>Comments:</label><br>
+          <textarea id="comment" placeholder="Add inspection comments..." style="width: 100%; height: 60px;"></textarea>
+        </div>
+        
+        <div style="margin-bottom: 10px;">
+          <label>Photo:</label><br>
+          <input type="file" id="photo" accept="image/*">
+        </div>
+        
+        <div style="margin-top: 15px;">
+          <button id="saveButton" style="margin-right: 10px;">💾 Save</button>
+          <button id="historyButton">📋 History</button>
+        </div>
+      </div>
+    `;
+
+    popup.setContent(formContent);
+    marker.bindPopup(popup).openPopup();
+
+    // Set up event handlers after popup is added to DOM
+    setTimeout(() => {
+      const canEdit = currentRole === 'admin' || currentRole === 'operator';
+      const elements = document.querySelectorAll('.popup-form input, .popup-form select, .popup-form textarea');
+      elements.forEach(el => {
+        if (el.id !== 'lat' && el.id !== 'lng') { // Don't disable lat/lng in edit mode
+          el.disabled = !canEdit;
+        }
+      });
+      
+      // Set up save button handler
+      const saveButton = document.getElementById('saveButton');
+      if (saveButton) {
+        saveButton.disabled = !canEdit;
+        saveButton.addEventListener('click', () => {
+          const formData = {
+            complete: document.getElementById('complete').checked,
+            date: document.getElementById('date').value,
+            status: document.getElementById('status').value,
+            comment: document.getElementById('comment').value,
+            location: latlng
+          };
+          
+          const photoFile = document.getElementById('photo').files[0];
+          saveInspection(gullyId, formData, photoFile, marker);
+        });
+      }
+
+      // Set up history button handler
+      const historyButton = document.getElementById('historyButton');
+      if (historyButton) {
+        historyButton.addEventListener('click', () => viewGullyHistory(gullyId));
+      }
+    }, 100);
+  });
 }
 
 async function saveInspection(gullyId, data, photoFile, marker) {
@@ -845,6 +863,59 @@ function handleGullyDelete(gullyId, marker) {
 
 function logout() {
   auth.signOut().then(() => location.reload());
+}
+
+function enableEditMode() {
+  if (currentRole !== 'admin') {
+    alert('Only administrators can edit gullies');
+    return;
+  }
+  
+  editMode = !editMode;
+  deleteMode = false; // Disable delete mode when edit mode is enabled
+  
+  const editButton = document.querySelector('button[onclick="enableEditMode()"]');
+  const deleteButton = document.querySelector('button[onclick="enableDeleteMode()"]');
+  
+  editButton.style.background = editMode ? '#ffeb3b' : '#f0f0f0';
+  deleteButton.style.background = '#f0f0f0';
+  
+  map.getContainer().style.cursor = editMode ? 'pointer' : '';
+  
+  if (editMode) {
+    alert('Edit mode enabled. Click any gully to edit its details.');
+  }
+}
+
+async function updateGullyLocation(gullyId) {
+  if (currentRole !== 'admin') {
+    alert('Only administrators can update gully locations');
+    return;
+  }
+
+  const lat = parseFloat(document.getElementById('lat').value);
+  const lng = parseFloat(document.getElementById('lng').value);
+
+  if (isNaN(lat) || isNaN(lng) || !isValidCoordinate(lng, lat)) {
+    alert('Please enter valid coordinates');
+    return;
+  }
+
+  try {
+    // Update location in Firebase
+    await db.ref(`gullies/${gullyId}/location`).set({ lat, lng });
+    
+    // Update marker position
+    if (currentMarker) {
+      currentMarker.setLatLng([lat, lng]);
+    }
+    
+    alert('Gully location updated successfully');
+    currentMarker.closePopup();
+  } catch (error) {
+    console.error('Error updating gully location:', error);
+    alert('Error updating gully location: ' + error.message);
+  }
 }
 
 // Initialize the application

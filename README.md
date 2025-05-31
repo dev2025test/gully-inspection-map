@@ -107,4 +107,48 @@ Add these rules to your Firebase Realtime Database:
 
 ## License
 
-MIT License 
+MIT License
+
+# Gully Inspection System - User Setup
+
+This script helps you set up users and their roles in Firebase for the Gully Inspection System.
+
+## Prerequisites
+
+1. Node.js installed on your system
+2. Firebase Admin SDK service account key
+3. Firebase project set up with Authentication and Realtime Database
+
+## Setup Instructions
+
+1. Download your Firebase Admin SDK service account key:
+   - Go to Firebase Console > Project Settings > Service Accounts
+   - Click "Generate New Private Key"
+   - Save the downloaded file as `serviceAccountKey.json` in this directory
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. (Optional) Modify the user passwords in `setup-users.js`
+   The default passwords are:
+   - Admin: Admin123!@#
+   - Operator: Operator123!@#
+   - Viewer: Viewer123!@#
+
+4. Run the setup script:
+   ```bash
+   npm run setup
+   ```
+
+## What the Script Does
+
+1. Creates users in Firebase Authentication
+2. Sets up user roles in the Realtime Database
+3. Handles existing users by updating their roles
+4. Provides console output for successful operations and errors
+
+## Security Note
+
+Please change the default passwords immediately after the first login for security purposes. 
