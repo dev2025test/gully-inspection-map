@@ -219,10 +219,15 @@ function setupUIForRole(role) {
   const isAdmin = role === 'admin';
   const isOperator = role === 'operator';
   
+  // Allow operators to save inspections and view history
   document.getElementById("importFile").disabled = !isAdmin;
   document.querySelectorAll("#controlPanel button").forEach(btn => {
     if (btn.innerText.includes('Logout')) return;
-    btn.disabled = !isAdmin;
+    if (btn.innerText.includes('Export CSV') || btn.innerText.includes('Backup JSON')) {
+      btn.disabled = !isAdmin && !isOperator;
+    } else {
+      btn.disabled = !isAdmin;
+    }
     btn.style.opacity = btn.disabled ? 0.5 : 1;
   });
 }
