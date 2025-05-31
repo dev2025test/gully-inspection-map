@@ -612,41 +612,44 @@ async function saveInspection(gullyId, data, photoFile, marker) {
     // Save to Firebase
     console.log('Saving to Firebase...');
     
-    // Get a reference to the gully
-    const gullyRef = db.ref(`gullies/${gullyId}`);
-    
-    // Create a new inspection entry in history
-    const historyRef = db.ref(`gully_history/${gullyId}`).push();
-    await historyRef.set(inspectionData);
-    
-    // Create a new inspection entry
-    const newInspectionRef = gullyRef.child('inspections').push();
-    await newInspectionRef.set(inspectionData);
-    
-    console.log('Inspection data saved successfully');
+    try {
+      // Save to gully_history first
+      const historyRef = db.ref(`gully_history/${gullyId}`).push();
+      await historyRef.set(inspectionData);
+      console.log('Saved to history successfully');
+      
+      // Get a reference to the gully
+      const gullyRef = db.ref(`gullies/${gullyId}`);
+      
+      // Update all required fields in a single transaction
+      const updates = {
+        [`inspections/${Date.now()}`]: inspectionData,
+        'lastInspection': inspectionData.timestamp,
+        'status': data.status,
+        'updatedBy': auth.currentUser.uid,
+        'updatedByRole': userData.role
+      };
+      
+      await gullyRef.update(updates);
+      console.log('Updated gully data successfully');
 
-    // Update gully main record
-    await gullyRef.update({
-      lastInspection: inspectionData.timestamp,
-      lastInspectionBy: `${auth.currentUser.email} (${userData.initials || userData.email.substring(0, 2).toUpperCase()})`,
-      status: data.status,
-      updatedBy: auth.currentUser.uid,
-      updatedByRole: userData.role
-    });
-    console.log('Gully status updated');
-
-    // Update marker appearance
-    updateMarkerStatus(marker, data.status);
-    
-    // Close popup and show success message
-    marker.closePopup();
-    alert('Inspection saved successfully');
-    
-    // Reopen the inspection form for another inspection if needed
-    showInspectionPopup(marker, gullyId, data.location);
-    
-    // Update summary display
-    updateSummary();
+      // Update marker appearance
+      updateMarkerStatus(marker, data.status);
+      
+      // Close popup and show success message
+      marker.closePopup();
+      alert('Inspection saved successfully');
+      
+      // Reopen the inspection form for another inspection if needed
+      showInspectionPopup(marker, gullyId, data.location);
+      
+      // Update summary display
+      updateSummary();
+      
+    } catch (dbError) {
+      console.error('Database operation failed:', dbError);
+      throw new Error(`Database operation failed: ${dbError.message}`);
+    }
     
   } catch (error) {
     console.error('Error in saveInspection:', error);
