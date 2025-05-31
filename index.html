@@ -447,189 +447,146 @@ function isValidCoordinate(lng, lat) {
 }
 
 function showInspectionPopup(marker, gullyId, latlng) {
-  console.log('Opening inspection popup for gully:', gullyId);
-  currentMarker = marker; // Store current marker reference
-  
-  // First, fetch the current gully data
-  db.ref(`gullies/${gullyId}`).once('value').then(snapshot => {
-    const gullyData = snapshot.val();
+  const popupContent = document.createElement('div');
+  popupContent.className = 'popup-form';
+  popupContent.style.padding = '10px';
+
+  // Create form HTML
+  popupContent.innerHTML = `
+    <div style="margin-bottom: 10px;">
+      <label>
+        <input type="checkbox" id="complete" style="margin-right: 5px;">
+        Inspection Complete
+      </label>
+    </div>
     
-    const popup = L.popup({
-      maxWidth: 300,
-      className: 'inspection-popup'
-    });
+    <div style="margin-bottom: 10px;">
+      <label>Date:</label>
+      <input type="date" id="date" value="${new Date().toISOString().split('T')[0]}" style="width: 100%;">
+    </div>
+    
+    <div style="margin-bottom: 10px;">
+      <label>Status:</label>
+      <select id="status" style="width: 100%;">
+        <option value="Clear">Clear</option>
+        <option value="Blocked">Blocked</option>
+        <option value="Broken">Broken</option>
+        <option value="Remediation">Remediation</option>
+        <option value="Replacement">Replacement</option>
+      </select>
+    </div>
+    
+    <div style="margin-bottom: 10px;">
+      <label>Comments:</label>
+      <textarea id="comment" placeholder="Add inspection comments..." style="width: 100%; height: 60px;"></textarea>
+    </div>
+    
+    <div style="margin-bottom: 10px;">
+      <label>Photo:</label>
+      <input type="file" id="photo" accept="image/*" capture="environment">
+    </div>
+    
+    <div style="margin-top: 15px;">
+      <button onclick="handleSave()" style="margin-right: 10px;">💾 Save</button>
+      <button onclick="viewGullyHistory('${gullyId}')">📋 History</button>
+    </div>
+  `;
 
-    const formContent = `
-      <div class="popup-form" style="padding: 10px;">
-        ${editMode && currentRole === 'admin' ? `
-          <div style="margin-bottom: 10px; background: #fff3cd; padding: 8px; border-radius: 4px;">
-            <strong>Edit Mode Active</strong><br>
-            <label>Location:</label><br>
-            <input type="text" id="lat" value="${latlng.lat.toFixed(6)}" style="width: 48%; margin-right: 2%;" ${currentRole !== 'admin' ? 'disabled' : ''}>
-            <input type="text" id="lng" value="${latlng.lng.toFixed(6)}" style="width: 48%;" ${currentRole !== 'admin' ? 'disabled' : ''}>
-            <button onclick="updateGullyLocation('${gullyId}')" style="margin-top: 5px; width: 100%;">Update Location</button>
-          </div>
-        ` : ''}
-        <div style="margin-bottom: 10px;">
-          <label>
-            <input type="checkbox" id="complete" style="margin-right: 5px;">
-            Inspection Complete
-          </label>
-        </div>
-        
-        <div style="margin-bottom: 10px;">
-          <label>Date:</label><br>
-          <input type="date" id="date" value="${new Date().toISOString().split('T')[0]}" style="width: 100%;">
-        </div>
-        
-        <div style="margin-bottom: 10px;">
-          <label>Status:</label><br>
-          <select id="status" style="width: 100%;">
-            <option value="Clear">Clear</option>
-            <option value="Blocked">Blocked</option>
-            <option value="Broken">Broken</option>
-            <option value="Remediation">Remediation</option>
-            <option value="Replacement">Replacement</option>
-          </select>
-        </div>
-        
-        <div style="margin-bottom: 10px;">
-          <label>Comments:</label><br>
-          <textarea id="comment" placeholder="Add inspection comments..." style="width: 100%; height: 60px;"></textarea>
-        </div>
-        
-        <div style="margin-bottom: 10px;">
-          <label>Photo:</label><br>
-          <input type="file" id="photo" accept="image/*">
-        </div>
-        
-        <div style="margin-top: 15px;">
-          <button id="saveButton" style="margin-right: 10px;">💾 Save</button>
-          <button id="historyButton">📋 History</button>
-        </div>
-      </div>
-    `;
+  // Create popup
+  const popup = L.popup({
+    maxWidth: 300,
+    className: 'inspection-popup'
+  })
+  .setLatLng(latlng)
+  .setContent(popupContent);
 
-    popup.setContent(formContent);
-    marker.bindPopup(popup).openPopup();
+  marker.bindPopup(popup).openPopup();
 
-    // Set up event handlers after popup is added to DOM
-    setTimeout(() => {
-      const canEdit = currentRole === 'admin' || currentRole === 'operator';
-      const elements = document.querySelectorAll('.popup-form input, .popup-form select, .popup-form textarea');
-      elements.forEach(el => {
-        if (el.id !== 'lat' && el.id !== 'lng') { // Don't disable lat/lng in edit mode
-          el.disabled = !canEdit;
-        }
-      });
-      
-      // Set up save button handler
-      const saveButton = document.getElementById('saveButton');
-      if (saveButton) {
-        saveButton.disabled = !canEdit;
-        saveButton.addEventListener('click', () => {
-          const formData = {
-            complete: document.getElementById('complete').checked,
-            date: document.getElementById('date').value,
-            status: document.getElementById('status').value,
-            comment: document.getElementById('comment').value,
-            location: latlng
-          };
-          
-          const photoFile = document.getElementById('photo').files[0];
-          saveInspection(gullyId, formData, photoFile, marker);
-        });
-      }
-
-      // Set up history button handler
-      const historyButton = document.getElementById('historyButton');
-      if (historyButton) {
-        historyButton.addEventListener('click', () => viewGullyHistory(gullyId));
-      }
-    }, 100);
-  });
+  // Add save handler
+  window.handleSave = () => {
+    const formData = {
+      complete: document.getElementById('complete').checked,
+      date: document.getElementById('date').value,
+      status: document.getElementById('status').value,
+      comment: document.getElementById('comment').value,
+      location: latlng
+    };
+    
+    const photoFile = document.getElementById('photo').files[0];
+    saveInspection(gullyId, formData, photoFile, marker);
+  };
 }
 
 async function saveInspection(gullyId, data, photoFile, marker) {
-  console.log('Starting inspection save for gully:', gullyId);
-  
-  if (!data.complete) {
-    alert('Please mark inspection as complete');
-    return;
-  }
-  
   if (!auth.currentUser) {
     alert('You must be logged in to save inspections');
+    return;
+  }
+
+  if (!data.complete) {
+    alert('Please mark inspection as complete');
     return;
   }
 
   try {
     // Get current user data
     const userData = window.currentUserData;
-    if (!userData || (userData.role !== 'admin' && userData.role !== 'operator')) {
-      throw new Error('Your role does not allow saving inspections');
+    if (!userData) {
+      throw new Error('User data not found. Please log out and log in again.');
     }
 
-    // Create inspection data
+    // Create basic inspection data
+    const timestamp = Date.now();
     const inspectionData = {
       date: data.date,
       status: data.status,
       comment: data.comment,
       complete: data.complete,
-      location: data.location,
-      timestamp: Date.now(),
-      inspector: auth.currentUser.email,
-      inspectorId: auth.currentUser.uid,
-      inspectorRole: userData.role,
-      inspectorInitials: userData.initials || userData.email.substring(0, 2).toUpperCase()
+      timestamp: timestamp,
+      inspector: {
+        email: auth.currentUser.email,
+        uid: auth.currentUser.uid,
+        role: userData.role,
+        initials: userData.initials || userData.email.substring(0, 2).toUpperCase()
+      }
     };
 
     // Handle photo upload if present
     if (photoFile) {
       try {
-        const photoRef = storage.ref(`photos/${gullyId}/${Date.now()}_${photoFile.name}`);
+        const photoRef = storage.ref(`photos/${gullyId}/${timestamp}_${photoFile.name}`);
         await photoRef.put(photoFile);
         inspectionData.photoURL = await photoRef.getDownloadURL();
-        console.log('Photo uploaded successfully');
-      } catch (photoError) {
-        console.error('Photo upload failed:', photoError);
-        // Continue without photo if upload fails
+      } catch (error) {
+        console.error('Photo upload failed:', error);
       }
     }
 
-    // Save inspection data
+    // Save the inspection
     const gullyRef = db.ref(`gullies/${gullyId}`);
-    const historyRef = db.ref(`gully_history/${gullyId}`);
     
-    // Create unique inspection ID
-    const inspectionId = Date.now().toString();
-    
-    // Prepare updates
-    const updates = {};
-    updates[`/gullies/${gullyId}/inspections/${inspectionId}`] = inspectionData;
-    updates[`/gully_history/${gullyId}/${inspectionId}`] = inspectionData;
-    updates[`/gullies/${gullyId}/status`] = data.status;
-    updates[`/gullies/${gullyId}/lastInspection`] = inspectionData;
-    
-    // Apply all updates in one transaction
-    await db.ref().update(updates);
-    
-    console.log('Inspection saved successfully');
-    
-    // Update marker
+    // Update gully data
+    await gullyRef.update({
+      [`inspections/${timestamp}`]: inspectionData,
+      status: data.status,
+      lastInspection: timestamp,
+      lastInspector: inspectionData.inspector
+    });
+
+    // Update marker and UI
     updateMarkerStatus(marker, data.status);
-    
-    // Show success and reopen form
-    alert('Inspection saved successfully');
-    marker.closePopup();
-    showInspectionPopup(marker, gullyId, data.location);
-    
-    // Update summary
     updateSummary();
     
+    // Show success message
+    alert('Inspection saved successfully');
+    
+    // Reset form for next inspection
+    marker.closePopup();
+    showInspectionPopup(marker, gullyId, data.location);
+
   } catch (error) {
-    console.error('Error in saveInspection:', error);
-    alert(`Error saving inspection: ${error.message}\nPlease check console for details.`);
+    console.error('Save inspection error:', error);
+    alert('Error saving inspection. Please try again.');
   }
 }
 

@@ -29,28 +29,11 @@
   },
   "database": {
     "rules": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'operator')",
       "users": {
-        ".read": "auth != null",
         "$uid": {
-          ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
-        }
-      },
-      "gullies": {
-        ".read": "auth != null",
-        "$gullyId": {
-          ".read": "auth != null",
-          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'operator')",
-          "inspections": {
-            ".read": "auth != null",
-            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'operator')"
-          }
-        }
-      },
-      "gully_history": {
-        ".read": "auth != null",
-        "$gullyId": {
-          ".read": "auth != null",
-          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'operator')"
+          ".write": "auth != null && auth.uid === $uid"
         }
       }
     }
