@@ -214,15 +214,16 @@ const defaultUsers = [
 // Function to ensure default users exist
 function ensureDefaultUsers() {
   defaultUsers.forEach(user => {
-    auth.fetchSignInMethodsForEmail(user.email)
+    const normalizedEmail = normalizeEmail(user.email);
+    auth.fetchSignInMethodsForEmail(normalizedEmail)
       .then((signInMethods) => {
         if (signInMethods.length === 0) {
           // User doesn't exist, create them
-          console.log('Creating user:', user.email);
-          auth.createUserWithEmailAndPassword(user.email, 'DefaultPass123!')
+          console.log('Creating user:', normalizedEmail);
+          auth.createUserWithEmailAndPassword(normalizedEmail, 'DefaultPass123!')
             .then((userCredential) => {
               return db.ref("users/" + userCredential.user.uid).set({
-                email: user.email,
+                email: normalizedEmail,
                 role: user.role,
                 name: user.name,
                 initials: user.initials,
@@ -234,6 +235,24 @@ function ensureDefaultUsers() {
       })
       .catch(error => console.error('Error checking user:', error));
   });
+}
+
+// Update the normalizeEmail function to be more robust
+function normalizeEmail(email) {
+  if (!email) return '';
+  email = email.toLowerCase().trim();
+  
+  // Handle all variations of Aman's email
+  if (email.includes('aman') && email.includes('kushwaha') && email.includes('corkcity.ie')) {
+    return 'aman_kushwaha@corkcity.ie';
+  }
+  
+  // Handle all variations of Ronan's email
+  if (email.includes('ronan') && email.includes('oconnor') && email.includes('corkcity.ie')) {
+    return 'ronan_oconnor@corkcity.ie';
+  }
+  
+  return email;
 }
 
 // Initialize the application
@@ -315,24 +334,7 @@ function setupInactivityTracking() {
   resetInactivityTimer();
 }
 
-// Add helper function for login validation
-function normalizeEmail(email) {
-  if (!email) return '';
-  email = email.toLowerCase().trim();
-  
-  // Handle common variations with exact matches
-  const emailMap = {
-    'ronan_oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie',
-    'ronan.oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie',
-    'ronan_oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie',
-    'aman_kushwaha@corkcity.ie': 'aman_kushwaha@corkcity.ie',
-    'aman.kushwaha@corkcity.ie': 'aman_kushwaha@corkcity.ie',
-    'aman_kushawaha@corkcity.ie': 'aman_kushwaha@corkcity.ie'
-  };
-  
-  return emailMap[email] || email;
-}
-
+// Update the login function to handle roles properly
 function login() {
   let email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
@@ -347,34 +349,30 @@ function login() {
   
   document.getElementById("loginError").textContent = "Logging in...";
   
-  // Default password check
-  const isDefaultLogin = password === 'DefaultPass123!';
-  
-  // Try to sign in
   auth.signInWithEmailAndPassword(email, password)
     .then(userCredential => {
       console.log('Login successful');
       return db.ref("users/" + userCredential.user.uid).once("value");
     })
-    .catch(error => {
-      console.log('Initial login failed, checking if new user:', error.code);
-      
-      // If login failed and using default password, try to create account
-      if (isDefaultLogin && (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password')) {
-        return auth.createUserWithEmailAndPassword(email, password)
-          .then(userCredential => {
-            console.log('Created new user');
-            const userData = {
-              email: email,
-              role: email.includes('aman') ? 'admin' : 'operator',
-              created: firebase.database.ServerValue.TIMESTAMP,
-              name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-              initials: email.split('@')[0].split(/[._]/).map(n => n[0].toUpperCase()).join('')
-            };
-            return db.ref("users/" + userCredential.user.uid).set(userData);
+    .then(snapshot => {
+      const userData = snapshot.val();
+      if (!userData) {
+        // Create user data if it doesn't exist
+        const defaultUser = defaultUsers.find(u => normalizeEmail(u.email) === email);
+        if (defaultUser) {
+          return db.ref("users/" + auth.currentUser.uid).set({
+            email: email,
+            role: defaultUser.role,
+            name: defaultUser.name,
+            initials: defaultUser.initials,
+            created: firebase.database.ServerValue.TIMESTAMP
           });
+        }
       }
-      throw error;
+      return snapshot;
+    })
+    .then(() => {
+      window.location.reload();
     })
     .catch(error => {
       console.error('Login error:', error);
@@ -770,7 +768,8 @@ function getStatusOptionsForLayer(layerType) {
   ).join('');
 }
 
-async function saveInspection(gullyId, marker, layerType) {
+// Update saveInspection to properly handle the status update
+function saveInspection(gullyId, marker, layerType) {
   if (!auth.currentUser) {
     alert('You must be logged in to save inspections');
     return;
@@ -787,6 +786,12 @@ async function saveInspection(gullyId, marker, layerType) {
   if (!formData.complete) {
     alert('Please mark inspection as complete');
     return;
+  }
+
+  // Update the gully data in memory
+  const gullyIndex = gullyData.findIndex(g => g.id === gullyId);
+  if (gullyIndex !== -1) {
+    gullyData[gullyIndex].status = formData.status;
   }
 
   try {
@@ -1074,6 +1079,47 @@ auth.onAuthStateChanged(user => {
     document.getElementById('summary').style.display = 'none';
   }
 });
+
+// Update the updateSummary function to properly show gully counts
+function updateSummary() {
+  const counts = {
+    'All': 0,
+    'Clear': 0,
+    'Blocked': 0,
+    'Broken': 0,
+    'Remediation': 0,
+    'Replacement': 0,
+    'Expired': 0
+  };
+  
+  // Get all gullies from the layer
+  const gullyMarkers = Array.from(layers.gullies.getLayers());
+  
+  gullyMarkers.forEach(marker => {
+    const gully = gullyData.find(g => g.marker === marker);
+    if (gully) {
+      counts['All']++;
+      const status = gully.status || 'Unmarked';
+      if (counts.hasOwnProperty(status)) {
+        counts[status]++;
+      }
+    }
+  });
+  
+  // Update summary display
+  let summaryHtml = '';
+  Object.entries(counts).forEach(([status, count]) => {
+    const color = getStatusColor(status);
+    summaryHtml += `
+      <div style="margin: 5px 0;">
+        <span style="display: inline-block; width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 5px;"></span>
+        ${status}: ${count}
+      </div>
+    `;
+  });
+  
+  document.getElementById('summaryContent').innerHTML = summaryHtml;
+}
 </script>
 </body>
 </html>
