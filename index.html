@@ -127,6 +127,24 @@ font-weight:bold;"></div>
   <button onclick="enableDeleteMode()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">🗑️ Delete Gully</button>
   <button onclick="enableEditMode()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">✏️ Edit Gully</button>
   <button onclick="logout()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">🚪 Logout</button>
+  
+  <div id="layerControls" style="margin-top:10px;background:white;padding:10px;border-radius:4px;box-shadow:0 0 4px rgba(0,0,0,0.2);">
+    <div class="layer-header" style="cursor:pointer;padding:5px;background:#f5f5f5;border-radius:4px;display:flex;justify-content:space-between;align-items:center;">
+      <span>Layer Controls</span>
+      <span class="collapse-icon">▼</span>
+    </div>
+    <div class="layer-content" style="margin-top:5px;">
+      <select id="activeLayer" style="width:100%;margin-bottom:5px;padding:5px;border-radius:4px;border:1px solid #ccc;">
+        <option value="gullies">Gullies</option>
+        <option value="signage">Signage</option>
+        <option value="playgrounds">Playgrounds</option>
+        <option value="parks">Parks</option>
+        <option value="walkways">Walkways</option>
+        <option value="lining">Lining</option>
+      </select>
+      <div id="layerToggles"></div>
+    </div>
+  </div>
 </div>
 
 <div id="summary">
@@ -168,6 +186,7 @@ let deleteMode = false;
 let currentMarker = null;
 let editMode = false;
 let currentActiveLayer = 'gullies';
+let currentInspectionPopup = null;
 
 // Add layer groups
 let layers = {
@@ -339,88 +358,47 @@ function initMap() {
   // Add all layers to map
   Object.values(layers).forEach(layer => layer.addTo(map));
   
-  // Add layer control to map
-  addLayerControl();
+  addLayerToggles();
   
   document.getElementById('importFile').addEventListener('change', handleKMLImport);
 }
 
-function addLayerControl() {
-  // Create custom layer control
-  const layerControl = L.control({ position: 'topleft' });
-
-  layerControl.onAdd = function () {
-    const container = L.DomUtil.create('div', 'layer-control');
+function addLayerToggles() {
+  const container = document.getElementById('layerToggles');
+  
+  Object.entries(layerNames).forEach(([key, name]) => {
+    const label = document.createElement('label');
+    label.style.display = 'block';
+    label.style.margin = '3px 0';
     
-    // Create layer visibility controls
-    const html = `
-      <div class="layer-header">
-        <span>Layer Controls</span>
-        <span class="collapse-icon">▼</span>
-      </div>
-      <div class="layer-content">
-        <select id="activeLayer" style="width: 100%; margin-bottom: 10px;">
-          <option value="gullies">Gullies</option>
-          <option value="signage">Signage</option>
-          <option value="playgrounds">Playgrounds</option>
-          <option value="parks">Parks</option>
-          <option value="walkways">Walkways</option>
-          <option value="lining">Lining</option>
-        </select>
-        <div>
-          ${Object.entries(layerNames).map(([key, name]) => `
-            <label style="display: block; margin: 3px 0;">
-              <input type="checkbox" class="layer-toggle" data-layer="${key}" checked> ${name}
-            </label>
-          `).join('')}
-        </div>
-      </div>
-    `;
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'layer-toggle';
+    checkbox.dataset.layer = key;
+    checkbox.checked = true;
     
-    container.innerHTML = html;
+    checkbox.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        layers[key].addTo(map);
+      } else {
+        map.removeLayer(layers[key]);
+      }
+    });
+    
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(` ${name}`));
+    container.appendChild(label);
+  });
 
-    // Prevent map interactions when interacting with the control
-    L.DomEvent.disableClickPropagation(container);
-    L.DomEvent.disableScrollPropagation(container);
-
-    // Add event listeners after a short delay to ensure DOM is ready
-    setTimeout(() => {
-      // Toggle collapse functionality
-      const header = container.querySelector('.layer-header');
-      const content = container.querySelector('.layer-content');
-      const icon = container.querySelector('.collapse-icon');
-      
-      header.addEventListener('click', () => {
-        content.classList.toggle('expanded');
-        icon.classList.toggle('expanded');
-      });
-
-      // Layer toggle listeners
-      document.querySelectorAll('.layer-toggle').forEach(checkbox => {
-        checkbox.addEventListener('change', (e) => {
-          const layerName = e.target.dataset.layer;
-          if (e.target.checked) {
-            layers[layerName].addTo(map);
-          } else {
-            map.removeLayer(layers[layerName]);
-          }
-        });
-      });
-
-      // Active layer selection listener
-      document.getElementById('activeLayer').addEventListener('change', (e) => {
-        currentActiveLayer = e.target.value;
-      });
-
-      // Start with collapsed state
-      content.classList.add('expanded');
-      icon.classList.add('expanded');
-    }, 0);
-
-    return container;
-  };
-
-  layerControl.addTo(map);
+  // Add collapse functionality
+  const header = document.querySelector('.layer-header');
+  const content = document.querySelector('.layer-content');
+  const icon = document.querySelector('.collapse-icon');
+  
+  header.addEventListener('click', () => {
+    content.style.display = content.style.display === 'none' ? 'block' : 'none';
+    icon.style.transform = content.style.display === 'none' ? 'rotate(0deg)' : 'rotate(180deg)';
+  });
 }
 
 function createDot(color) {
@@ -587,6 +565,11 @@ function isValidCoordinate(lng, lat) {
 }
 
 function showInspectionPopup(marker, gullyId, latlng, layerType) {
+  // Close any existing popup first
+  if (currentInspectionPopup) {
+    map.closePopup(currentInspectionPopup);
+  }
+
   const popupContent = document.createElement('div');
   popupContent.className = 'popup-form';
   popupContent.style.padding = '10px';
@@ -611,11 +594,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     <div style="margin-bottom: 10px;">
       <label>Status:</label>
       <select id="inspection-status" style="width: 100%;">
-        <option value="Clear">Clear</option>
-        <option value="Blocked">Blocked</option>
-        <option value="Broken">Broken</option>
-        <option value="Remediation">Remediation</option>
-        <option value="Replacement">Replacement</option>
+        ${getStatusOptionsForLayer(layerType)}
       </select>
     </div>
 
@@ -655,6 +634,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
   .setLatLng(latlng)
   .setContent(popupContent);
 
+  currentInspectionPopup = popup;
   marker.bindPopup(popup).openPopup();
 
   // Add event listener after the popup is added to DOM
@@ -662,13 +642,28 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     const saveButton = document.getElementById('save-inspection-btn');
     if (saveButton) {
       saveButton.addEventListener('click', () => {
-        saveInspection(gullyId, marker);
+        saveInspection(gullyId, marker, layerType);
       });
     }
   }, 100);
 }
 
-async function saveInspection(gullyId, marker) {
+function getStatusOptionsForLayer(layerType) {
+  const options = {
+    gullies: ['Clear', 'Blocked', 'Broken', 'Remediation', 'Replacement'],
+    signage: ['Good', 'Damaged', 'Missing'],
+    playgrounds: ['Operational', 'Needs Repair', 'Out of Service'],
+    parks: ['Open', 'Under Maintenance', 'Closed'],
+    walkways: ['Clear', 'Obstructed', 'Under Repair'],
+    lining: ['Good', 'Faded', 'Needs Repainting']
+  };
+
+  return (options[layerType] || []).map(status => 
+    `<option value="${status}">${status}</option>`
+  ).join('');
+}
+
+async function saveInspection(gullyId, marker, layerType) {
   if (!auth.currentUser) {
     alert('You must be logged in to save inspections');
     return;
@@ -783,7 +778,7 @@ async function saveInspection(gullyId, marker) {
     document.getElementById('inspection-photo').value = '';
     
     // Keep the popup open for another potential inspection
-    showInspectionPopup(marker, gullyId, formData.location);
+    showInspectionPopup(marker, gullyId, formData.location, layerType);
 
   } catch (error) {
     console.error('Save inspection error:', error);
@@ -978,47 +973,65 @@ function getStatusColor(status) {
 }
 
 function updateSummary() {
-  const counts = {
-    gullies: { total: 0, Clear: 0, Blocked: 0, Broken: 0, Remediation: 0, Replacement: 0, Expired: 0, Unmarked: 0 },
-    signage: { total: 0, Good: 0, Damaged: 0, Missing: 0, Unmarked: 0 },
-    playgrounds: { total: 0, Operational: 0, 'Needs Repair': 0, 'Out of Service': 0, Unmarked: 0 },
-    parks: { total: 0, Open: 0, 'Under Maintenance': 0, Closed: 0, Unmarked: 0 },
-    walkways: { total: 0, Clear: 0, Obstructed: 0, 'Under Repair': 0, Unmarked: 0 },
-    lining: { total: 0, Good: 0, Faded: 0, 'Needs Repainting': 0, Unmarked: 0 }
+  // For gullies, maintain the original detailed summary
+  const gullyCounts = {
+    Clear: 0,
+    Blocked: 0,
+    Broken: 0,
+    Remediation: 0,
+    Replacement: 0,
+    Expired: 0,
+    Unmarked: 0
   };
+
+  // For other layers, track basic counts
+  const layerCounts = {
+    signage: 0,
+    playgrounds: 0,
+    parks: 0,
+    walkways: 0,
+    lining: 0
+  };
+
+  let totalGullies = 0;
   
   gullyData.forEach(({ id, layer }) => {
-    if (counts[layer]) {
-      counts[layer].total++;
-      db.ref(`${layer}/${id}/inspections`).orderByChild('timestamp').limitToLast(1).once('value', snapshot => {
+    if (layer === 'gullies') {
+      totalGullies++;
+      db.ref(`gullies/${id}/inspections`).orderByChild('timestamp').limitToLast(1).once('value', snapshot => {
         const lastInspection = Object.values(snapshot.val() || {})[0];
         if (!lastInspection) {
-          counts[layer].Unmarked++;
+          gullyCounts.Unmarked++;
         } else {
-          const status = lastInspection.status;
-          if (counts[layer][status]) {
-            counts[layer][status]++;
+          const ageMonths = (Date.now() - lastInspection.timestamp) / (1000 * 60 * 60 * 24 * 30.5);
+          if (ageMonths > 12) {
+            gullyCounts.Expired++;
           } else {
-            counts[layer].Unmarked++;
+            gullyCounts[lastInspection.status]++;
           }
         }
         
         // Update the summary display
-        let summaryHtml = '';
-        Object.entries(counts).forEach(([layerName, layerCounts]) => {
-          if (layerCounts.total > 0) {
-            summaryHtml += `<strong>${layerNames[layerName]}</strong> (${layerCounts.total})<br>`;
-            Object.entries(layerCounts).forEach(([status, count]) => {
-              if (status !== 'total' && count > 0) {
-                summaryHtml += `${status}: ${count}<br>`;
-              }
-            });
-            summaryHtml += '<br>';
-          }
-        });
-        
-        document.getElementById("summaryContent").innerHTML = summaryHtml;
+        document.getElementById("summaryContent").innerHTML = `
+          <strong>Gullies</strong> (${totalGullies})<br>
+          <span style='color:blue;'>⬤</span> Clear: ${gullyCounts.Clear}<br>
+          <span style='color:orange;'>⬤</span> Blocked: ${gullyCounts.Blocked}<br>
+          <span style='color:red;'>⬤</span> Broken: ${gullyCounts.Broken}<br>
+          <span style='color:purple;'>⬤</span> Remediation: ${gullyCounts.Remediation}<br>
+          <span style='color:yellow;'>⬤</span> Replacement: ${gullyCounts.Replacement}<br>
+          <span style='color:gray;'>⬤</span> Expired: ${gullyCounts.Expired}<br>
+          <span style='color:lightgray;'>⬤</span> Unmarked: ${gullyCounts.Unmarked}<br>
+          <br>
+          <strong>Other Layers</strong><br>
+          Signage: ${layerCounts.signage}<br>
+          Playgrounds: ${layerCounts.playgrounds}<br>
+          Parks: ${layerCounts.parks}<br>
+          Walkways: ${layerCounts.walkways}<br>
+          Lining: ${layerCounts.lining}
+        `;
       });
+    } else {
+      layerCounts[layer]++;
     }
   });
 }
