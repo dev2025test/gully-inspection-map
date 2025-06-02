@@ -572,13 +572,10 @@ function getMarkerIcon(layerType, status = 'Unmarked') {
 }
 
 function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
-  console.log('Adding marker to layer:', layerType);
-  
   const marker = new L.Marker([latlng.lat, latlng.lng], {
     icon: getMarkerIcon(layerType)
   });
   
-  // Add marker to appropriate layer
   if (layers[layerType]) {
     layers[layerType].addLayer(marker);
   } else {
@@ -597,7 +594,14 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
   
   marker.setZIndexOffset(1000);
   
-  gullyData.push({ marker, id: gullyId, layer: layerType });
+  // Add to gullyData with initial status
+  gullyData.push({ 
+    marker, 
+    id: gullyId, 
+    layer: layerType,
+    status: 'Unmarked'  // Set initial status
+  });
+  
   return marker;
 }
 
@@ -1148,13 +1152,33 @@ function updateSummary() {
     }
   });
   
+  // Create filter dropdown HTML
+  let filterHtml = `
+    <div style="margin-bottom: 15px;">
+      <div style="margin-bottom: 10px;"><strong>Filter Gullies</strong></div>
+      <select id="filterStatus" onchange="filterByStatus()" style="width: 100%; padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
+        <option value="All">Show All (${counts['All']})</option>
+  `;
+  
+  // Add options for each status that has gullies
+  Object.entries(counts).forEach(([status, count]) => {
+    if (status !== 'All' && count > 0) {
+      filterHtml += `<option value="${status}">${status} (${count})</option>`;
+    }
+  });
+  
+  filterHtml += `
+      </select>
+    </div>
+  `;
+  
   // Update summary display with descriptions
   let summaryHtml = '<div style="margin-bottom: 15px;"><strong>Gully Status Summary</strong></div>';
   Object.entries(counts).forEach(([status, count]) => {
     if (status === 'All' || count > 0) {
       const color = getStatusColor(status);
       summaryHtml += `
-        <div style="margin: 8px 0;">
+        <div style="margin: 8px 0; cursor: pointer;" onclick="filterToStatus('${status}')">
           <div style="display: flex; align-items: center;">
             <span style="display: inline-block; width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 5px; border: 1px solid #000;"></span>
             <span style="flex: 1; font-weight: bold;">${status}: ${count}</span>
@@ -1169,7 +1193,49 @@ function updateSummary() {
   
   const summaryContent = document.getElementById('summaryContent');
   if (summaryContent) {
-    summaryContent.innerHTML = summaryHtml;
+    summaryContent.innerHTML = filterHtml + summaryHtml;
+  }
+  
+  // Reapply current filter if exists
+  const filterStatus = document.getElementById('filterStatus');
+  if (filterStatus && filterStatus.value !== 'All') {
+    filterByStatus();
+  }
+}
+
+// Add function to filter by clicking on status in summary
+function filterToStatus(status) {
+  const filterStatus = document.getElementById('filterStatus');
+  if (filterStatus) {
+    filterStatus.value = status;
+    filterByStatus();
+  }
+}
+
+// Update the filter functionality
+function filterByStatus() {
+  const selectedStatus = document.getElementById('filterStatus').value;
+  
+  // Hide all markers first
+  gullyData.forEach(gully => {
+    if (gully.layer === 'gullies') {
+      gully.marker.setOpacity(0.2);
+    }
+  });
+  
+  // Show markers that match the filter
+  if (selectedStatus === 'All') {
+    gullyData.forEach(gully => {
+      if (gully.layer === 'gullies') {
+        gully.marker.setOpacity(1);
+      }
+    });
+  } else {
+    gullyData.forEach(gully => {
+      if (gully.layer === 'gullies' && gully.status === selectedStatus) {
+        gully.marker.setOpacity(1);
+      }
+    });
   }
 }
 
