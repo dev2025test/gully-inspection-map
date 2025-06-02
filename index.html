@@ -242,17 +242,17 @@ function normalizeEmail(email) {
   if (!email) return '';
   email = email.toLowerCase().trim();
   
-  // Handle all variations of Aman's email
-  if (email.includes('aman') && email.includes('kushwaha') && email.includes('corkcity.ie')) {
-    return 'aman_kushwaha@corkcity.ie';
-  }
+  // Map all variations to standard format
+  const emailMap = {
+    'ronan.oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie',
+    'ronan_oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie',
+    'aman.kushwaha@corkcity.ie': 'aman_kushwaha@corkcity.ie',
+    'aman_kushwaha@corkcity.ie': 'aman_kushwaha@corkcity.ie',
+    'aman.kushawaha@corkcity.ie': 'aman_kushwaha@corkcity.ie',
+    'aman_kushawaha@corkcity.ie': 'aman_kushwaha@corkcity.ie'
+  };
   
-  // Handle all variations of Ronan's email
-  if (email.includes('ronan') && email.includes('oconnor') && email.includes('corkcity.ie')) {
-    return 'ronan_oconnor@corkcity.ie';
-  }
-  
-  return email;
+  return emailMap[email] || email;
 }
 
 // Initialize the application
@@ -336,7 +336,7 @@ function setupInactivityTracking() {
 
 // Update the login function to handle roles properly
 function login() {
-  let email = document.getElementById("email").value;
+  const email = normalizeEmail(document.getElementById("email").value);
   const password = document.getElementById("password").value;
   
   if (!email || !password) {
@@ -344,34 +344,37 @@ function login() {
     return;
   }
 
-  // Normalize email
-  email = normalizeEmail(email);
-  
   document.getElementById("loginError").textContent = "Logging in...";
   
+  // First try to sign in
   auth.signInWithEmailAndPassword(email, password)
     .then(userCredential => {
-      console.log('Login successful');
       return db.ref("users/" + userCredential.user.uid).once("value");
     })
-    .then(snapshot => {
-      const userData = snapshot.val();
-      if (!userData) {
-        // Create user data if it doesn't exist
-        const defaultUser = defaultUsers.find(u => normalizeEmail(u.email) === email);
-        if (defaultUser) {
-          return db.ref("users/" + auth.currentUser.uid).set({
-            email: email,
-            role: defaultUser.role,
-            name: defaultUser.name,
-            initials: defaultUser.initials,
-            created: firebase.database.ServerValue.TIMESTAMP
+    .catch(error => {
+      // If login fails and using default password, create account
+      if (password === 'DefaultPass123!' && 
+          (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password')) {
+        return auth.createUserWithEmailAndPassword(email, password)
+          .then(userCredential => {
+            const isAman = email.toLowerCase().includes('aman');
+            const userData = {
+              email: email,
+              role: isAman ? 'admin' : 'operator',
+              name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+              initials: email.split('@')[0].split(/[._]/).map(n => n[0].toUpperCase()).join(''),
+              created: firebase.database.ServerValue.TIMESTAMP
+            };
+            return db.ref("users/" + userCredential.user.uid).set(userData)
+              .then(() => db.ref("users/" + userCredential.user.uid).once("value"));
           });
-        }
       }
-      return snapshot;
+      throw error;
     })
-    .then(() => {
+    .then(snapshot => {
+      if (!snapshot.exists()) {
+        throw new Error('No user data found');
+      }
       window.location.reload();
     })
     .catch(error => {
@@ -769,7 +772,7 @@ function getStatusOptionsForLayer(layerType) {
 }
 
 // Update saveInspection to properly handle the status update
-function saveInspection(gullyId, marker, layerType) {
+async function saveInspection(gullyId, marker, layerType) {
   if (!auth.currentUser) {
     alert('You must be logged in to save inspections');
     return;
@@ -788,12 +791,6 @@ function saveInspection(gullyId, marker, layerType) {
     return;
   }
 
-  // Update the gully data in memory
-  const gullyIndex = gullyData.findIndex(g => g.id === gullyId);
-  if (gullyIndex !== -1) {
-    gullyData[gullyIndex].status = formData.status;
-  }
-
   try {
     // Get current user data
     const userData = window.currentUserData;
@@ -801,41 +798,16 @@ function saveInspection(gullyId, marker, layerType) {
       throw new Error('User data not found. Please log out and log in again.');
     }
 
-    // Get inspector full name based on email
-    let inspectorName = "Unknown";
-    let inspectorInitials = "UN";
-    
-    switch (auth.currentUser.email.toLowerCase()) {
-      case 'richard_daly@corkcity.ie':
-        inspectorName = "Richard Daly";
-        inspectorInitials = "RD";
-        break;
-      case 'john_ocallaghan@corkcity.ie':
-        inspectorName = "John O'Callaghan";
-        inspectorInitials = "JO";
-        break;
-      case 'shane_dorgan@corkcity.ie':
-        inspectorName = "Shane Dorgan";
-        inspectorInitials = "SD";
-        break;
-      case 'ronan_oconnor@corkcity.ie':
-      case 'ronan.oconnor@corkcity.ie':  // Add alternative email format
-        inspectorName = "Ronan O'Connor";
-        inspectorInitials = "RO";
-        break;
-      case 'aman_kushawaha@corkcity.ie':
-      case 'aman.kushawaha@corkcity.ie':  // Add alternative email format
-      case 'aman_kushwaha@corkcity.ie':   // Add common spelling variation
-      case 'aman.kushwaha@corkcity.ie':   // Add common spelling variation
-        inspectorName = "Aman Kushwaha";
-        inspectorInitials = "AK";
-        break;
-      default:
-        inspectorName = auth.currentUser.email;
-        inspectorInitials = userData.initials || auth.currentUser.email.substring(0, 2).toUpperCase();
-    }
+    // Get inspector info
+    const inspectorInfo = {
+      name: userData.name || auth.currentUser.email.split('@')[0].replace(/[._]/g, ' '),
+      email: auth.currentUser.email,
+      uid: auth.currentUser.uid,
+      role: userData.role,
+      initials: userData.initials || auth.currentUser.email.substring(0, 2).toUpperCase()
+    };
 
-    // Create basic inspection data
+    // Create inspection data
     const timestamp = Date.now();
     const inspectionData = {
       date: formData.date,
@@ -843,13 +815,7 @@ function saveInspection(gullyId, marker, layerType) {
       comment: formData.comment,
       complete: formData.complete,
       timestamp: timestamp,
-      inspector: {
-        name: inspectorName,
-        email: auth.currentUser.email,
-        uid: auth.currentUser.uid,
-        role: userData.role,
-        initials: inspectorInitials
-      }
+      inspector: inspectorInfo
     };
 
     // Handle photo upload if present
@@ -865,20 +831,16 @@ function saveInspection(gullyId, marker, layerType) {
       }
     }
 
-    // Save the inspection
+    // Save inspection data
     const gullyRef = db.ref(`gullies/${gullyId}`);
-    
-    // Update gully data - using timestamp as key for unique inspections
     const updates = {
       [`inspections/${timestamp}`]: inspectionData,
       status: formData.status,
       lastInspection: timestamp,
-      lastInspector: inspectionData.inspector
+      lastInspector: inspectorInfo
     };
 
     await gullyRef.update(updates);
-
-    // Also save to history collection
     await db.ref(`gully_history/${gullyId}/${timestamp}`).set(inspectionData);
 
     // Update marker and UI
@@ -888,12 +850,12 @@ function saveInspection(gullyId, marker, layerType) {
     // Show success message
     alert('Inspection saved successfully');
     
-    // Clear form but keep popup open for potential new inspection
+    // Clear form
     document.getElementById('inspection-complete').checked = false;
     document.getElementById('inspection-comment').value = '';
     document.getElementById('inspection-photo').value = '';
     
-    // Keep the popup open for another potential inspection
+    // Keep popup open for another inspection
     showInspectionPopup(marker, gullyId, formData.location, layerType);
 
   } catch (error) {
