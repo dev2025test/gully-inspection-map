@@ -128,21 +128,38 @@ font-weight:bold;"></div>
   <button onclick="enableEditMode()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">✏️ Edit Gully</button>
   <button onclick="logout()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">🚪 Logout</button>
   
-  <div id="layerControls" style="margin-top:10px;background:white;padding:10px;border-radius:4px;box-shadow:0 0 4px rgba(0,0,0,0.2);">
-    <div class="layer-header" style="cursor:pointer;padding:5px;background:#f5f5f5;border-radius:4px;display:flex;justify-content:space-between;align-items:center;">
-      <span>Layer Controls</span>
-      <span class="collapse-icon">▼</span>
-    </div>
-    <div class="layer-content" style="margin-top:5px;">
-      <select id="activeLayer" style="width:100%;margin-bottom:5px;padding:5px;border-radius:4px;border:1px solid #ccc;">
-        <option value="gullies">Gullies</option>
-        <option value="signage">Signage</option>
-        <option value="playgrounds">Playgrounds</option>
-        <option value="parks">Parks</option>
-        <option value="walkways">Walkways</option>
-        <option value="lining">Lining</option>
-      </select>
-      <div id="layerToggles"></div>
+  <div style="margin-top:10px;display:flex;gap:5px;align-items:center;">
+    <button onclick="toggleLayerPanel()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">🗺️ Layers</button>
+    <select id="activeLayer" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;cursor:pointer;">
+      <option value="gullies">🔵 Gullies</option>
+      <option value="signage">🚸 Signage</option>
+      <option value="playgrounds">🎮 Playgrounds</option>
+      <option value="parks">🌳 Parks</option>
+      <option value="walkways">🚶 Walkways</option>
+      <option value="lining">🎨 Lining</option>
+    </select>
+  </div>
+
+  <div id="layerPanel" style="display:none;margin-top:5px;background:#f8f8f8;padding:8px;border-radius:4px;border:1px solid #ddd;">
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">
+      <button class="layer-toggle" data-layer="gullies" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;text-align:left;">
+        <span style="color:blue;">⬤</span> Gullies
+      </button>
+      <button class="layer-toggle" data-layer="signage" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;text-align:left;">
+        <span style="color:orange;">⬤</span> Signage
+      </button>
+      <button class="layer-toggle" data-layer="playgrounds" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;text-align:left;">
+        <span style="color:green;">⬤</span> Playgrounds
+      </button>
+      <button class="layer-toggle" data-layer="parks" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;text-align:left;">
+        <span style="color:darkgreen;">⬤</span> Parks
+      </button>
+      <button class="layer-toggle" data-layer="walkways" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;text-align:left;">
+        <span style="color:purple;">⬤</span> Walkways
+      </button>
+      <button class="layer-toggle" data-layer="lining" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;text-align:left;">
+        <span style="color:red;">⬤</span> Lining
+      </button>
     </div>
   </div>
 </div>
@@ -358,46 +375,32 @@ function initMap() {
   // Add all layers to map
   Object.values(layers).forEach(layer => layer.addTo(map));
   
-  addLayerToggles();
+  initLayerToggles();
   
   document.getElementById('importFile').addEventListener('change', handleKMLImport);
 }
 
-function addLayerToggles() {
-  const container = document.getElementById('layerToggles');
-  
-  Object.entries(layerNames).forEach(([key, name]) => {
-    const label = document.createElement('label');
-    label.style.display = 'block';
-    label.style.margin = '3px 0';
-    
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.className = 'layer-toggle';
-    checkbox.dataset.layer = key;
-    checkbox.checked = true;
-    
-    checkbox.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        layers[key].addTo(map);
+function initLayerToggles() {
+  // Add click handlers for layer toggle buttons
+  document.querySelectorAll('.layer-toggle').forEach(button => {
+    const layerName = button.dataset.layer;
+    button.addEventListener('click', () => {
+      const isActive = button.classList.toggle('active');
+      button.style.background = isActive ? '#e0e0e0' : '#f0f0f0';
+      if (isActive) {
+        layers[layerName].addTo(map);
       } else {
-        map.removeLayer(layers[key]);
+        map.removeLayer(layers[layerName]);
       }
     });
-    
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(` ${name}`));
-    container.appendChild(label);
+    // Start with all layers active
+    button.classList.add('active');
+    button.style.background = '#e0e0e0';
   });
 
-  // Add collapse functionality
-  const header = document.querySelector('.layer-header');
-  const content = document.querySelector('.layer-content');
-  const icon = document.querySelector('.collapse-icon');
-  
-  header.addEventListener('click', () => {
-    content.style.display = content.style.display === 'none' ? 'block' : 'none';
-    icon.style.transform = content.style.display === 'none' ? 'rotate(0deg)' : 'rotate(180deg)';
+  // Add change handler for active layer dropdown
+  document.getElementById('activeLayer').addEventListener('change', (e) => {
+    currentActiveLayer = e.target.value;
   });
 }
 
@@ -1197,6 +1200,11 @@ async function updateGullyLocation(gullyId) {
     console.error('Error updating gully location:', error);
     alert('Error updating gully location: ' + error.message);
   }
+}
+
+function toggleLayerPanel() {
+  const panel = document.getElementById('layerPanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
 // Initialize the application
