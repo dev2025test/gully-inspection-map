@@ -334,7 +334,7 @@ function setupInactivityTracking() {
   resetInactivityTimer();
 }
 
-// Update the login function to handle roles properly
+// Update the login function to prevent screen flicker
 function login() {
   const email = normalizeEmail(document.getElementById("email").value);
   const password = document.getElementById("password").value;
@@ -345,14 +345,13 @@ function login() {
   }
 
   document.getElementById("loginError").textContent = "Logging in...";
+  document.getElementById("loginScreen").style.opacity = "0.5";
   
-  // First try to sign in
   auth.signInWithEmailAndPassword(email, password)
     .then(userCredential => {
       return db.ref("users/" + userCredential.user.uid).once("value");
     })
     .catch(error => {
-      // If login fails and using default password, create account
       if (password === 'DefaultPass123!' && 
           (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password')) {
         return auth.createUserWithEmailAndPassword(email, password)
@@ -375,11 +374,26 @@ function login() {
       if (!snapshot.exists()) {
         throw new Error('No user data found');
       }
-      window.location.reload();
+      // Don't reload, just update UI
+      const userData = snapshot.val();
+      window.currentUserData = userData;
+      currentRole = userData.role;
+      
+      document.getElementById('roleBanner').textContent = `Logged in as ${userData.role.toUpperCase()}`;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('map').style.display = 'block';
+      document.getElementById('controlPanel').style.display = 'block';
+      document.getElementById('summary').style.display = 'block';
+      
+      initMap();
+      loadGullyData();
+      setupUIForRole(userData.role);
+      setupInactivityTracking();
     })
     .catch(error => {
       console.error('Login error:', error);
       document.getElementById("loginError").textContent = "❌ " + error.message;
+      document.getElementById("loginScreen").style.opacity = "1";
     });
 }
 
@@ -1099,7 +1113,7 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-// Update the updateSummary function to properly count statuses
+// Update the summary display with descriptions
 function updateSummary() {
   const counts = {
     'All': 0,
@@ -1110,6 +1124,17 @@ function updateSummary() {
     'Replacement': 0,
     'Expired': 0,
     'Unmarked': 0
+  };
+
+  const descriptions = {
+    'All': 'Total number of gullies in the system',
+    'Clear': 'Gullies that are clean and functioning properly',
+    'Blocked': 'Gullies that are obstructed and need cleaning',
+    'Broken': 'Gullies that are damaged and not functioning',
+    'Remediation': 'Gullies that require maintenance work',
+    'Replacement': 'Gullies that need to be completely replaced',
+    'Expired': 'Gullies that need immediate inspection',
+    'Unmarked': 'Gullies that have not been inspected yet'
   };
   
   // Count gullies by status
@@ -1123,15 +1148,20 @@ function updateSummary() {
     }
   });
   
-  // Update summary display
-  let summaryHtml = '';
+  // Update summary display with descriptions
+  let summaryHtml = '<div style="margin-bottom: 15px;"><strong>Gully Status Summary</strong></div>';
   Object.entries(counts).forEach(([status, count]) => {
     if (status === 'All' || count > 0) {
       const color = getStatusColor(status);
       summaryHtml += `
-        <div style="margin: 5px 0; display: flex; align-items: center;">
-          <span style="display: inline-block; width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 5px; border: 1px solid #000;"></span>
-          <span style="flex: 1;">${status}: ${count}</span>
+        <div style="margin: 8px 0;">
+          <div style="display: flex; align-items: center;">
+            <span style="display: inline-block; width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 5px; border: 1px solid #000;"></span>
+            <span style="flex: 1; font-weight: bold;">${status}: ${count}</span>
+          </div>
+          <div style="margin-left: 17px; font-size: 0.9em; color: #666;">
+            ${descriptions[status]}
+          </div>
         </div>
       `;
     }
@@ -1140,6 +1170,65 @@ function updateSummary() {
   const summaryContent = document.getElementById('summaryContent');
   if (summaryContent) {
     summaryContent.innerHTML = summaryHtml;
+  }
+}
+
+// Fix the export CSV function
+function exportData() {
+  if (!auth.currentUser) {
+    alert('Please log in to export data');
+    return;
+  }
+
+  try {
+    // Get all gully data from Firebase
+    db.ref('gullies').once('value')
+      .then(snapshot => {
+        const data = snapshot.val() || {};
+        
+        // Prepare CSV headers
+        let csvContent = 'ID,Latitude,Longitude,Status,Last Inspection,Inspector,Comments\n';
+        
+        // Process each gully
+        Object.entries(data).forEach(([id, gully]) => {
+          if (gully.location) {
+            const lastInspection = gully.inspections ? 
+              Object.values(gully.inspections).sort((a, b) => b.timestamp - a.timestamp)[0] : null;
+            
+            const row = [
+              id,
+              gully.location.lat,
+              gully.location.lng,
+              gully.status || 'Unmarked',
+              lastInspection ? new Date(lastInspection.timestamp).toLocaleDateString() : 'Never',
+              lastInspection ? lastInspection.inspector.name : 'None',
+              lastInspection ? (lastInspection.comment || '').replace(/,/g, ';') : ''
+            ];
+            
+            csvContent += row.join(',') + '\n';
+          }
+        });
+        
+        // Create and trigger download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        if (link.download !== undefined) {
+          const url = URL.createObjectURL(blob);
+          link.setAttribute('href', url);
+          link.setAttribute('download', `gully_data_${new Date().toISOString().split('T')[0]}.csv`);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      })
+      .catch(error => {
+        console.error('Export error:', error);
+        alert('Error exporting data: ' + error.message);
+      });
+  } catch (error) {
+    console.error('Export error:', error);
+    alert('Error exporting data: ' + error.message);
   }
 }
 </script>
