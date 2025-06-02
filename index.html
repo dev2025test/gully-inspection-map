@@ -342,81 +342,53 @@ function login() {
     return;
   }
 
-  // Handle specific email cases
-  email = email.toLowerCase().trim();
-  
-  // Map common variations to correct format
-  if (email === 'ronan.oconnor@corkcity.ie') {
-    email = 'ronan_oconnor@corkcity.ie';
-  } else if (email === 'aman.kushwaha@corkcity.ie') {
-    email = 'aman_kushwaha@corkcity.ie';
-  }
+  // Normalize email
+  email = normalizeEmail(email);
   
   document.getElementById("loginError").textContent = "Logging in...";
   
-  // Special handling for first-time login
-  if ((email === 'ronan_oconnor@corkcity.ie' || email === 'aman_kushwaha@corkcity.ie') && 
-      password === 'DefaultPass123!') {
-    // Check if user exists
-    auth.fetchSignInMethodsForEmail(email)
-      .then((signInMethods) => {
-        if (signInMethods.length === 0) {
-          // Create new user
-          return auth.createUserWithEmailAndPassword(email, password);
-        } else {
-          // User exists, try to sign in
-          return auth.signInWithEmailAndPassword(email, password);
-        }
-      })
-      .then(userCredential => {
-        const uid = userCredential.user.uid;
-        const isNewUser = userCredential.additionalUserInfo?.isNewUser;
-        
-        if (isNewUser) {
-          // Set up new user data
-          return db.ref("users/" + uid).set({
-            email: email,
-            role: email === 'aman_kushwaha@corkcity.ie' ? 'admin' : 'operator',
-            created: firebase.database.ServerValue.TIMESTAMP
-          });
-        }
-        return Promise.resolve();
-      })
-      .then(() => {
-        window.location.reload();
-      })
-      .catch(error => {
-        console.error('Login error:', error);
-        document.getElementById("loginError").textContent = "❌ " + error.message;
-      });
-    return;
-  }
+  // Default password check
+  const isDefaultLogin = password === 'DefaultPass123!';
   
-  // Normal login flow
+  // Try to sign in
   auth.signInWithEmailAndPassword(email, password)
     .then(userCredential => {
-      const uid = userCredential.user.uid;
-      return db.ref("users/" + uid).once("value");
+      console.log('Login successful');
+      return db.ref("users/" + userCredential.user.uid).once("value");
     })
-    .then(snapshot => {
-      if (!snapshot.exists()) {
-        // Create user data if it doesn't exist
-        const userData = {
-          email: email,
-          role: email === 'aman_kushwaha@corkcity.ie' ? 'admin' : 'operator',
-          created: firebase.database.ServerValue.TIMESTAMP
-        };
-        return db.ref("users/" + snapshot.key).set(userData);
+    .catch(error => {
+      console.log('Initial login failed, checking if new user:', error.code);
+      
+      // If login failed and using default password, try to create account
+      if (isDefaultLogin && (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password')) {
+        return auth.createUserWithEmailAndPassword(email, password)
+          .then(userCredential => {
+            console.log('Created new user');
+            const userData = {
+              email: email,
+              role: email.includes('aman') ? 'admin' : 'operator',
+              created: firebase.database.ServerValue.TIMESTAMP,
+              name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+              initials: email.split('@')[0].split(/[._]/).map(n => n[0].toUpperCase()).join('')
+            };
+            return db.ref("users/" + userCredential.user.uid).set(userData);
+          });
       }
-      return snapshot;
-    })
-    .then(() => {
-      window.location.reload();
+      throw error;
     })
     .catch(error => {
       console.error('Login error:', error);
       document.getElementById("loginError").textContent = "❌ " + error.message;
     });
+}
+
+function logout() {
+  auth.signOut().then(() => {
+    window.location.reload();
+  }).catch(error => {
+    console.error('Logout error:', error);
+    alert('Error during logout: ' + error.message);
+  });
 }
 
 function setupUIForRole(role) {
@@ -1057,5 +1029,51 @@ function loadGullyData() {
       const existingIds = new Set(gullyData.filter(g => g.layer === layerType).map(g => g.id));
       
       Object.entries(data).forEach(([id, item]) => {
-        if (!existingIds.has(id)) {
-          console.log(`
+        if (!existingIds.has(id) && item.location) {
+          const marker = addGullyToMap(item.location, id, layerType);
+          if (item.status) {
+            updateMarkerStatus(marker, item.status, layerType);
+          }
+        }
+      });
+    });
+  });
+}
+
+// Initialize auth state listener
+auth.onAuthStateChanged(user => {
+  if (user) {
+    console.log('User logged in:', user.email);
+    db.ref('users/' + user.uid).once('value').then(snapshot => {
+      const userData = snapshot.val();
+      if (!userData) {
+        console.error('No user data found');
+        return;
+      }
+      window.currentUserData = userData;
+      currentRole = userData.role;
+      
+      document.getElementById('roleBanner').textContent = `Logged in as ${userData.role.toUpperCase()}`;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('map').style.display = 'block';
+      document.getElementById('controlPanel').style.display = 'block';
+      document.getElementById('summary').style.display = 'block';
+      
+      initMap();
+      loadGullyData();
+      setupUIForRole(userData.role);
+      setupInactivityTracking();
+    });
+  } else {
+    console.log('No user logged in');
+    window.currentUserData = null;
+    currentRole = null;
+    document.getElementById('loginScreen').style.display = 'block';
+    document.getElementById('map').style.display = 'none';
+    document.getElementById('controlPanel').style.display = 'none';
+    document.getElementById('summary').style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>
