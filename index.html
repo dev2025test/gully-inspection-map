@@ -462,7 +462,10 @@ function showInspectionPopup(marker, gullyId, latlng) {
     
     <div style="margin-bottom: 10px;">
       <label>Date:</label>
-      <input type="date" id="inspection-date" value="${new Date().toISOString().split('T')[0]}" style="width: 100%;">
+      <input type="date" id="inspection-date" 
+        value="${new Date().toISOString().split('T')[0]}" 
+        max="${new Date().toISOString().split('T')[0]}"
+        style="width: 100%;">
     </div>
     
     <div style="margin-bottom: 10px;">
