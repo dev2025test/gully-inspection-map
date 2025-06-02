@@ -831,15 +831,6 @@ async function saveInspection(gullyId, marker, layerType) {
       throw new Error('User data not found. Please log out and log in again.');
     }
 
-    // Get inspector info
-    const inspectorInfo = {
-      name: userData.name || auth.currentUser.email.split('@')[0].replace(/[._]/g, ' '),
-      email: auth.currentUser.email,
-      uid: auth.currentUser.uid,
-      role: userData.role,
-      initials: userData.initials || auth.currentUser.email.substring(0, 2).toUpperCase()
-    };
-
     // Create inspection data
     const timestamp = Date.now();
     const inspectionData = {
@@ -848,7 +839,13 @@ async function saveInspection(gullyId, marker, layerType) {
       comment: formData.comment,
       complete: formData.complete,
       timestamp: timestamp,
-      inspector: inspectorInfo
+      inspector: {
+        name: userData.name || auth.currentUser.email.split('@')[0].replace(/[._]/g, ' '),
+        email: auth.currentUser.email,
+        uid: auth.currentUser.uid,
+        role: userData.role,
+        initials: userData.initials || auth.currentUser.email.substring(0, 2).toUpperCase()
+      }
     };
 
     // Handle photo upload if present
@@ -864,20 +861,26 @@ async function saveInspection(gullyId, marker, layerType) {
       }
     }
 
-    // Save inspection data
-    const gullyRef = db.ref(`gullies/${gullyId}`);
-    const updates = {
-      [`inspections/${timestamp}`]: inspectionData,
-      status: formData.status,
-      lastInspection: timestamp,
-      lastInspector: inspectorInfo
-    };
+    // Update gully data in memory
+    const gullyIndex = gullyData.findIndex(g => g.id === gullyId);
+    if (gullyIndex !== -1) {
+      gullyData[gullyIndex].status = formData.status;
+    }
 
-    await gullyRef.update(updates);
-    await db.ref(`gully_history/${gullyId}/${timestamp}`).set(inspectionData);
+    // Save to Firebase
+    const updates = {};
+    updates[`gullies/${gullyId}/inspections/${timestamp}`] = inspectionData;
+    updates[`gullies/${gullyId}/status`] = formData.status;
+    updates[`gullies/${gullyId}/lastInspection`] = timestamp;
+    updates[`gullies/${gullyId}/lastInspector`] = inspectionData.inspector;
+    updates[`gully_history/${gullyId}/${timestamp}`] = inspectionData;
 
-    // Update marker and UI
+    await db.ref().update(updates);
+
+    // Update marker appearance
     updateMarkerStatus(marker, formData.status, layerType);
+    
+    // Force summary update
     updateSummary();
     
     // Show success message
@@ -920,8 +923,18 @@ function capturePhoto() {
   }
 }
 
-function updateMarkerStatus(marker, status, layerType = 'gullies') {
-  marker.setIcon(getMarkerIcon(layerType, status));
+function updateMarkerStatus(marker, status, layerType) {
+  const newIcon = getMarkerIcon(layerType, status);
+  marker.setIcon(newIcon);
+  
+  // Update gullyData status
+  const gullyIndex = gullyData.findIndex(g => g.marker === marker);
+  if (gullyIndex !== -1) {
+    gullyData[gullyIndex].status = status;
+  }
+  
+  // Force summary update
+  updateSummary();
 }
 
 async function viewGullyHistory(gullyId) {
@@ -1023,19 +1036,30 @@ async function viewGullyHistory(gullyId) {
 }
 
 function loadGullyData() {
+  // Clear existing data
+  gullyData.length = 0;
+  Object.values(layers).forEach(layer => layer.clearLayers());
+  
   Object.keys(layers).forEach(layerType => {
     db.ref(layerType).on('value', snapshot => {
       const data = snapshot.val() || {};
-      const existingIds = new Set(gullyData.filter(g => g.layer === layerType).map(g => g.id));
       
       Object.entries(data).forEach(([id, item]) => {
-        if (!existingIds.has(id) && item.location) {
+        if (item.location) {
           const marker = addGullyToMap(item.location, id, layerType);
           if (item.status) {
             updateMarkerStatus(marker, item.status, layerType);
+            // Store the status in gullyData
+            const gullyIndex = gullyData.findIndex(g => g.id === id);
+            if (gullyIndex !== -1) {
+              gullyData[gullyIndex].status = item.status;
+            }
           }
         }
       });
+      
+      // Update summary after loading data
+      updateSummary();
     });
   });
 }
@@ -1075,7 +1099,7 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-// Update the updateSummary function to properly show gully counts
+// Update the updateSummary function to properly count statuses
 function updateSummary() {
   const counts = {
     'All': 0,
@@ -1088,12 +1112,9 @@ function updateSummary() {
     'Unmarked': 0
   };
   
-  // Get all gullies from the layer
-  const gullyMarkers = Array.from(layers.gullies.getLayers());
-  
-  gullyMarkers.forEach(marker => {
-    const gully = gullyData.find(g => g.marker === marker);
-    if (gully) {
+  // Count gullies by status
+  gullyData.forEach(gully => {
+    if (gully.layer === 'gullies') {
       counts['All']++;
       const status = gully.status || 'Unmarked';
       if (counts.hasOwnProperty(status)) {
@@ -1105,7 +1126,7 @@ function updateSummary() {
   // Update summary display
   let summaryHtml = '';
   Object.entries(counts).forEach(([status, count]) => {
-    if (status !== 'All' || count > 0) { // Only show All if there are items
+    if (status === 'All' || count > 0) {
       const color = getStatusColor(status);
       summaryHtml += `
         <div style="margin: 5px 0; display: flex; align-items: center;">
@@ -1116,7 +1137,10 @@ function updateSummary() {
     }
   });
   
-  document.getElementById('summaryContent').innerHTML = summaryHtml;
+  const summaryContent = document.getElementById('summaryContent');
+  if (summaryContent) {
+    summaryContent.innerHTML = summaryHtml;
+  }
 }
 </script>
 </body>
