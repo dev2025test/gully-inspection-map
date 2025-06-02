@@ -487,23 +487,61 @@ function initLayerToggles() {
   });
 }
 
+function getStatusColor(status) {
+  const statusColors = {
+    // Gully statuses
+    'Clear': '#4CAF50',      // Green
+    'Blocked': '#FF9800',    // Orange
+    'Broken': '#f44336',     // Red
+    'Remediation': '#9C27B0', // Purple
+    'Replacement': '#795548', // Brown
+    'Expired': '#607D8B',    // Blue Grey
+    'Unmarked': '#9E9E9E',   // Grey
+
+    // Signage statuses
+    'Good': '#4CAF50',       // Green
+    'Damaged': '#FF9800',    // Orange
+    'Missing': '#f44336',    // Red
+
+    // Playground statuses
+    'Operational': '#4CAF50',     // Green
+    'Needs Repair': '#FF9800',    // Orange
+    'Out of Service': '#f44336',  // Red
+
+    // Park statuses
+    'Open': '#4CAF50',           // Green
+    'Under Maintenance': '#FF9800', // Orange
+    'Closed': '#f44336',         // Red
+
+    // Walkway statuses
+    'Obstructed': '#FF9800',     // Orange
+    'Under Repair': '#9C27B0',   // Purple
+
+    // Lining statuses
+    'Faded': '#FF9800',          // Orange
+    'Needs Repainting': '#f44336' // Red
+  };
+
+  return statusColors[status] || '#9E9E9E'; // Default to grey if status not found
+}
+
 function createDot(color) {
   return L.divIcon({
     className: 'gully-marker',
-    html: `<div class='dot' style='background:${color};width:20px;height:20px;border-radius:50%;border:3px solid black;box-shadow:0 0 4px white, 0 0 6px black;'></div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-    popupAnchor: [0, -12]
+    html: `<div class='dot' style='background:${color};width:14px;height:14px;border-radius:50%;border:2px solid #000;box-shadow:0 0 2px #fff, 0 0 4px #000;'></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor: [0, -9]
   });
 }
 
 function createTriangle(color) {
   return L.divIcon({
     className: 'triangle-marker',
-    html: `<div style='width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:20px solid ${color};filter:drop-shadow(0 0 2px black);'></div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 20],
-    popupAnchor: [0, -20]
+    html: `<div style='width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:16px solid ${color};filter:drop-shadow(0 0 2px rgba(0,0,0,0.5));'></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 16],
+    popupAnchor: [0, -16]
   });
 }
 
@@ -515,12 +553,7 @@ function getMarkerIcon(layerType, status = 'Unmarked') {
     case 'parks':
       return createTriangle(color);
     default:
-      return new L.DivIcon({
-        className: 'custom-div-icon',
-        html: `<div style='background-color:${color};width:15px;height:15px;border-radius:50%;border:2px solid black'></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-      });
+      return createDot(color);
   }
 }
 
@@ -1051,7 +1084,8 @@ function updateSummary() {
     'Broken': 0,
     'Remediation': 0,
     'Replacement': 0,
-    'Expired': 0
+    'Expired': 0,
+    'Unmarked': 0
   };
   
   // Get all gullies from the layer
@@ -1071,13 +1105,15 @@ function updateSummary() {
   // Update summary display
   let summaryHtml = '';
   Object.entries(counts).forEach(([status, count]) => {
-    const color = getStatusColor(status);
-    summaryHtml += `
-      <div style="margin: 5px 0;">
-        <span style="display: inline-block; width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 5px;"></span>
-        ${status}: ${count}
-      </div>
-    `;
+    if (status !== 'All' || count > 0) { // Only show All if there are items
+      const color = getStatusColor(status);
+      summaryHtml += `
+        <div style="margin: 5px 0; display: flex; align-items: center;">
+          <span style="display: inline-block; width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 5px; border: 1px solid #000;"></span>
+          <span style="flex: 1;">${status}: ${count}</span>
+        </div>
+      `;
+    }
   });
   
   document.getElementById('summaryContent').innerHTML = summaryHtml;
