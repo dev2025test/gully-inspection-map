@@ -204,6 +204,8 @@ let currentMarker = null;
 let editMode = false;
 let currentActiveLayer = 'gullies';
 let currentInspectionPopup = null;
+let inactivityTimer = null;
+const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes in milliseconds
 
 // Add layer groups
 let layers = {
@@ -224,6 +226,46 @@ const layerNames = {
   walkways: "Walkways",
   lining: "Lining"
 };
+
+function resetInactivityTimer() {
+  // Clear existing timer
+  if (inactivityTimer) {
+    clearTimeout(inactivityTimer);
+  }
+  
+  // Set new timer
+  inactivityTimer = setTimeout(() => {
+    if (auth.currentUser) {
+      alert('You have been logged out due to inactivity.');
+      logout();
+    }
+  }, INACTIVITY_TIMEOUT);
+}
+
+function setupInactivityTracking() {
+  // Track mouse movement
+  document.addEventListener('mousemove', resetInactivityTimer);
+  
+  // Track clicks
+  document.addEventListener('click', resetInactivityTimer);
+  
+  // Track keyboard activity
+  document.addEventListener('keydown', resetInactivityTimer);
+  
+  // Track scroll events
+  document.addEventListener('scroll', resetInactivityTimer);
+  
+  // Track map interactions
+  map.on('drag', resetInactivityTimer);
+  map.on('zoom', resetInactivityTimer);
+  map.on('click', resetInactivityTimer);
+  
+  // Track form interactions
+  document.addEventListener('input', resetInactivityTimer);
+  
+  // Start initial timer
+  resetInactivityTimer();
+}
 
 function login() {
   const email = document.getElementById("email").value;
@@ -270,17 +312,14 @@ function login() {
       
       currentRole = userData.role;
       console.log('Current user role:', currentRole);
-      // Show role and initials in banner
+      
       const initials = userData.initials || email.substring(0, 2).toUpperCase();
       document.getElementById("roleBanner").innerText = `Logged in as: ${currentRole.toUpperCase()} (${initials})`;
       
-      // Store user data globally
       window.currentUserData = userData;
       
-      // Setup UI based on role
       setupUIForRole(currentRole);
       
-      // Initialize map and load data
       document.getElementById("loginScreen").style.display = 'none';
       document.getElementById("map").style.display = 'block';
       document.getElementById("controlPanel").style.display = 'block';
@@ -288,6 +327,9 @@ function login() {
 
       initMap();
       loadGullyData();
+      
+      // Start inactivity tracking after successful login
+      setupInactivityTracking();
     })
     .catch(error => {
       console.error('Login error:', error);
@@ -384,6 +426,14 @@ function initLayerToggles() {
   // Add click handlers for layer toggle buttons
   document.querySelectorAll('.layer-toggle').forEach(button => {
     const layerName = button.dataset.layer;
+    
+    // Update the icon in the button
+    const icon = button.querySelector('span');
+    if (layerName === 'playgrounds' || layerName === 'parks') {
+      icon.innerHTML = '▲'; // Triangle symbol
+      icon.style.fontSize = '12px';
+    }
+    
     button.addEventListener('click', () => {
       const isActive = button.classList.toggle('active');
       button.style.background = isActive ? '#e0e0e0' : '#f0f0f0';
@@ -406,7 +456,7 @@ function initLayerToggles() {
 
 function createDot(color) {
   return L.divIcon({
-    className: 'gully-marker', // Added specific class for styling
+    className: 'gully-marker',
     html: `<div class='dot' style='background:${color};width:20px;height:20px;border-radius:50%;border:3px solid black;box-shadow:0 0 4px white, 0 0 6px black;'></div>`,
     iconSize: [24, 24],
     iconAnchor: [12, 12],
@@ -414,16 +464,38 @@ function createDot(color) {
   });
 }
 
+function createTriangle(color) {
+  return L.divIcon({
+    className: 'triangle-marker',
+    html: `<div style='width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:20px solid ${color};filter:drop-shadow(0 0 2px black);'></div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 20],
+    popupAnchor: [0, -20]
+  });
+}
+
+function getMarkerIcon(layerType, status = 'Unmarked') {
+  const color = getStatusColor(status);
+  
+  switch(layerType) {
+    case 'playgrounds':
+    case 'parks':
+      return createTriangle(color);
+    default:
+      return new L.DivIcon({
+        className: 'custom-div-icon',
+        html: `<div style='background-color:${color};width:15px;height:15px;border-radius:50%;border:2px solid black'></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+  }
+}
+
 function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
   console.log('Adding marker to layer:', layerType);
   
   const marker = new L.Marker([latlng.lat, latlng.lng], {
-    icon: new L.DivIcon({
-      className: 'custom-div-icon',
-      html: "<div style='background-color:#808080;width:15px;height:15px;border-radius:50%;border:2px solid black'></div>",
-      iconSize: [20, 20],
-      iconAnchor: [10, 10]
-    })
+    icon: getMarkerIcon(layerType)
   });
   
   // Add marker to appropriate layer
@@ -769,7 +841,7 @@ async function saveInspection(gullyId, marker, layerType) {
     await db.ref(`gully_history/${gullyId}/${timestamp}`).set(inspectionData);
 
     // Update marker and UI
-    updateMarkerStatus(marker, formData.status);
+    updateMarkerStatus(marker, formData.status, layerType);
     updateSummary();
     
     // Show success message
@@ -812,14 +884,8 @@ function capturePhoto() {
   }
 }
 
-function updateMarkerStatus(marker, status) {
-  const color = getStatusColor(status);
-  marker.setIcon(new L.DivIcon({
-    className: 'custom-div-icon',
-    html: `<div style='background-color:${color};width:15px;height:15px;border-radius:50%;border:2px solid black'></div>`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10]
-  }));
+function updateMarkerStatus(marker, status, layerType = 'gullies') {
+  marker.setIcon(getMarkerIcon(layerType, status));
 }
 
 async function viewGullyHistory(gullyId) {
@@ -987,15 +1053,6 @@ function updateSummary() {
     Unmarked: 0
   };
 
-  // For other layers, track basic counts
-  const layerCounts = {
-    signage: 0,
-    playgrounds: 0,
-    parks: 0,
-    walkways: 0,
-    lining: 0
-  };
-
   let totalGullies = 0;
   
   gullyData.forEach(({ id, layer }) => {
@@ -1014,7 +1071,7 @@ function updateSummary() {
           }
         }
         
-        // Update the summary display
+        // Update the summary display with only gully information
         document.getElementById("summaryContent").innerHTML = `
           <strong>Gullies</strong> (${totalGullies})<br>
           <span style='color:blue;'>⬤</span> Clear: ${gullyCounts.Clear}<br>
@@ -1023,18 +1080,9 @@ function updateSummary() {
           <span style='color:purple;'>⬤</span> Remediation: ${gullyCounts.Remediation}<br>
           <span style='color:yellow;'>⬤</span> Replacement: ${gullyCounts.Replacement}<br>
           <span style='color:gray;'>⬤</span> Expired: ${gullyCounts.Expired}<br>
-          <span style='color:lightgray;'>⬤</span> Unmarked: ${gullyCounts.Unmarked}<br>
-          <br>
-          <strong>Other Layers</strong><br>
-          Signage: ${layerCounts.signage}<br>
-          Playgrounds: ${layerCounts.playgrounds}<br>
-          Parks: ${layerCounts.parks}<br>
-          Walkways: ${layerCounts.walkways}<br>
-          Lining: ${layerCounts.lining}
+          <span style='color:lightgray;'>⬤</span> Unmarked: ${gullyCounts.Unmarked}
         `;
       });
-    } else {
-      layerCounts[layer]++;
     }
   });
 }
@@ -1146,6 +1194,27 @@ function handleGullyDelete(id, marker, layerType = 'gullies') {
 }
 
 function logout() {
+  // Clear inactivity timer
+  if (inactivityTimer) {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = null;
+  }
+  
+  // Remove event listeners
+  document.removeEventListener('mousemove', resetInactivityTimer);
+  document.removeEventListener('click', resetInactivityTimer);
+  document.removeEventListener('keydown', resetInactivityTimer);
+  document.removeEventListener('scroll', resetInactivityTimer);
+  
+  if (map) {
+    map.off('drag', resetInactivityTimer);
+    map.off('zoom', resetInactivityTimer);
+    map.off('click', resetInactivityTimer);
+  }
+  
+  document.removeEventListener('input', resetInactivityTimer);
+  
+  // Perform logout
   auth.signOut().then(() => location.reload());
 }
 
