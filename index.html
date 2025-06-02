@@ -483,11 +483,16 @@ function showInspectionPopup(marker, gullyId, latlng) {
     
     <div style="margin-bottom: 10px;">
       <label>Photo:</label>
-      <input type="file" id="photo" accept="image/*" capture="environment">
+      <div style="display: flex; gap: 10px;">
+        <input type="file" id="photo" accept="image/*" style="flex: 1;">
+        <button onclick="capturePhoto()" style="background: #2196F3; color: white; border: none; padding: 8px; border-radius: 4px;">
+          📸 Take Picture
+        </button>
+      </div>
     </div>
     
     <div style="margin-top: 15px; display: flex; justify-content: space-between;">
-      <button onclick="handleSave()" style="flex: 1; margin-right: 10px; background: #4CAF50; color: white; border: none; padding: 8px; border-radius: 4px;">
+      <button onclick="handleSave('${gullyId}')" style="flex: 1; margin-right: 10px; background: #4CAF50; color: white; border: none; padding: 8px; border-radius: 4px;">
         💾 Save Inspection
       </button>
       <button onclick="viewGullyHistory('${gullyId}')" style="flex: 1; background: #2196F3; color: white; border: none; padding: 8px; border-radius: 4px;">
@@ -524,13 +529,44 @@ function showInspectionPopup(marker, gullyId, latlng) {
   };
 }
 
-async function saveInspection(gullyId, data, photoFile, marker) {
+async function capturePhoto() {
+  try {
+    const photoInput = document.getElementById('photo');
+    // Create a temporary input for capturing photos
+    const tempInput = document.createElement('input');
+    tempInput.type = 'file';
+    tempInput.accept = 'image/*';
+    tempInput.capture = 'environment'; // Use the back camera
+    
+    // When a photo is selected, copy it to the main photo input
+    tempInput.onchange = function() {
+      if (this.files && this.files[0]) {
+        photoInput.files = this.files;
+      }
+    };
+    
+    tempInput.click();
+  } catch (error) {
+    console.error('Error capturing photo:', error);
+    alert('Error capturing photo. Please try again.');
+  }
+}
+
+async function handleSave(gullyId) {
   if (!auth.currentUser) {
     alert('You must be logged in to save inspections');
     return;
   }
 
-  if (!data.complete) {
+  const formData = {
+    complete: document.getElementById('complete').checked,
+    date: document.getElementById('date').value,
+    status: document.getElementById('status').value,
+    comment: document.getElementById('comment').value,
+    location: currentMarker.getLatLng()
+  };
+
+  if (!formData.complete) {
     alert('Please mark inspection as complete');
     return;
   }
@@ -575,10 +611,10 @@ async function saveInspection(gullyId, data, photoFile, marker) {
     // Create basic inspection data
     const timestamp = Date.now();
     const inspectionData = {
-      date: data.date,
-      status: data.status,
-      comment: data.comment,
-      complete: data.complete,
+      date: formData.date,
+      status: formData.status,
+      comment: formData.comment,
+      complete: formData.complete,
       timestamp: timestamp,
       inspector: {
         name: inspectorName,
@@ -590,6 +626,7 @@ async function saveInspection(gullyId, data, photoFile, marker) {
     };
 
     // Handle photo upload if present
+    const photoFile = document.getElementById('photo').files[0];
     if (photoFile) {
       try {
         const photoRef = storage.ref(`photos/${gullyId}/${timestamp}_${photoFile.name}`);
@@ -597,6 +634,7 @@ async function saveInspection(gullyId, data, photoFile, marker) {
         inspectionData.photoURL = await photoRef.getDownloadURL();
       } catch (error) {
         console.error('Photo upload failed:', error);
+        alert('Warning: Photo upload failed, but inspection will still be saved.');
       }
     }
 
@@ -606,7 +644,7 @@ async function saveInspection(gullyId, data, photoFile, marker) {
     // Update gully data - using timestamp as key for unique inspections
     const updates = {
       [`inspections/${timestamp}`]: inspectionData,
-      status: data.status,
+      status: formData.status,
       lastInspection: timestamp,
       lastInspector: inspectionData.inspector
     };
@@ -617,7 +655,7 @@ async function saveInspection(gullyId, data, photoFile, marker) {
     await db.ref(`gully_history/${gullyId}/${timestamp}`).set(inspectionData);
 
     // Update marker and UI
-    updateMarkerStatus(marker, data.status);
+    updateMarkerStatus(currentMarker, formData.status);
     updateSummary();
     
     // Show success message
@@ -629,11 +667,11 @@ async function saveInspection(gullyId, data, photoFile, marker) {
     document.getElementById('photo').value = '';
     
     // Keep the popup open for another potential inspection
-    showInspectionPopup(marker, gullyId, data.location);
+    showInspectionPopup(currentMarker, gullyId, formData.location);
 
   } catch (error) {
     console.error('Save inspection error:', error);
-    alert('Error saving inspection. Please try again.');
+    alert('Error saving inspection: ' + error.message);
   }
 }
 
