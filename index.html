@@ -267,8 +267,23 @@ function setupInactivityTracking() {
   resetInactivityTimer();
 }
 
+// Add helper function for login validation
+function normalizeEmail(email) {
+  if (!email) return '';
+  email = email.toLowerCase().trim();
+  
+  // Handle common variations
+  const emailMap = {
+    'aman_kushawaha@corkcity.ie': 'aman.kushwaha@corkcity.ie',
+    'aman_kushwaha@corkcity.ie': 'aman.kushwaha@corkcity.ie',
+    'ronan_oconnor@corkcity.ie': 'ronan.oconnor@corkcity.ie'
+  };
+  
+  return emailMap[email] || email;
+}
+
 function login() {
-  const email = document.getElementById("email").value;
+  let email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
   
   if (!email || !password) {
@@ -276,6 +291,9 @@ function login() {
     return;
   }
 
+  // Normalize email before login
+  email = normalizeEmail(email);
+  
   document.getElementById("loginError").textContent = "Logging in...";
   
   auth.signInWithEmailAndPassword(email, password)
@@ -782,11 +800,15 @@ async function saveInspection(gullyId, marker, layerType) {
         inspectorInitials = "SD";
         break;
       case 'ronan_oconnor@corkcity.ie':
+      case 'ronan.oconnor@corkcity.ie':  // Add alternative email format
         inspectorName = "Ronan O'Connor";
         inspectorInitials = "RO";
         break;
       case 'aman_kushawaha@corkcity.ie':
-        inspectorName = "Aman Kushawaha";
+      case 'aman.kushawaha@corkcity.ie':  // Add alternative email format
+      case 'aman_kushwaha@corkcity.ie':   // Add common spelling variation
+      case 'aman.kushwaha@corkcity.ie':   // Add common spelling variation
+        inspectorName = "Aman Kushwaha";
         inspectorInitials = "AK";
         break;
       default:
