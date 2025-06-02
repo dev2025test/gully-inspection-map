@@ -451,23 +451,23 @@ function showInspectionPopup(marker, gullyId, latlng) {
   popupContent.className = 'popup-form';
   popupContent.style.padding = '10px';
 
-  // Create form HTML
+  // Create form HTML with proper event handling
   popupContent.innerHTML = `
     <div style="margin-bottom: 10px;">
       <label>
-        <input type="checkbox" id="complete" style="margin-right: 5px;">
+        <input type="checkbox" id="inspection-complete" style="margin-right: 5px;">
         Inspection Complete
       </label>
     </div>
     
     <div style="margin-bottom: 10px;">
       <label>Date:</label>
-      <input type="date" id="date" value="${new Date().toISOString().split('T')[0]}" style="width: 100%;">
+      <input type="date" id="inspection-date" value="${new Date().toISOString().split('T')[0]}" style="width: 100%;">
     </div>
     
     <div style="margin-bottom: 10px;">
       <label>Status:</label>
-      <select id="status" style="width: 100%;">
+      <select id="inspection-status" style="width: 100%;">
         <option value="Clear">Clear</option>
         <option value="Blocked">Blocked</option>
         <option value="Broken">Broken</option>
@@ -475,16 +475,16 @@ function showInspectionPopup(marker, gullyId, latlng) {
         <option value="Replacement">Replacement</option>
       </select>
     </div>
-    
+
     <div style="margin-bottom: 10px;">
       <label>Comments:</label>
-      <textarea id="comment" placeholder="Add inspection comments..." style="width: 100%; height: 60px;"></textarea>
+      <textarea id="inspection-comment" placeholder="Add inspection comments..." style="width: 100%; height: 60px;"></textarea>
     </div>
     
     <div style="margin-bottom: 10px;">
       <label>Photo:</label>
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <input type="file" id="photo" accept="image/*" style="width: 100%;">
+        <input type="file" id="inspection-photo" accept="image/*" style="width: 100%;">
         <button onclick="capturePhoto()" style="background: #2196F3; color: white; border: none; padding: 8px; border-radius: 4px; width: 100%;">
           📸 Take Picture
         </button>
@@ -492,7 +492,7 @@ function showInspectionPopup(marker, gullyId, latlng) {
     </div>
     
     <div style="margin-top: 15px; display: flex; justify-content: space-between;">
-      <button onclick="saveInspection('${gullyId}')" style="flex: 1; margin-right: 10px; background: #4CAF50; color: white; border: none; padding: 8px; border-radius: 4px;">
+      <button id="save-inspection-btn" style="flex: 1; margin-right: 10px; background: #4CAF50; color: white; border: none; padding: 8px; border-radius: 4px;">
         💾 Save Inspection
       </button>
       <button onclick="viewGullyHistory('${gullyId}')" style="flex: 1; background: #2196F3; color: white; border: none; padding: 8px; border-radius: 4px;">
@@ -513,43 +513,30 @@ function showInspectionPopup(marker, gullyId, latlng) {
   .setContent(popupContent);
 
   marker.bindPopup(popup).openPopup();
+
+  // Add event listener after the popup is added to DOM
+  setTimeout(() => {
+    const saveButton = document.getElementById('save-inspection-btn');
+    if (saveButton) {
+      saveButton.addEventListener('click', () => {
+        saveInspection(gullyId, marker);
+      });
+    }
+  }, 100);
 }
 
-async function capturePhoto() {
-  try {
-    const photoInput = document.getElementById('photo');
-    // Create a temporary input for capturing photos
-    const tempInput = document.createElement('input');
-    tempInput.type = 'file';
-    tempInput.accept = 'image/*';
-    tempInput.capture = 'environment'; // Use the back camera
-    
-    // When a photo is selected, copy it to the main photo input
-    tempInput.onchange = function() {
-      if (this.files && this.files[0]) {
-        photoInput.files = this.files;
-      }
-    };
-    
-    tempInput.click();
-  } catch (error) {
-    console.error('Error capturing photo:', error);
-    alert('Error capturing photo. Please try again.');
-  }
-}
-
-async function saveInspection(gullyId) {
+async function saveInspection(gullyId, marker) {
   if (!auth.currentUser) {
     alert('You must be logged in to save inspections');
     return;
   }
 
   const formData = {
-    complete: document.getElementById('complete').checked,
-    date: document.getElementById('date').value,
-    status: document.getElementById('status').value,
-    comment: document.getElementById('comment').value,
-    location: currentMarker.getLatLng()
+    complete: document.getElementById('inspection-complete').checked,
+    date: document.getElementById('inspection-date').value,
+    status: document.getElementById('inspection-status').value,
+    comment: document.getElementById('inspection-comment').value,
+    location: marker.getLatLng()
   };
 
   if (!formData.complete) {
@@ -612,7 +599,7 @@ async function saveInspection(gullyId) {
     };
 
     // Handle photo upload if present
-    const photoFile = document.getElementById('photo').files[0];
+    const photoFile = document.getElementById('inspection-photo').files[0];
     if (photoFile) {
       try {
         const photoRef = storage.ref(`photos/${gullyId}/${timestamp}_${photoFile.name}`);
@@ -641,23 +628,46 @@ async function saveInspection(gullyId) {
     await db.ref(`gully_history/${gullyId}/${timestamp}`).set(inspectionData);
 
     // Update marker and UI
-    updateMarkerStatus(currentMarker, formData.status);
+    updateMarkerStatus(marker, formData.status);
     updateSummary();
     
     // Show success message
     alert('Inspection saved successfully');
     
     // Clear form but keep popup open for potential new inspection
-    document.getElementById('complete').checked = false;
-    document.getElementById('comment').value = '';
-    document.getElementById('photo').value = '';
+    document.getElementById('inspection-complete').checked = false;
+    document.getElementById('inspection-comment').value = '';
+    document.getElementById('inspection-photo').value = '';
     
     // Keep the popup open for another potential inspection
-    showInspectionPopup(currentMarker, gullyId, formData.location);
+    showInspectionPopup(marker, gullyId, formData.location);
 
   } catch (error) {
     console.error('Save inspection error:', error);
     alert('Error saving inspection: ' + error.message);
+  }
+}
+
+function capturePhoto() {
+  try {
+    const photoInput = document.getElementById('inspection-photo');
+    // Create a temporary input for capturing photos
+    const tempInput = document.createElement('input');
+    tempInput.type = 'file';
+    tempInput.accept = 'image/*';
+    tempInput.capture = 'environment'; // Use the back camera
+    
+    // When a photo is selected, copy it to the main photo input
+    tempInput.onchange = function() {
+      if (this.files && this.files[0]) {
+        photoInput.files = this.files;
+      }
+    };
+    
+    tempInput.click();
+  } catch (error) {
+    console.error('Error capturing photo:', error);
+    alert('Error capturing photo. Please try again.');
   }
 }
 
