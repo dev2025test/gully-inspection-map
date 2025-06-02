@@ -57,6 +57,46 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+    .layer-control {
+      background: white;
+      padding: 10px;
+      border-radius: 4px;
+      box-shadow: 0 0 4px rgba(0,0,0,0.3);
+      margin-left: 10px;
+      margin-top: 10px;
+    }
+    .layer-control select {
+      padding: 5px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .layer-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+    .layer-content.expanded {
+      max-height: 500px;
+    }
+    .layer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      padding: 5px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      margin-bottom: 5px;
+    }
+    .layer-header:hover {
+      background: #e0e0e0;
+    }
+    .collapse-icon {
+      transition: transform 0.3s ease;
+    }
+    .collapse-icon.expanded {
+      transform: rotate(180deg);
+    }
   </style>
 </head>
 <body>
@@ -277,18 +317,6 @@ function initMap() {
     .leaflet-popup-pane {
       z-index: 700 !important;
     }
-    .layer-control {
-      background: white;
-      padding: 10px;
-      border-radius: 4px;
-      box-shadow: 0 0 4px rgba(0,0,0,0.3);
-      margin-right: 10px;
-    }
-    .layer-control select {
-      padding: 5px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
   `;
   const style = document.createElement('style');
   style.textContent = customCSS;
@@ -319,34 +347,55 @@ function initMap() {
 
 function addLayerControl() {
   // Create custom layer control
-  const layerControl = L.control({ position: 'topright' });
+  const layerControl = L.control({ position: 'topleft' });
 
   layerControl.onAdd = function () {
     const container = L.DomUtil.create('div', 'layer-control');
     
     // Create layer visibility controls
     const html = `
-      <select id="activeLayer" style="margin-right: 10px;">
-        <option value="gullies">Gullies</option>
-        <option value="signage">Signage</option>
-        <option value="playgrounds">Playgrounds</option>
-        <option value="parks">Parks</option>
-        <option value="walkways">Walkways</option>
-        <option value="lining">Lining</option>
-      </select>
-      <div style="margin-top: 5px;">
-        ${Object.entries(layerNames).map(([key, name]) => `
-          <label style="display: block; margin: 3px 0;">
-            <input type="checkbox" class="layer-toggle" data-layer="${key}" checked> ${name}
-          </label>
-        `).join('')}
+      <div class="layer-header">
+        <span>Layer Controls</span>
+        <span class="collapse-icon">▼</span>
+      </div>
+      <div class="layer-content">
+        <select id="activeLayer" style="width: 100%; margin-bottom: 10px;">
+          <option value="gullies">Gullies</option>
+          <option value="signage">Signage</option>
+          <option value="playgrounds">Playgrounds</option>
+          <option value="parks">Parks</option>
+          <option value="walkways">Walkways</option>
+          <option value="lining">Lining</option>
+        </select>
+        <div>
+          ${Object.entries(layerNames).map(([key, name]) => `
+            <label style="display: block; margin: 3px 0;">
+              <input type="checkbox" class="layer-toggle" data-layer="${key}" checked> ${name}
+            </label>
+          `).join('')}
+        </div>
       </div>
     `;
     
     container.innerHTML = html;
 
-    // Add event listeners
+    // Prevent map interactions when interacting with the control
+    L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.disableScrollPropagation(container);
+
+    // Add event listeners after a short delay to ensure DOM is ready
     setTimeout(() => {
+      // Toggle collapse functionality
+      const header = container.querySelector('.layer-header');
+      const content = container.querySelector('.layer-content');
+      const icon = container.querySelector('.collapse-icon');
+      
+      header.addEventListener('click', () => {
+        content.classList.toggle('expanded');
+        icon.classList.toggle('expanded');
+      });
+
+      // Layer toggle listeners
       document.querySelectorAll('.layer-toggle').forEach(checkbox => {
         checkbox.addEventListener('change', (e) => {
           const layerName = e.target.dataset.layer;
@@ -358,9 +407,14 @@ function addLayerControl() {
         });
       });
 
+      // Active layer selection listener
       document.getElementById('activeLayer').addEventListener('change', (e) => {
         currentActiveLayer = e.target.value;
       });
+
+      // Start with collapsed state
+      content.classList.add('expanded');
+      icon.classList.add('expanded');
     }, 0);
 
     return container;
