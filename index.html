@@ -127,6 +127,27 @@ const gullyData = [];
 let deleteMode = false;
 let currentMarker = null;
 let editMode = false;
+let currentActiveLayer = 'gullies';
+
+// Add layer groups
+let layers = {
+  gullies: L.layerGroup(),
+  signage: L.layerGroup(),
+  playgrounds: L.layerGroup(),
+  parks: L.layerGroup(),
+  walkways: L.layerGroup(),
+  lining: L.layerGroup()
+};
+
+// Add layer names for UI
+const layerNames = {
+  gullies: "Gullies",
+  signage: "Signage",
+  playgrounds: "Playgrounds",
+  parks: "Parks",
+  walkways: "Walkways",
+  lining: "Lining"
+};
 
 function login() {
   const email = document.getElementById("email").value;
@@ -256,13 +277,25 @@ function initMap() {
     .leaflet-popup-pane {
       z-index: 700 !important;
     }
+    .layer-control {
+      background: white;
+      padding: 10px;
+      border-radius: 4px;
+      box-shadow: 0 0 4px rgba(0,0,0,0.3);
+      margin-right: 10px;
+    }
+    .layer-control select {
+      padding: 5px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
   `;
   const style = document.createElement('style');
   style.textContent = customCSS;
   document.head.appendChild(style);
 
   map = L.map('map', {
-    preferCanvas: false, // Use DOM elements for better z-index control
+    preferCanvas: false,
     zoomControl: true,
     maxZoom: 19
   }).setView([51.9, -8.5], 13);
@@ -274,8 +307,66 @@ function initMap() {
   
   // Add scale control
   L.control.scale().addTo(map);
+
+  // Add all layers to map
+  Object.values(layers).forEach(layer => layer.addTo(map));
+  
+  // Add layer control to map
+  addLayerControl();
   
   document.getElementById('importFile').addEventListener('change', handleKMLImport);
+}
+
+function addLayerControl() {
+  // Create custom layer control
+  const layerControl = L.control({ position: 'topright' });
+
+  layerControl.onAdd = function () {
+    const container = L.DomUtil.create('div', 'layer-control');
+    
+    // Create layer visibility controls
+    const html = `
+      <select id="activeLayer" style="margin-right: 10px;">
+        <option value="gullies">Gullies</option>
+        <option value="signage">Signage</option>
+        <option value="playgrounds">Playgrounds</option>
+        <option value="parks">Parks</option>
+        <option value="walkways">Walkways</option>
+        <option value="lining">Lining</option>
+      </select>
+      <div style="margin-top: 5px;">
+        ${Object.entries(layerNames).map(([key, name]) => `
+          <label style="display: block; margin: 3px 0;">
+            <input type="checkbox" class="layer-toggle" data-layer="${key}" checked> ${name}
+          </label>
+        `).join('')}
+      </div>
+    `;
+    
+    container.innerHTML = html;
+
+    // Add event listeners
+    setTimeout(() => {
+      document.querySelectorAll('.layer-toggle').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+          const layerName = e.target.dataset.layer;
+          if (e.target.checked) {
+            layers[layerName].addTo(map);
+          } else {
+            map.removeLayer(layers[layerName]);
+          }
+        });
+      });
+
+      document.getElementById('activeLayer').addEventListener('change', (e) => {
+        currentActiveLayer = e.target.value;
+      });
+    }, 0);
+
+    return container;
+  };
+
+  layerControl.addTo(map);
 }
 
 function createDot(color) {
@@ -288,8 +379,8 @@ function createDot(color) {
   });
 }
 
-function addGullyToMap(latlng, gullyId) {
-  console.log('Adding gully at:', latlng);
+function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
+  console.log('Adding marker to layer:', layerType);
   
   const marker = new L.Marker([latlng.lat, latlng.lng], {
     icon: new L.DivIcon({
@@ -300,20 +391,26 @@ function addGullyToMap(latlng, gullyId) {
     })
   });
   
-  marker.addTo(map);
+  // Add marker to appropriate layer
+  if (layers[layerType]) {
+    layers[layerType].addLayer(marker);
+  } else {
+    console.warn('Unknown layer type:', layerType);
+    layers.gullies.addLayer(marker);
+  }
   
   marker.on('click', () => {
     if (deleteMode) {
-      handleGullyDelete(gullyId, marker);
+      handleGullyDelete(gullyId, marker, layerType);
     } else {
-      currentMarker = marker; // Store the current marker
-      showInspectionPopup(marker, gullyId, latlng);
+      currentMarker = marker;
+      showInspectionPopup(marker, gullyId, latlng, layerType);
     }
   });
   
   marker.setZIndexOffset(1000);
   
-  gullyData.push({ marker, id: gullyId });
+  gullyData.push({ marker, id: gullyId, layer: layerType });
   return marker;
 }
 
@@ -349,24 +446,16 @@ function handleKMLImport(event) {
       let bounds = L.latLngBounds([]);
       let markers = [];
       
-      // Clear any existing markers first
-      gullyData.forEach(({ marker }) => {
-        if (marker) {
-          map.removeLayer(marker);
-        }
-      });
-      gullyData.length = 0;
-      
       // Process points
       for (const f of geojson.features) {
         if (f.geometry && f.geometry.type === 'Point' && f.geometry.coordinates) {
           const [lng, lat] = f.geometry.coordinates;
           
           if (isValidCoordinate(lng, lat)) {
-            const gullyId = `gully_${Date.now()}_${pointsAdded}`;
+            const itemId = `${currentActiveLayer}_${Date.now()}_${pointsAdded}`;
             
             try {
-              // Create marker first with grey color
+              // Create marker with current layer type
               const marker = new L.Marker([lat, lng], {
                 icon: new L.DivIcon({
                   className: 'custom-div-icon',
@@ -376,26 +465,25 @@ function handleKMLImport(event) {
                 })
               });
               
-              // Add it to the map
-              marker.addTo(map);
+              // Add to appropriate layer
+              layers[currentActiveLayer].addLayer(marker);
               
               // Set up click handler
               marker.on('click', () => {
                 if (deleteMode) {
-                  handleGullyDelete(gullyId, marker);
+                  handleGullyDelete(itemId, marker, currentActiveLayer);
                 } else {
-                  showInspectionPopup(marker, gullyId, { lat, lng });
+                  showInspectionPopup(marker, itemId, { lat, lng }, currentActiveLayer);
                 }
               });
               
-              // Store in arrays
               markers.push(marker);
-              gullyData.push({ marker, id: gullyId });
+              gullyData.push({ marker, id: itemId, layer: currentActiveLayer });
               bounds.extend([lat, lng]);
               pointsAdded++;
               
-              // Save to Firebase with proper user reference
-              await db.ref(`gullies/${gullyId}`).set({
+              // Save to Firebase under the current layer
+              await db.ref(`${currentActiveLayer}/${itemId}`).set({
                 location: { lat, lng },
                 created: firebase.database.ServerValue.TIMESTAMP,
                 createdBy: auth.currentUser.uid,
@@ -410,11 +498,9 @@ function handleKMLImport(event) {
       }
       
       if (pointsAdded > 0) {
-        // Fit bounds with padding
         const paddedBounds = bounds.pad(0.2);
         map.fitBounds(paddedBounds);
         
-        // Force markers to front
         markers.forEach(marker => {
           if (marker) {
             marker.setZIndexOffset(1000);
@@ -422,9 +508,9 @@ function handleKMLImport(event) {
         });
         
         updateSummary();
-        alert(`Successfully imported ${pointsAdded} gully points`);
+        alert(`Successfully imported ${pointsAdded} points to ${layerNames[currentActiveLayer]} layer`);
       } else {
-        alert('No valid gully points found in the KML file');
+        alert('No valid points found in the KML file');
       }
     } catch (error) {
       console.error('Error in KML import:', error);
@@ -446,7 +532,7 @@ function isValidCoordinate(lng, lat) {
          lat >= -90 && lat <= 90;
 }
 
-function showInspectionPopup(marker, gullyId, latlng) {
+function showInspectionPopup(marker, gullyId, latlng, layerType) {
   const popupContent = document.createElement('div');
   popupContent.className = 'popup-form';
   popupContent.style.padding = '10px';
@@ -783,42 +869,44 @@ async function viewGullyHistory(gullyId) {
 }
 
 function loadGullyData() {
-  db.ref('gullies').on('value', snapshot => {
-    const data = snapshot.val() || {};
-    const existingIds = new Set(gullyData.map(g => g.id));
-    
-    Object.entries(data).forEach(([id, gully]) => {
-      if (!existingIds.has(id)) {
-        console.log('Loading gully from Firebase:', id);
-        
-        // Determine color based on status
-        const status = gully.status || 'Unmarked';
-        const color = getStatusColor(status);
-        
-        const marker = new L.Marker(gully.location, {
-          icon: new L.DivIcon({
-            className: 'custom-div-icon',
-            html: `<div style='background-color:${color};width:15px;height:15px;border-radius:50%;border:2px solid black'></div>`,
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-          })
-        }).addTo(map);
-        
-        marker.setZIndexOffset(1000);
-        
-        marker.on('click', () => {
-          if (deleteMode) {
-            handleGullyDelete(id, marker);
-          } else {
-            showInspectionPopup(marker, id, gully.location);
-          }
-        });
-        
-        gullyData.push({ marker, id });
-      }
+  Object.keys(layers).forEach(layerType => {
+    db.ref(layerType).on('value', snapshot => {
+      const data = snapshot.val() || {};
+      const existingIds = new Set(gullyData.filter(g => g.layer === layerType).map(g => g.id));
+      
+      Object.entries(data).forEach(([id, item]) => {
+        if (!existingIds.has(id)) {
+          console.log(`Loading ${layerType} item from Firebase:`, id);
+          
+          const status = item.status || 'Unmarked';
+          const color = getStatusColor(status);
+          
+          const marker = new L.Marker(item.location, {
+            icon: new L.DivIcon({
+              className: 'custom-div-icon',
+              html: `<div style='background-color:${color};width:15px;height:15px;border-radius:50%;border:2px solid black'></div>`,
+              iconSize: [20, 20],
+              iconAnchor: [10, 10]
+            })
+          });
+          
+          layers[layerType].addLayer(marker);
+          marker.setZIndexOffset(1000);
+          
+          marker.on('click', () => {
+            if (deleteMode) {
+              handleGullyDelete(id, marker, layerType);
+            } else {
+              showInspectionPopup(marker, id, item.location, layerType);
+            }
+          });
+          
+          gullyData.push({ marker, id, layer: layerType });
+        }
+      });
+      
+      updateSummary();
     });
-    
-    updateSummary();
   });
 }
 
@@ -837,40 +925,47 @@ function getStatusColor(status) {
 
 function updateSummary() {
   const counts = {
-    Clear: 0,
-    Blocked: 0,
-    Broken: 0,
-    Remediation: 0,
-    Replacement: 0,
-    Expired: 0,
-    Unmarked: 0
+    gullies: { total: 0, Clear: 0, Blocked: 0, Broken: 0, Remediation: 0, Replacement: 0, Expired: 0, Unmarked: 0 },
+    signage: { total: 0, Good: 0, Damaged: 0, Missing: 0, Unmarked: 0 },
+    playgrounds: { total: 0, Operational: 0, 'Needs Repair': 0, 'Out of Service': 0, Unmarked: 0 },
+    parks: { total: 0, Open: 0, 'Under Maintenance': 0, Closed: 0, Unmarked: 0 },
+    walkways: { total: 0, Clear: 0, Obstructed: 0, 'Under Repair': 0, Unmarked: 0 },
+    lining: { total: 0, Good: 0, Faded: 0, 'Needs Repainting': 0, Unmarked: 0 }
   };
   
-  gullyData.forEach(({ id }) => {
-    db.ref(`gullies/${id}/inspections`).orderByChild('timestamp').limitToLast(1).once('value', snapshot => {
-      const lastInspection = Object.values(snapshot.val() || {})[0];
-      if (!lastInspection) {
-        counts.Unmarked++;
-      } else {
-        const ageMonths = (Date.now() - lastInspection.timestamp) / (1000 * 60 * 60 * 24 * 30.5);
-        if (ageMonths > 12) {
-          counts.Expired++;
+  gullyData.forEach(({ id, layer }) => {
+    if (counts[layer]) {
+      counts[layer].total++;
+      db.ref(`${layer}/${id}/inspections`).orderByChild('timestamp').limitToLast(1).once('value', snapshot => {
+        const lastInspection = Object.values(snapshot.val() || {})[0];
+        if (!lastInspection) {
+          counts[layer].Unmarked++;
         } else {
-          counts[lastInspection.status]++;
+          const status = lastInspection.status;
+          if (counts[layer][status]) {
+            counts[layer][status]++;
+          } else {
+            counts[layer].Unmarked++;
+          }
         }
-      }
-      
-      document.getElementById("summaryContent").innerHTML = `
-        Total: ${gullyData.length}<br>
-        <span style='color:blue;'>⬤</span> Clear: ${counts.Clear}<br>
-        <span style='color:orange;'>⬤</span> Blocked: ${counts.Blocked}<br>
-        <span style='color:red;'>⬤</span> Broken: ${counts.Broken}<br>
-        <span style='color:purple;'>⬤</span> Remediation: ${counts.Remediation}<br>
-        <span style='color:yellow;'>⬤</span> Replacement: ${counts.Replacement}<br>
-        <span style='color:gray;'>⬤</span> Expired: ${counts.Expired}<br>
-        <span style='color:lightgray;'>⬤</span> Unmarked: ${counts.Unmarked}
-      `;
-    });
+        
+        // Update the summary display
+        let summaryHtml = '';
+        Object.entries(counts).forEach(([layerName, layerCounts]) => {
+          if (layerCounts.total > 0) {
+            summaryHtml += `<strong>${layerNames[layerName]}</strong> (${layerCounts.total})<br>`;
+            Object.entries(layerCounts).forEach(([status, count]) => {
+              if (status !== 'total' && count > 0) {
+                summaryHtml += `${status}: ${count}<br>`;
+              }
+            });
+            summaryHtml += '<br>';
+          }
+        });
+        
+        document.getElementById("summaryContent").innerHTML = summaryHtml;
+      });
+    }
   });
 }
 
@@ -965,18 +1060,18 @@ function enableDeleteMode() {
   alert('Click any gully marker to delete it. This will remove all inspection data.');
 }
 
-function handleGullyDelete(gullyId, marker) {
+function handleGullyDelete(id, marker, layerType = 'gullies') {
   if (!deleteMode || currentRole !== 'admin') return;
   
-  if (confirm('Delete this gully and all its inspection data?')) {
-    db.ref(`gullies/${gullyId}`).remove()
+  if (confirm(`Delete this ${layerType} item and all its data?`)) {
+    db.ref(`${layerType}/${id}`).remove()
       .then(() => {
-        map.removeLayer(marker);
-        gullyData = gullyData.filter(g => g.id !== gullyId);
+        layers[layerType].removeLayer(marker);
+        gullyData = gullyData.filter(g => g.id !== id);
         updateSummary();
         deleteMode = false;
       })
-      .catch(error => alert('Error deleting gully: ' + error.message));
+      .catch(error => alert(`Error deleting ${layerType} item: ` + error.message));
   }
 }
 
