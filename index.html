@@ -195,6 +195,54 @@ const auth = firebase.auth();
 const db = firebase.database();
 const storage = firebase.storage();
 
+// Define default users
+const defaultUsers = [
+  {
+    email: 'ronan_oconnor@corkcity.ie',
+    role: 'operator',
+    name: "Ronan O'Connor",
+    initials: 'RO'
+  },
+  {
+    email: 'aman_kushwaha@corkcity.ie',
+    role: 'admin',
+    name: 'Aman Kushwaha',
+    initials: 'AK'
+  }
+];
+
+// Function to ensure default users exist
+function ensureDefaultUsers() {
+  defaultUsers.forEach(user => {
+    auth.fetchSignInMethodsForEmail(user.email)
+      .then((signInMethods) => {
+        if (signInMethods.length === 0) {
+          // User doesn't exist, create them
+          console.log('Creating user:', user.email);
+          auth.createUserWithEmailAndPassword(user.email, 'DefaultPass123!')
+            .then((userCredential) => {
+              return db.ref("users/" + userCredential.user.uid).set({
+                email: user.email,
+                role: user.role,
+                name: user.name,
+                initials: user.initials,
+                created: firebase.database.ServerValue.TIMESTAMP
+              });
+            })
+            .catch(error => console.error('Error creating user:', error));
+        }
+      })
+      .catch(error => console.error('Error checking user:', error));
+  });
+}
+
+// Initialize the application
+window.onload = () => {
+  document.getElementById("loginScreen").style.display = "block";
+  // Ensure default users exist
+  ensureDefaultUsers();
+};
+
 let currentRole = null;
 let map;
 const importedFiles = new Set();
@@ -272,12 +320,14 @@ function normalizeEmail(email) {
   if (!email) return '';
   email = email.toLowerCase().trim();
   
-  // Handle common variations
+  // Handle common variations with exact matches
   const emailMap = {
-    'aman_kushwaha@corkcity.ie': 'aman_kushwaha@corkcity.ie', // Keep underscore format
+    'ronan_oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie',
+    'ronan.oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie',
+    'ronan_oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie',
+    'aman_kushwaha@corkcity.ie': 'aman_kushwaha@corkcity.ie',
     'aman.kushwaha@corkcity.ie': 'aman_kushwaha@corkcity.ie',
-    'ronan_oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie', // Keep underscore format
-    'ronan.oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie'
+    'aman_kushawaha@corkcity.ie': 'aman_kushwaha@corkcity.ie'
   };
   
   return emailMap[email] || email;
@@ -292,141 +342,80 @@ function login() {
     return;
   }
 
-  // Normalize email before login
-  email = normalizeEmail(email);
+  // Handle specific email cases
+  email = email.toLowerCase().trim();
+  
+  // Map common variations to correct format
+  if (email === 'ronan.oconnor@corkcity.ie') {
+    email = 'ronan_oconnor@corkcity.ie';
+  } else if (email === 'aman.kushwaha@corkcity.ie') {
+    email = 'aman_kushwaha@corkcity.ie';
+  }
   
   document.getElementById("loginError").textContent = "Logging in...";
   
+  // Special handling for first-time login
+  if ((email === 'ronan_oconnor@corkcity.ie' || email === 'aman_kushwaha@corkcity.ie') && 
+      password === 'DefaultPass123!') {
+    // Check if user exists
+    auth.fetchSignInMethodsForEmail(email)
+      .then((signInMethods) => {
+        if (signInMethods.length === 0) {
+          // Create new user
+          return auth.createUserWithEmailAndPassword(email, password);
+        } else {
+          // User exists, try to sign in
+          return auth.signInWithEmailAndPassword(email, password);
+        }
+      })
+      .then(userCredential => {
+        const uid = userCredential.user.uid;
+        const isNewUser = userCredential.additionalUserInfo?.isNewUser;
+        
+        if (isNewUser) {
+          // Set up new user data
+          return db.ref("users/" + uid).set({
+            email: email,
+            role: email === 'aman_kushwaha@corkcity.ie' ? 'admin' : 'operator',
+            created: firebase.database.ServerValue.TIMESTAMP
+          });
+        }
+        return Promise.resolve();
+      })
+      .then(() => {
+        window.location.reload();
+      })
+      .catch(error => {
+        console.error('Login error:', error);
+        document.getElementById("loginError").textContent = "❌ " + error.message;
+      });
+    return;
+  }
+  
+  // Normal login flow
   auth.signInWithEmailAndPassword(email, password)
     .then(userCredential => {
       const uid = userCredential.user.uid;
-      console.log('User logged in:', uid);
-      
-      // Check if user exists in users collection
-      return db.ref("users/" + uid).once("value").then(snapshot => {
-        if (!snapshot.exists()) {
-          console.log('Creating new user with default role');
-          // Set role based on email
-          let role = 'operator'; // default role
-          if (email.toLowerCase() === 'aman_kushwaha@corkcity.ie') {
-            role = 'admin';
-          }
-          return db.ref("users/" + uid).set({
-            email: email,
-            role: role,
-            created: firebase.database.ServerValue.TIMESTAMP
-          }).then(() => {
-            return db.ref("users/" + uid).once("value");
-          });
-        } else {
-          // Update existing user's role if needed
-          const userData = snapshot.val();
-          if (email.toLowerCase() === 'aman_kushwaha@corkcity.ie' && userData.role !== 'admin') {
-            return db.ref("users/" + uid).update({
-              role: 'admin'
-            }).then(() => {
-              return db.ref("users/" + uid).once("value");
-            });
-          } else if (email.toLowerCase() === 'ronan_oconnor@corkcity.ie' && userData.role !== 'operator') {
-            return db.ref("users/" + uid).update({
-              role: 'operator'
-            }).then(() => {
-              return db.ref("users/" + uid).once("value");
-            });
-          }
-          console.log('Existing user data:', snapshot.val());
-          return snapshot;
-        }
-      });
+      return db.ref("users/" + uid).once("value");
     })
     .then(snapshot => {
       if (!snapshot.exists()) {
-        throw new Error('User data not found');
+        // Create user data if it doesn't exist
+        const userData = {
+          email: email,
+          role: email === 'aman_kushwaha@corkcity.ie' ? 'admin' : 'operator',
+          created: firebase.database.ServerValue.TIMESTAMP
+        };
+        return db.ref("users/" + snapshot.key).set(userData);
       }
-      
-      const userData = snapshot.val();
-      if (!userData.role) {
-        throw new Error('User role not set');
-      }
-      
-      currentRole = userData.role;
-      console.log('Current user role:', currentRole);
-      
-      // Show role and initials in banner
-      let inspectorName = auth.currentUser.email;
-      let inspectorInitials = "UN";
-      
-      switch (auth.currentUser.email.toLowerCase()) {
-        case 'richard_daly@corkcity.ie':
-          inspectorName = "Richard Daly";
-          inspectorInitials = "RD";
-          break;
-        case 'john_ocallaghan@corkcity.ie':
-          inspectorName = "John O'Callaghan";
-          inspectorInitials = "JO";
-          break;
-        case 'shane_dorgan@corkcity.ie':
-          inspectorName = "Shane Dorgan";
-          inspectorInitials = "SD";
-          break;
-        case 'ronan_oconnor@corkcity.ie':
-          inspectorName = "Ronan O'Connor";
-          inspectorInitials = "RO";
-          break;
-        case 'aman_kushwaha@corkcity.ie':
-          inspectorName = "Aman Kushwaha";
-          inspectorInitials = "AK";
-          break;
-        default:
-          inspectorName = auth.currentUser.email;
-          inspectorInitials = userData.initials || auth.currentUser.email.substring(0, 2).toUpperCase();
-      }
-      
-      document.getElementById("roleBanner").innerText = `Logged in as: ${currentRole.toUpperCase()} (${inspectorInitials})`;
-      
-      // Store user data globally
-      window.currentUserData = userData;
-      
-      // Setup UI based on role
-      setupUIForRole(currentRole);
-      
-      // Initialize map and load data
-      document.getElementById("loginScreen").style.display = 'none';
-      document.getElementById("map").style.display = 'block';
-      document.getElementById("controlPanel").style.display = 'block';
-      document.getElementById("summary").style.display = 'block';
-
-      initMap();
-      loadGullyData();
-      
-      // Start inactivity tracking after successful login
-      setupInactivityTracking();
+      return snapshot;
+    })
+    .then(() => {
+      window.location.reload();
     })
     .catch(error => {
       console.error('Login error:', error);
-      let errorMessage = "❌ ";
-      
-      switch (error.code) {
-        case 'auth/user-not-found':
-          errorMessage += "No account found with this email";
-          break;
-        case 'auth/wrong-password':
-          errorMessage += "Incorrect password";
-          break;
-        case 'auth/invalid-email':
-          errorMessage += "Invalid email format";
-          break;
-        case 'auth/user-disabled':
-          errorMessage += "This account has been disabled";
-          break;
-        case 'auth/operation-not-allowed':
-          errorMessage += "Email/Password sign-in is not enabled. Please contact administrator";
-          break;
-        default:
-          errorMessage += error.message;
-      }
-      
-      document.getElementById("loginError").textContent = errorMessage;
+      document.getElementById("loginError").textContent = "❌ " + error.message;
     });
 }
 
@@ -1069,292 +1058,4 @@ function loadGullyData() {
       
       Object.entries(data).forEach(([id, item]) => {
         if (!existingIds.has(id)) {
-          console.log(`Loading ${layerType} item from Firebase:`, id);
-          
-          const status = item.status || 'Unmarked';
-          const color = getStatusColor(status);
-          
-          const marker = new L.Marker(item.location, {
-            icon: new L.DivIcon({
-              className: 'custom-div-icon',
-              html: `<div style='background-color:${color};width:15px;height:15px;border-radius:50%;border:2px solid black'></div>`,
-              iconSize: [20, 20],
-              iconAnchor: [10, 10]
-            })
-          });
-          
-          layers[layerType].addLayer(marker);
-          marker.setZIndexOffset(1000);
-          
-          marker.on('click', () => {
-            if (deleteMode) {
-              handleGullyDelete(id, marker, layerType);
-            } else {
-              showInspectionPopup(marker, id, item.location, layerType);
-            }
-          });
-          
-          gullyData.push({ marker, id, layer: layerType });
-        }
-      });
-      
-      updateSummary();
-    });
-  });
-}
-
-function getStatusColor(status) {
-  const colors = {
-    Clear: '#0000FF', // Blue
-    Blocked: '#FFA500', // Orange
-    Broken: '#FF0000', // Red
-    Remediation: '#800080', // Purple
-    Replacement: '#FFFF00', // Yellow
-    Expired: '#808080', // Gray
-    Unmarked: '#808080' // Gray
-  };
-  return colors[status] || '#808080';
-}
-
-function updateSummary() {
-  // For gullies, maintain the original detailed summary
-  const gullyCounts = {
-    Clear: 0,
-    Blocked: 0,
-    Broken: 0,
-    Remediation: 0,
-    Replacement: 0,
-    Expired: 0,
-    Unmarked: 0
-  };
-
-  let totalGullies = 0;
-  
-  gullyData.forEach(({ id, layer }) => {
-    if (layer === 'gullies') {
-      totalGullies++;
-      db.ref(`gullies/${id}/inspections`).orderByChild('timestamp').limitToLast(1).once('value', snapshot => {
-        const lastInspection = Object.values(snapshot.val() || {})[0];
-        if (!lastInspection) {
-          gullyCounts.Unmarked++;
-        } else {
-          const ageMonths = (Date.now() - lastInspection.timestamp) / (1000 * 60 * 60 * 24 * 30.5);
-          if (ageMonths > 12) {
-            gullyCounts.Expired++;
-          } else {
-            gullyCounts[lastInspection.status]++;
-          }
-        }
-        
-        // Update the summary display with only gully information
-        document.getElementById("summaryContent").innerHTML = `
-          <strong>Gullies</strong> (${totalGullies})<br>
-          <span style='color:blue;'>⬤</span> Clear: ${gullyCounts.Clear}<br>
-          <span style='color:orange;'>⬤</span> Blocked: ${gullyCounts.Blocked}<br>
-          <span style='color:red;'>⬤</span> Broken: ${gullyCounts.Broken}<br>
-          <span style='color:purple;'>⬤</span> Remediation: ${gullyCounts.Remediation}<br>
-          <span style='color:yellow;'>⬤</span> Replacement: ${gullyCounts.Replacement}<br>
-          <span style='color:gray;'>⬤</span> Expired: ${gullyCounts.Expired}<br>
-          <span style='color:lightgray;'>⬤</span> Unmarked: ${gullyCounts.Unmarked}
-        `;
-      });
-    }
-  });
-}
-
-function filterByStatus() {
-  const selected = document.getElementById("filterStatus").value;
-  gullyData.forEach(({ id, marker }) => {
-    if (selected === 'All') {
-      marker.addTo(map);
-      return;
-    }
-    
-    db.ref(`gullies/${id}/inspections`).orderByChild('timestamp').limitToLast(1).once('value', snapshot => {
-      const lastInspection = Object.values(snapshot.val() || {})[0];
-      const status = lastInspection ? lastInspection.status : 'Unmarked';
-      
-      if (status === selected) {
-        marker.addTo(map);
-      } else {
-        map.removeLayer(marker);
-      }
-    });
-  });
-}
-
-function exportData() {
-  if (currentRole !== 'admin') {
-    alert('Only administrators can export data');
-    return;
-  }
-  
-  db.ref('gullies').once('value', snapshot => {
-    const data = snapshot.val() || {};
-    let csv = 'Gully ID,Latitude,Longitude,Last Inspection,Status,Inspector,Initials,Comment\n';
-    
-    Object.entries(data).forEach(([id, gully]) => {
-      const inspections = Object.values(gully.inspections || {})
-        .sort((a, b) => b.timestamp - a.timestamp);
-      const last = inspections[0] || {};
-      
-      csv += `${id},${gully.location.lat},${gully.location.lng},${last.date || ''},${last.status || ''},${last.inspector || ''},${last.inspectorInitials || ''},"${(last.comment || '').replace(/"/g, '""')}"\n`;
-    });
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'gully_inspections.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-}
-
-function saveGullyData() {
-  if (currentRole !== 'admin') {
-    alert('Only administrators can backup data');
-    return;
-  }
-  
-  db.ref('gullies').once('value', snapshot => {
-    const data = snapshot.val();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'gully_data_backup.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-}
-
-function resetMap() {
-  if (currentRole !== 'admin' || !confirm('Are you sure you want to reset all data? This cannot be undone.')) {
-    return;
-  }
-  
-  db.ref('gullies').remove()
-    .then(() => {
-      gullyData.forEach(({ marker }) => map.removeLayer(marker));
-      gullyData.length = 0;
-      updateSummary();
-    })
-    .catch(error => alert('Error resetting data: ' + error.message));
-}
-
-function enableDeleteMode() {
-  if (currentRole !== 'admin') {
-    alert('Only administrators can delete gullies');
-    return;
-  }
-  
-  deleteMode = true;
-  alert('Click any gully marker to delete it. This will remove all inspection data.');
-}
-
-function handleGullyDelete(id, marker, layerType = 'gullies') {
-  if (!deleteMode || currentRole !== 'admin') return;
-  
-  if (confirm(`Delete this ${layerType} item and all its data?`)) {
-    db.ref(`${layerType}/${id}`).remove()
-      .then(() => {
-        layers[layerType].removeLayer(marker);
-        gullyData = gullyData.filter(g => g.id !== id);
-        updateSummary();
-        deleteMode = false;
-      })
-      .catch(error => alert(`Error deleting ${layerType} item: ` + error.message));
-  }
-}
-
-function logout() {
-  // Clear inactivity timer
-  if (inactivityTimer) {
-    clearTimeout(inactivityTimer);
-    inactivityTimer = null;
-  }
-  
-  // Remove event listeners
-  document.removeEventListener('mousemove', resetInactivityTimer);
-  document.removeEventListener('click', resetInactivityTimer);
-  document.removeEventListener('keydown', resetInactivityTimer);
-  document.removeEventListener('scroll', resetInactivityTimer);
-  
-  if (map) {
-    map.off('drag', resetInactivityTimer);
-    map.off('zoom', resetInactivityTimer);
-    map.off('click', resetInactivityTimer);
-  }
-  
-  document.removeEventListener('input', resetInactivityTimer);
-  
-  // Perform logout
-  auth.signOut().then(() => location.reload());
-}
-
-function enableEditMode() {
-  if (currentRole !== 'admin') {
-    alert('Only administrators can edit gullies');
-    return;
-  }
-  
-  editMode = !editMode;
-  deleteMode = false; // Disable delete mode when edit mode is enabled
-  
-  const editButton = document.querySelector('button[onclick="enableEditMode()"]');
-  const deleteButton = document.querySelector('button[onclick="enableDeleteMode()"]');
-  
-  editButton.style.background = editMode ? '#ffeb3b' : '#f0f0f0';
-  deleteButton.style.background = '#f0f0f0';
-  
-  map.getContainer().style.cursor = editMode ? 'pointer' : '';
-  
-  if (editMode) {
-    alert('Edit mode enabled. Click any gully to edit its details.');
-  }
-}
-
-async function updateGullyLocation(gullyId) {
-  if (currentRole !== 'admin') {
-    alert('Only administrators can update gully locations');
-    return;
-  }
-
-  const lat = parseFloat(document.getElementById('lat').value);
-  const lng = parseFloat(document.getElementById('lng').value);
-
-  if (isNaN(lat) || isNaN(lng) || !isValidCoordinate(lng, lat)) {
-    alert('Please enter valid coordinates');
-    return;
-  }
-
-  try {
-    // Update location in Firebase
-    await db.ref(`gullies/${gullyId}/location`).set({ lat, lng });
-    
-    // Update marker position
-    if (currentMarker) {
-      currentMarker.setLatLng([lat, lng]);
-    }
-    
-    alert('Gully location updated successfully');
-    currentMarker.closePopup();
-  } catch (error) {
-    console.error('Error updating gully location:', error);
-    alert('Error updating gully location: ' + error.message);
-  }
-}
-
-function toggleLayerPanel() {
-  const panel = document.getElementById('layerPanel');
-  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-}
-
-// Initialize the application
-window.onload = () => {
-  document.getElementById("loginScreen").style.display = "block";
-};
-</script>
-</body>
-</html>
+          console.log(`
