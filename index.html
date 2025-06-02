@@ -274,9 +274,10 @@ function normalizeEmail(email) {
   
   // Handle common variations
   const emailMap = {
-    'aman_kushawaha@corkcity.ie': 'aman.kushwaha@corkcity.ie',
-    'aman_kushwaha@corkcity.ie': 'aman.kushwaha@corkcity.ie',
-    'ronan_oconnor@corkcity.ie': 'ronan.oconnor@corkcity.ie'
+    'aman_kushwaha@corkcity.ie': 'aman_kushwaha@corkcity.ie', // Keep underscore format
+    'aman.kushwaha@corkcity.ie': 'aman_kushwaha@corkcity.ie',
+    'ronan_oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie', // Keep underscore format
+    'ronan.oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie'
   };
   
   return emailMap[email] || email;
@@ -304,15 +305,35 @@ function login() {
       // Check if user exists in users collection
       return db.ref("users/" + uid).once("value").then(snapshot => {
         if (!snapshot.exists()) {
-          console.log('Creating new user with admin role');
+          console.log('Creating new user with default role');
+          // Set role based on email
+          let role = 'operator'; // default role
+          if (email.toLowerCase() === 'aman_kushwaha@corkcity.ie') {
+            role = 'admin';
+          }
           return db.ref("users/" + uid).set({
             email: email,
-            role: 'admin',
+            role: role,
             created: firebase.database.ServerValue.TIMESTAMP
           }).then(() => {
             return db.ref("users/" + uid).once("value");
           });
         } else {
+          // Update existing user's role if needed
+          const userData = snapshot.val();
+          if (email.toLowerCase() === 'aman_kushwaha@corkcity.ie' && userData.role !== 'admin') {
+            return db.ref("users/" + uid).update({
+              role: 'admin'
+            }).then(() => {
+              return db.ref("users/" + uid).once("value");
+            });
+          } else if (email.toLowerCase() === 'ronan_oconnor@corkcity.ie' && userData.role !== 'operator') {
+            return db.ref("users/" + uid).update({
+              role: 'operator'
+            }).then(() => {
+              return db.ref("users/" + uid).once("value");
+            });
+          }
           console.log('Existing user data:', snapshot.val());
           return snapshot;
         }
@@ -331,13 +352,45 @@ function login() {
       currentRole = userData.role;
       console.log('Current user role:', currentRole);
       
-      const initials = userData.initials || email.substring(0, 2).toUpperCase();
-      document.getElementById("roleBanner").innerText = `Logged in as: ${currentRole.toUpperCase()} (${initials})`;
+      // Show role and initials in banner
+      let inspectorName = auth.currentUser.email;
+      let inspectorInitials = "UN";
       
+      switch (auth.currentUser.email.toLowerCase()) {
+        case 'richard_daly@corkcity.ie':
+          inspectorName = "Richard Daly";
+          inspectorInitials = "RD";
+          break;
+        case 'john_ocallaghan@corkcity.ie':
+          inspectorName = "John O'Callaghan";
+          inspectorInitials = "JO";
+          break;
+        case 'shane_dorgan@corkcity.ie':
+          inspectorName = "Shane Dorgan";
+          inspectorInitials = "SD";
+          break;
+        case 'ronan_oconnor@corkcity.ie':
+          inspectorName = "Ronan O'Connor";
+          inspectorInitials = "RO";
+          break;
+        case 'aman_kushwaha@corkcity.ie':
+          inspectorName = "Aman Kushwaha";
+          inspectorInitials = "AK";
+          break;
+        default:
+          inspectorName = auth.currentUser.email;
+          inspectorInitials = userData.initials || auth.currentUser.email.substring(0, 2).toUpperCase();
+      }
+      
+      document.getElementById("roleBanner").innerText = `Logged in as: ${currentRole.toUpperCase()} (${inspectorInitials})`;
+      
+      // Store user data globally
       window.currentUserData = userData;
       
+      // Setup UI based on role
       setupUIForRole(currentRole);
       
+      // Initialize map and load data
       document.getElementById("loginScreen").style.display = 'none';
       document.getElementById("map").style.display = 'block';
       document.getElementById("controlPanel").style.display = 'block';
