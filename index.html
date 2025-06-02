@@ -483,16 +483,16 @@ function showInspectionPopup(marker, gullyId, latlng) {
     
     <div style="margin-bottom: 10px;">
       <label>Photo:</label>
-      <div style="display: flex; gap: 10px;">
-        <input type="file" id="photo" accept="image/*" style="flex: 1;">
-        <button onclick="capturePhoto()" style="background: #2196F3; color: white; border: none; padding: 8px; border-radius: 4px;">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <input type="file" id="photo" accept="image/*" style="width: 100%;">
+        <button onclick="capturePhoto()" style="background: #2196F3; color: white; border: none; padding: 8px; border-radius: 4px; width: 100%;">
           📸 Take Picture
         </button>
       </div>
     </div>
     
     <div style="margin-top: 15px; display: flex; justify-content: space-between;">
-      <button onclick="handleSave('${gullyId}')" style="flex: 1; margin-right: 10px; background: #4CAF50; color: white; border: none; padding: 8px; border-radius: 4px;">
+      <button onclick="saveInspection('${gullyId}')" style="flex: 1; margin-right: 10px; background: #4CAF50; color: white; border: none; padding: 8px; border-radius: 4px;">
         💾 Save Inspection
       </button>
       <button onclick="viewGullyHistory('${gullyId}')" style="flex: 1; background: #2196F3; color: white; border: none; padding: 8px; border-radius: 4px;">
@@ -513,20 +513,6 @@ function showInspectionPopup(marker, gullyId, latlng) {
   .setContent(popupContent);
 
   marker.bindPopup(popup).openPopup();
-
-  // Add save handler
-  window.handleSave = () => {
-    const formData = {
-      complete: document.getElementById('complete').checked,
-      date: document.getElementById('date').value,
-      status: document.getElementById('status').value,
-      comment: document.getElementById('comment').value,
-      location: latlng
-    };
-    
-    const photoFile = document.getElementById('photo').files[0];
-    saveInspection(gullyId, formData, photoFile, marker);
-  };
 }
 
 async function capturePhoto() {
@@ -552,7 +538,7 @@ async function capturePhoto() {
   }
 }
 
-async function handleSave(gullyId) {
+async function saveInspection(gullyId) {
   if (!auth.currentUser) {
     alert('You must be logged in to save inspections');
     return;
