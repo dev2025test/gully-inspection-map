@@ -15,6 +15,12 @@ const users = [
     initials: 'SD'
   },
   {
+    email: 'aman_kushawaha@corkcity.ie',
+    password: 'Admin123!@#',
+    role: 'admin',
+    initials: 'AK'
+  },
+  {
     email: 'richard_daly@corkcity.ie',
     password: 'Operator123!@#',
     role: 'operator',
@@ -25,6 +31,12 @@ const users = [
     password: 'Operator123!@#',
     role: 'operator',
     initials: 'JO'
+  },
+  {
+    email: 'ronan_oconnor@corkcity.ie',
+    password: 'Operator123!@#',
+    role: 'operator',
+    initials: 'RO'
   },
   {
     email: 'viewer@corkcity.ie',
@@ -66,7 +78,7 @@ async function setupUsers() {
       try {
         const email = user.email.toLowerCase();
         
-        // Delete the user if they exist in Authentication
+        // First, delete the user if they exist
         await deleteUserIfExists(email);
 
         // Create new user in Authentication

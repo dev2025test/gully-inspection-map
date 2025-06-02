@@ -486,16 +486,23 @@ function showInspectionPopup(marker, gullyId, latlng) {
       <input type="file" id="photo" accept="image/*" capture="environment">
     </div>
     
-    <div style="margin-top: 15px;">
-      <button onclick="handleSave()" style="margin-right: 10px;">💾 Save</button>
-      <button onclick="viewGullyHistory('${gullyId}')">📋 History</button>
+    <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+      <button onclick="handleSave()" style="flex: 1; margin-right: 10px; background: #4CAF50; color: white; border: none; padding: 8px; border-radius: 4px;">
+        💾 Save Inspection
+      </button>
+      <button onclick="viewGullyHistory('${gullyId}')" style="flex: 1; background: #2196F3; color: white; border: none; padding: 8px; border-radius: 4px;">
+        📋 View History
+      </button>
     </div>
   `;
 
   // Create popup
   const popup = L.popup({
     maxWidth: 300,
-    className: 'inspection-popup'
+    className: 'inspection-popup',
+    closeButton: true,
+    autoClose: false,
+    closeOnClick: false
   })
   .setLatLng(latlng)
   .setContent(popupContent);
@@ -535,6 +542,36 @@ async function saveInspection(gullyId, data, photoFile, marker) {
       throw new Error('User data not found. Please log out and log in again.');
     }
 
+    // Get inspector full name based on email
+    let inspectorName = "Unknown";
+    let inspectorInitials = "UN";
+    
+    switch (auth.currentUser.email.toLowerCase()) {
+      case 'richard_daly@corkcity.ie':
+        inspectorName = "Richard Daly";
+        inspectorInitials = "RD";
+        break;
+      case 'john_ocallaghan@corkcity.ie':
+        inspectorName = "John O'Callaghan";
+        inspectorInitials = "JO";
+        break;
+      case 'shane_dorgan@corkcity.ie':
+        inspectorName = "Shane Dorgan";
+        inspectorInitials = "SD";
+        break;
+      case 'ronan_oconnor@corkcity.ie':
+        inspectorName = "Ronan O'Connor";
+        inspectorInitials = "RO";
+        break;
+      case 'aman_kushawaha@corkcity.ie':
+        inspectorName = "Aman Kushawaha";
+        inspectorInitials = "AK";
+        break;
+      default:
+        inspectorName = auth.currentUser.email;
+        inspectorInitials = userData.initials || auth.currentUser.email.substring(0, 2).toUpperCase();
+    }
+
     // Create basic inspection data
     const timestamp = Date.now();
     const inspectionData = {
@@ -544,10 +581,11 @@ async function saveInspection(gullyId, data, photoFile, marker) {
       complete: data.complete,
       timestamp: timestamp,
       inspector: {
+        name: inspectorName,
         email: auth.currentUser.email,
         uid: auth.currentUser.uid,
         role: userData.role,
-        initials: userData.initials || userData.email.substring(0, 2).toUpperCase()
+        initials: inspectorInitials
       }
     };
 
@@ -565,13 +603,18 @@ async function saveInspection(gullyId, data, photoFile, marker) {
     // Save the inspection
     const gullyRef = db.ref(`gullies/${gullyId}`);
     
-    // Update gully data
-    await gullyRef.update({
+    // Update gully data - using timestamp as key for unique inspections
+    const updates = {
       [`inspections/${timestamp}`]: inspectionData,
       status: data.status,
       lastInspection: timestamp,
       lastInspector: inspectionData.inspector
-    });
+    };
+
+    await gullyRef.update(updates);
+
+    // Also save to history collection
+    await db.ref(`gully_history/${gullyId}/${timestamp}`).set(inspectionData);
 
     // Update marker and UI
     updateMarkerStatus(marker, data.status);
@@ -580,8 +623,12 @@ async function saveInspection(gullyId, data, photoFile, marker) {
     // Show success message
     alert('Inspection saved successfully');
     
-    // Reset form for next inspection
-    marker.closePopup();
+    // Clear form but keep popup open for potential new inspection
+    document.getElementById('complete').checked = false;
+    document.getElementById('comment').value = '';
+    document.getElementById('photo').value = '';
+    
+    // Keep the popup open for another potential inspection
     showInspectionPopup(marker, gullyId, data.location);
 
   } catch (error) {
@@ -631,15 +678,32 @@ async function viewGullyHistory(gullyId) {
     // Create history display
     const historyHtml = allInspections.map(inspection => {
       const date = new Date(inspection.timestamp).toLocaleString();
+      const inspectorInfo = inspection.inspector || {};
+      const inspectorName = inspectorInfo.name || 'Unknown';
+      const inspectorInitials = inspectorInfo.initials || 'UN';
+      const status = inspection.status || 'Unknown';
       const photoHtml = inspection.photoURL ? 
-        `<br><a href="${inspection.photoURL}" target="_blank">📷 View Photo</a>` : '';
+        `<br><a href="${inspection.photoURL}" target="_blank" style="color: blue;">📷 View Photo</a>` : '';
       
       return `
         <div style="border-bottom: 1px solid #ccc; margin-bottom: 10px; padding-bottom: 10px;">
-          <strong>${date}</strong><br>
-          Status: ${inspection.status}<br>
-          Inspector: ${inspection.inspectorInitials || 'Unknown'}<br>
-          Comments: ${inspection.comment || 'None'}
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <strong style="font-size: 1.1em;">${date}</strong>
+            <div>
+              <span style="background: #e0e0e0; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${inspectorInitials}</span>
+            </div>
+          </div>
+          <div style="margin: 5px 0;">
+            <span style="font-weight: bold;">Inspector:</span> ${inspectorName}
+          </div>
+          <div style="margin: 5px 0;">
+            <span style="font-weight: bold;">Status:</span> 
+            <span style="color: ${getStatusColor(status)};">${status}</span>
+          </div>
+          <div style="margin: 5px 0;">
+            <span style="font-weight: bold;">Comments:</span><br>
+            ${inspection.comment || 'None'}
+          </div>
           ${photoHtml}
         </div>
       `;
@@ -663,9 +727,14 @@ async function viewGullyHistory(gullyId) {
     `;
     
     modal.innerHTML = `
-      <h3>Inspection History</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;">Inspection History</h3>
+        <button onclick="this.parentElement.parentElement.remove()" 
+                style="border: none; background: #f0f0f0; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+          ✖ Close
+        </button>
+      </div>
       <div>${historyHtml || 'No inspection history available'}</div>
-      <button onclick="this.parentElement.remove()" style="margin-top: 10px;">Close</button>
     `;
     
     document.body.appendChild(modal);
