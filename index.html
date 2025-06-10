@@ -213,14 +213,30 @@ const defaultUsers = [
 
 // Function to ensure default users exist
 function ensureDefaultUsers() {
+  const defaultUsers = [
+    {
+      email: 'aman_kushwaha@corkcity.ie',
+      role: 'admin',
+      name: 'Aman Kushwaha',
+      initials: 'AK'
+    },
+    {
+      email: 'ronan_oconnor@corkcity.ie',
+      role: 'operator',
+      name: "Ronan O'Connor",
+      initials: 'RO'
+    }
+  ];
+
   defaultUsers.forEach(user => {
     const normalizedEmail = normalizeEmail(user.email);
+    console.log('Checking user:', normalizedEmail);
+    
     auth.fetchSignInMethodsForEmail(normalizedEmail)
       .then((signInMethods) => {
         if (signInMethods.length === 0) {
-          // User doesn't exist, create them
           console.log('Creating user:', normalizedEmail);
-          auth.createUserWithEmailAndPassword(normalizedEmail, 'DefaultPass123!')
+          return auth.createUserWithEmailAndPassword(normalizedEmail, 'DefaultPass123!')
             .then((userCredential) => {
               return db.ref("users/" + userCredential.user.uid).set({
                 email: normalizedEmail,
@@ -230,29 +246,43 @@ function ensureDefaultUsers() {
                 created: firebase.database.ServerValue.TIMESTAMP
               });
             })
-            .catch(error => console.error('Error creating user:', error));
+            .catch(error => {
+              console.error('Error creating user:', error);
+              if (error.code === 'auth/email-already-in-use') {
+                console.log('User already exists:', normalizedEmail);
+              }
+            });
+        } else {
+          console.log('User already exists:', normalizedEmail);
         }
       })
       .catch(error => console.error('Error checking user:', error));
   });
 }
 
-// Update the normalizeEmail function to be more robust
+// Update the normalizeEmail function to handle all variations
 function normalizeEmail(email) {
   if (!email) return '';
   email = email.toLowerCase().trim();
   
-  // Map all variations to standard format
-  const emailMap = {
-    'ronan.oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie',
-    'ronan_oconnor@corkcity.ie': 'ronan_oconnor@corkcity.ie',
-    'aman.kushwaha@corkcity.ie': 'aman_kushwaha@corkcity.ie',
-    'aman_kushwaha@corkcity.ie': 'aman_kushwaha@corkcity.ie',
-    'aman.kushawaha@corkcity.ie': 'aman_kushwaha@corkcity.ie',
-    'aman_kushawaha@corkcity.ie': 'aman_kushwaha@corkcity.ie'
-  };
+  // Handle all variations of Aman's email
+  if (email.includes('kushwaha') || email.includes('kushawaha')) {
+    // Remove any dots or underscores and normalize the name
+    const normalizedEmail = email
+      .replace(/[._]/g, '')
+      .replace('kushawaha', 'kushwaha')
+      .replace('nan', 'aman');
+    
+    // Add back the underscore in the correct position
+    return normalizedEmail.replace('amankushwaha@', 'aman_kushwaha@');
+  }
   
-  return emailMap[email] || email;
+  // Handle Ronan's email
+  if (email.includes('oconnor')) {
+    return 'ronan_oconnor@corkcity.ie';
+  }
+  
+  return email;
 }
 
 // Initialize the application
@@ -334,7 +364,7 @@ function setupInactivityTracking() {
   resetInactivityTimer();
 }
 
-// Update the login function to prevent screen flicker
+// Update the login function to be more robust
 function login() {
   const email = normalizeEmail(document.getElementById("email").value);
   const password = document.getElementById("password").value;
@@ -346,22 +376,31 @@ function login() {
 
   document.getElementById("loginError").textContent = "Logging in...";
   document.getElementById("loginScreen").style.opacity = "0.5";
+
+  // For debugging
+  console.log('Attempting login with normalized email:', email);
   
+  // First try to sign in
   auth.signInWithEmailAndPassword(email, password)
     .then(userCredential => {
+      console.log('Login successful');
       return db.ref("users/" + userCredential.user.uid).once("value");
     })
     .catch(error => {
+      console.log('Initial login failed:', error.code);
+      // If login fails and using default password, try to create account
       if (password === 'DefaultPass123!' && 
           (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password')) {
+        
+        console.log('Attempting to create new user');
         return auth.createUserWithEmailAndPassword(email, password)
           .then(userCredential => {
-            const isAman = email.toLowerCase().includes('aman');
+            const isAman = email.includes('aman');
             const userData = {
               email: email,
               role: isAman ? 'admin' : 'operator',
-              name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-              initials: email.split('@')[0].split(/[._]/).map(n => n[0].toUpperCase()).join(''),
+              name: isAman ? 'Aman Kushwaha' : "Ronan O'Connor",
+              initials: isAman ? 'AK' : 'RO',
               created: firebase.database.ServerValue.TIMESTAMP
             };
             return db.ref("users/" + userCredential.user.uid).set(userData)
@@ -374,7 +413,6 @@ function login() {
       if (!snapshot.exists()) {
         throw new Error('No user data found');
       }
-      // Don't reload, just update UI
       const userData = snapshot.val();
       window.currentUserData = userData;
       currentRole = userData.role;
