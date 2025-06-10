@@ -195,56 +195,42 @@ const auth = firebase.auth();
 const db = firebase.database();
 const storage = firebase.storage();
 
-// Add admin configuration
-const ADMIN_CONFIG = {
-  email: 'aman_kushwaha@corkcity.ie',
-  password: 'DefaultPass123!',
-  userData: {
-    email: 'aman_kushwaha@corkcity.ie',
-    role: 'admin',
-    name: 'Aman Kushwaha',
-    initials: 'AK',
-    isAdmin: true,
-    adminPrivileges: {
-      canDelete: true,
-      canEdit: true,
-      canImport: true,
-      canExport: true,
-      canReset: true,
-      canManageUsers: true
+// User management configuration
+const USER_CONFIG = {
+  defaultPassword: 'DefaultPass123!',
+  users: [
+    {
+      email: 'aman_kushwaha@corkcity.ie',
+      role: 'admin',
+      name: 'Aman Kushwaha',
+      initials: 'AK',
+      isAdmin: true,
+      adminPrivileges: {
+        canDelete: true,
+        canEdit: true,
+        canImport: true,
+        canExport: true,
+        canReset: true,
+        canManageUsers: true
+      }
+    },
+    {
+      email: 'ronan_oconnor@corkcity.ie',
+      role: 'operator',
+      name: "Ronan O'Connor",
+      initials: 'RO',
+      isAdmin: false
     }
-  }
+  ]
 };
 
-// Function to ensure admin rights
-async function ensureAdminRights() {
-  try {
-    // Sign in as admin
-    const userCredential = await auth.signInWithEmailAndPassword(
-      ADMIN_CONFIG.email, 
-      ADMIN_CONFIG.password
-    );
-    
-    // Update admin data
-    await db.ref("users/" + userCredential.user.uid).update({
-      ...ADMIN_CONFIG.userData,
-      lastUpdated: firebase.database.ServerValue.TIMESTAMP
-    });
-    
-    console.log('Admin rights updated successfully');
-    return true;
-  } catch (error) {
-    console.error('Error updating admin rights:', error);
-    return false;
-  }
-}
-
-// Update the normalizeEmail function to prioritize admin email
-function normalizeEmail(email) {
-  if (!email) return '';
+// Function to validate and normalize email variations
+function validateAndNormalizeEmail(email) {
+  if (!email) return { isValid: false, normalizedEmail: '', message: 'Email is required' };
+  
   email = email.toLowerCase().trim();
   
-  // Special handling for admin variations
+  // Admin email variations
   const adminVariations = [
     'aman_kushwaha@corkcity.ie',
     'aman.kushwaha@corkcity.ie',
@@ -256,194 +242,112 @@ function normalizeEmail(email) {
     'nankushwaha@corkcity.ie'
   ];
   
-  // If it's any variation of admin email, return the standard format
+  // Operator email variations
+  const operatorVariations = [
+    'ronan_oconnor@corkcity.ie',
+    'ronan.oconnor@corkcity.ie',
+    'ronan_o_connor@corkcity.ie',
+    'ronan.o.connor@corkcity.ie',
+    'ronanoconnor@corkcity.ie'
+  ];
+  
+  // Check admin variations
   if (adminVariations.some(variant => 
     email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
-    return ADMIN_CONFIG.email;
+    return {
+      isValid: true,
+      normalizedEmail: USER_CONFIG.users[0].email,
+      isAdmin: true,
+      userData: USER_CONFIG.users[0],
+      message: 'Admin email validated'
+    };
   }
   
-  // Handle Ronan's email
-  if (email.includes('oconnor')) {
-    return 'ronan_oconnor@corkcity.ie';
+  // Check operator variations
+  if (operatorVariations.some(variant => 
+    email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+    return {
+      isValid: true,
+      normalizedEmail: USER_CONFIG.users[1].email,
+      isAdmin: false,
+      userData: USER_CONFIG.users[1],
+      message: 'Operator email validated'
+    };
   }
   
-  return email;
+  return {
+    isValid: false,
+    normalizedEmail: '',
+    message: 'Invalid email. Must be an authorized @corkcity.ie address'
+  };
 }
 
-// Update ensureDefaultUsers to prioritize admin setup
-function ensureDefaultUsers() {
-  // First ensure admin user exists
-  console.log('Checking admin user setup...');
-  auth.fetchSignInMethodsForEmail(ADMIN_CONFIG.email)
-    .then((signInMethods) => {
-      if (signInMethods.length === 0) {
-        console.log('Creating admin user...');
-        return auth.createUserWithEmailAndPassword(ADMIN_CONFIG.email, ADMIN_CONFIG.password)
-          .then((userCredential) => {
-            console.log('Admin user created, setting up admin data...');
-            return db.ref("users/" + userCredential.user.uid).set({
-              email: ADMIN_CONFIG.email,
-              role: ADMIN_CONFIG.userData.role,
-              name: ADMIN_CONFIG.userData.name,
-              initials: ADMIN_CONFIG.userData.initials,
-              isAdmin: true,
-              created: firebase.database.ServerValue.TIMESTAMP,
-              lastUpdated: firebase.database.ServerValue.TIMESTAMP
-            });
-          })
-          .catch(error => {
-            console.error('Error creating admin:', error);
-            if (error.code === 'auth/email-already-in-use') {
-              // Try to update existing user to admin
-              console.log('Updating existing user to admin...');
-              auth.signInWithEmailAndPassword(ADMIN_CONFIG.email, ADMIN_CONFIG.password)
-                .then(userCredential => {
-                  return db.ref("users/" + userCredential.user.uid).update({
-                    role: ADMIN_CONFIG.userData.role,
-                    isAdmin: true,
-                    lastUpdated: firebase.database.ServerValue.TIMESTAMP
-                  });
-                })
-                .catch(err => console.error('Error updating admin:', err));
-            }
-          });
-      } else {
-        console.log('Admin user exists, verifying admin status...');
-        // Verify admin status
-        return auth.signInWithEmailAndPassword(ADMIN_CONFIG.email, ADMIN_CONFIG.password)
-          .then(userCredential => {
-            return db.ref("users/" + userCredential.user.uid).update({
-              role: ADMIN_CONFIG.userData.role,
-              isAdmin: true,
-              lastUpdated: firebase.database.ServerValue.TIMESTAMP
-            });
-          })
-          .catch(error => console.error('Error verifying admin:', error));
-      }
-    })
-    .catch(error => console.error('Error checking admin:', error));
-
-  // Then set up other users
-  const otherUsers = [
-    {
-      email: 'ronan_oconnor@corkcity.ie',
-      role: 'operator',
-      name: "Ronan O'Connor",
-      initials: 'RO'
-    }
-  ];
-
-  otherUsers.forEach(user => {
-    auth.fetchSignInMethodsForEmail(user.email)
-      .then((signInMethods) => {
-        if (signInMethods.length === 0) {
-          console.log('Creating user:', user.email);
-          auth.createUserWithEmailAndPassword(user.email, 'DefaultPass123!')
-            .then((userCredential) => {
-              return db.ref("users/" + userCredential.user.uid).set({
-                email: user.email,
-                role: user.role,
-                name: user.name,
-                initials: user.initials,
-                created: firebase.database.ServerValue.TIMESTAMP
-              });
-            })
-            .catch(error => console.error('Error creating user:', error));
-        }
-      })
-      .catch(error => console.error('Error checking user:', error));
-  });
-}
-
-// Initialize the application
-window.onload = () => {
-  document.getElementById("loginScreen").style.display = "block";
-  // Ensure default users exist
-  ensureDefaultUsers();
-  ensureAdminRights().then(success => {
-    if (success) {
-      console.log('Admin rights configured successfully');
+// Function to handle automatic login from URL
+function handleAutoLogin() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const email = urlParams.get('email');
+  const autoLogin = urlParams.get('autologin');
+  
+  if (email && autoLogin === 'true') {
+    const validation = validateAndNormalizeEmail(email);
+    if (validation.isValid) {
+      document.getElementById('email').value = validation.normalizedEmail;
+      document.getElementById('password').value = USER_CONFIG.defaultPassword;
+      login(true); // Pass true to indicate auto-login
     } else {
-      console.warn('Failed to configure admin rights');
+      document.getElementById('loginError').textContent = `❌ ${validation.message}`;
     }
-  });
-};
-
-let currentRole = null;
-let map;
-const importedFiles = new Set();
-const gullyData = [];
-let deleteMode = false;
-let currentMarker = null;
-let editMode = false;
-let currentActiveLayer = 'gullies';
-let currentInspectionPopup = null;
-let inactivityTimer = null;
-const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes in milliseconds
-
-// Add layer groups
-let layers = {
-  gullies: L.layerGroup(),
-  signage: L.layerGroup(),
-  playgrounds: L.layerGroup(),
-  parks: L.layerGroup(),
-  walkways: L.layerGroup(),
-  lining: L.layerGroup()
-};
-
-// Add layer names for UI
-const layerNames = {
-  gullies: "Gullies",
-  signage: "Signage",
-  playgrounds: "Playgrounds",
-  parks: "Parks",
-  walkways: "Walkways",
-  lining: "Lining"
-};
-
-function resetInactivityTimer() {
-  // Clear existing timer
-  if (inactivityTimer) {
-    clearTimeout(inactivityTimer);
   }
+}
+
+// Function to ensure all users exist
+async function ensureAllUsers() {
+  console.log('Ensuring all users exist...');
   
-  // Set new timer
-  inactivityTimer = setTimeout(() => {
-    if (auth.currentUser) {
-      alert('You have been logged out due to inactivity.');
-      logout();
+  for (const user of USER_CONFIG.users) {
+    try {
+      // Check if user exists
+      const methods = await auth.fetchSignInMethodsForEmail(user.email);
+      
+      if (methods.length === 0) {
+        // Create new user
+        console.log(`Creating user: ${user.email}`);
+        const userCredential = await auth.createUserWithEmailAndPassword(
+          user.email,
+          USER_CONFIG.defaultPassword
+        );
+        
+        // Set up user data
+        await db.ref(`users/${userCredential.user.uid}`).set({
+          ...user,
+          created: firebase.database.ServerValue.TIMESTAMP,
+          lastUpdated: firebase.database.ServerValue.TIMESTAMP
+        });
+      } else {
+        // Update existing user
+        console.log(`Updating user: ${user.email}`);
+        const userCredential = await auth.signInWithEmailAndPassword(
+          user.email,
+          USER_CONFIG.defaultPassword
+        );
+        
+        await db.ref(`users/${userCredential.user.uid}`).update({
+          ...user,
+          lastUpdated: firebase.database.ServerValue.TIMESTAMP
+        });
+        
+        // Sign out after update
+        await auth.signOut();
+      }
+    } catch (error) {
+      console.error(`Error setting up user ${user.email}:`, error);
     }
-  }, INACTIVITY_TIMEOUT);
+  }
 }
 
-function setupInactivityTracking() {
-  // Track mouse movement
-  document.addEventListener('mousemove', resetInactivityTimer);
-  
-  // Track clicks
-  document.addEventListener('click', resetInactivityTimer);
-  
-  // Track keyboard activity
-  document.addEventListener('keydown', resetInactivityTimer);
-  
-  // Track scroll events
-  document.addEventListener('scroll', resetInactivityTimer);
-  
-  // Track map interactions
-  map.on('drag', resetInactivityTimer);
-  map.on('zoom', resetInactivityTimer);
-  map.on('click', resetInactivityTimer);
-  
-  // Track form interactions
-  document.addEventListener('input', resetInactivityTimer);
-  
-  // Start initial timer
-  resetInactivityTimer();
-}
-
-// Update login function to handle admin login
-function login() {
-  const email = normalizeEmail(document.getElementById("email").value);
+// Update login function
+function login(isAutoLogin = false) {
+  const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
   
   if (!email || !password) {
@@ -451,44 +355,18 @@ function login() {
     return;
   }
 
+  const validation = validateAndNormalizeEmail(email);
+  if (!validation.isValid) {
+    document.getElementById("loginError").textContent = `❌ ${validation.message}`;
+    return;
+  }
+
   document.getElementById("loginError").textContent = "Logging in...";
   document.getElementById("loginScreen").style.opacity = "0.5";
 
-  const isAdminLogin = email === ADMIN_CONFIG.email;
-
-  auth.signInWithEmailAndPassword(email, password)
+  auth.signInWithEmailAndPassword(validation.normalizedEmail, password)
     .then(userCredential => {
-      if (isAdminLogin) {
-        // Update admin rights
-        return db.ref("users/" + userCredential.user.uid).update({
-          ...ADMIN_CONFIG.userData,
-          lastUpdated: firebase.database.ServerValue.TIMESTAMP
-        }).then(() => {
-          return db.ref("users/" + userCredential.user.uid).once("value");
-        });
-      }
-      return db.ref("users/" + userCredential.user.uid).once("value");
-    })
-    .catch(error => {
-      if (password === 'DefaultPass123!' && 
-          (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password')) {
-        return auth.createUserWithEmailAndPassword(email, password)
-          .then(userCredential => {
-            const userData = isAdminLogin ? 
-              ADMIN_CONFIG.userData : 
-              {
-                email: email,
-                role: 'operator',
-                name: "Ronan O'Connor",
-                initials: 'RO',
-                created: firebase.database.ServerValue.TIMESTAMP
-              };
-            
-            return db.ref("users/" + userCredential.user.uid).set(userData)
-              .then(() => db.ref("users/" + userCredential.user.uid).once("value"));
-          });
-      }
-      throw error;
+      return db.ref(`users/${userCredential.user.uid}`).once('value');
     })
     .then(snapshot => {
       if (!snapshot.exists()) {
@@ -499,8 +377,9 @@ function login() {
       window.currentUserData = userData;
       currentRole = userData.role;
       
-      // Update UI based on role
-      document.getElementById('roleBanner').textContent = `Logged in as ${userData.role.toUpperCase()}${userData.isAdmin ? ' (Admin)' : ''}`;
+      // Update UI
+      document.getElementById('roleBanner').textContent = 
+        `Logged in as ${userData.role.toUpperCase()}${userData.isAdmin ? ' (Admin)' : ''}`;
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('map').style.display = 'block';
       document.getElementById('controlPanel').style.display = 'block';
@@ -512,11 +391,23 @@ function login() {
       initMap();
       loadGullyData();
       setupInactivityTracking();
+      
+      // Clear URL parameters after auto-login
+      if (isAutoLogin) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     })
     .catch(error => {
       console.error('Login error:', error);
-      document.getElementById("loginError").textContent = "❌ " + error.message;
-      document.getElementById("loginScreen").style.opacity = "1";
+      if (error.code === 'auth/wrong-password' && password === USER_CONFIG.defaultPassword) {
+        // Try to reset user with default password
+        ensureAllUsers().then(() => {
+          login(isAutoLogin); // Retry login
+        });
+      } else {
+        document.getElementById("loginError").textContent = "❌ " + error.message;
+        document.getElementById("loginScreen").style.opacity = "1";
+      }
     });
 }
 
@@ -1560,6 +1451,22 @@ function resetMap() {
     alert('Error resetting map: ' + error.message);
   }
 }
+
+// Update window.onload to include new initialization
+window.onload = () => {
+  document.getElementById("loginScreen").style.display = "block";
+  
+  // Initialize users
+  Promise.all([
+    ensureAllUsers()
+  ]).then(() => {
+    console.log('User system initialized');
+    // Handle auto-login after initialization
+    handleAutoLogin();
+  }).catch(error => {
+    console.error('Error during initialization:', error);
+  });
+};
 </script>
 </body>
 </html>
