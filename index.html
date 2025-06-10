@@ -195,86 +195,71 @@ const auth = firebase.auth();
 const db = firebase.database();
 const storage = firebase.storage();
 
-// Define default users
-const defaultUsers = [
-  {
-    email: 'ronan_oconnor@corkcity.ie',
-    role: 'operator',
-    name: "Ronan O'Connor",
-    initials: 'RO'
-  },
-  {
+// Add admin configuration
+const ADMIN_CONFIG = {
+  email: 'aman_kushwaha@corkcity.ie',
+  password: 'DefaultPass123!',
+  userData: {
     email: 'aman_kushwaha@corkcity.ie',
     role: 'admin',
     name: 'Aman Kushwaha',
-    initials: 'AK'
-  }
-];
-
-// Function to ensure default users exist
-function ensureDefaultUsers() {
-  const defaultUsers = [
-    {
-      email: 'aman_kushwaha@corkcity.ie',
-      role: 'admin',
-      name: 'Aman Kushwaha',
-      initials: 'AK'
-    },
-    {
-      email: 'ronan_oconnor@corkcity.ie',
-      role: 'operator',
-      name: "Ronan O'Connor",
-      initials: 'RO'
+    initials: 'AK',
+    isAdmin: true,
+    adminPrivileges: {
+      canDelete: true,
+      canEdit: true,
+      canImport: true,
+      canExport: true,
+      canReset: true,
+      canManageUsers: true
     }
-  ];
+  }
+};
 
-  defaultUsers.forEach(user => {
-    const normalizedEmail = normalizeEmail(user.email);
-    console.log('Checking user:', normalizedEmail);
+// Function to ensure admin rights
+async function ensureAdminRights() {
+  try {
+    // Sign in as admin
+    const userCredential = await auth.signInWithEmailAndPassword(
+      ADMIN_CONFIG.email, 
+      ADMIN_CONFIG.password
+    );
     
-    auth.fetchSignInMethodsForEmail(normalizedEmail)
-      .then((signInMethods) => {
-        if (signInMethods.length === 0) {
-          console.log('Creating user:', normalizedEmail);
-          return auth.createUserWithEmailAndPassword(normalizedEmail, 'DefaultPass123!')
-            .then((userCredential) => {
-              return db.ref("users/" + userCredential.user.uid).set({
-                email: normalizedEmail,
-                role: user.role,
-                name: user.name,
-                initials: user.initials,
-                created: firebase.database.ServerValue.TIMESTAMP
-              });
-            })
-            .catch(error => {
-              console.error('Error creating user:', error);
-              if (error.code === 'auth/email-already-in-use') {
-                console.log('User already exists:', normalizedEmail);
-              }
-            });
-        } else {
-          console.log('User already exists:', normalizedEmail);
-        }
-      })
-      .catch(error => console.error('Error checking user:', error));
-  });
+    // Update admin data
+    await db.ref("users/" + userCredential.user.uid).update({
+      ...ADMIN_CONFIG.userData,
+      lastUpdated: firebase.database.ServerValue.TIMESTAMP
+    });
+    
+    console.log('Admin rights updated successfully');
+    return true;
+  } catch (error) {
+    console.error('Error updating admin rights:', error);
+    return false;
+  }
 }
 
-// Update the normalizeEmail function to handle all variations
+// Update the normalizeEmail function to prioritize admin email
 function normalizeEmail(email) {
   if (!email) return '';
   email = email.toLowerCase().trim();
   
-  // Handle all variations of Aman's email
-  if (email.includes('kushwaha') || email.includes('kushawaha')) {
-    // Remove any dots or underscores and normalize the name
-    const normalizedEmail = email
-      .replace(/[._]/g, '')
-      .replace('kushawaha', 'kushwaha')
-      .replace('nan', 'aman');
-    
-    // Add back the underscore in the correct position
-    return normalizedEmail.replace('amankushwaha@', 'aman_kushwaha@');
+  // Special handling for admin variations
+  const adminVariations = [
+    'aman_kushwaha@corkcity.ie',
+    'aman.kushwaha@corkcity.ie',
+    'nan_kushwaha@corkcity.ie',
+    'nan.kushwaha@corkcity.ie',
+    'aman_kushawaha@corkcity.ie',
+    'aman.kushawaha@corkcity.ie',
+    'amankushwaha@corkcity.ie',
+    'nankushwaha@corkcity.ie'
+  ];
+  
+  // If it's any variation of admin email, return the standard format
+  if (adminVariations.some(variant => 
+    email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+    return ADMIN_CONFIG.email;
   }
   
   // Handle Ronan's email
@@ -285,11 +270,103 @@ function normalizeEmail(email) {
   return email;
 }
 
+// Update ensureDefaultUsers to prioritize admin setup
+function ensureDefaultUsers() {
+  // First ensure admin user exists
+  console.log('Checking admin user setup...');
+  auth.fetchSignInMethodsForEmail(ADMIN_CONFIG.email)
+    .then((signInMethods) => {
+      if (signInMethods.length === 0) {
+        console.log('Creating admin user...');
+        return auth.createUserWithEmailAndPassword(ADMIN_CONFIG.email, ADMIN_CONFIG.password)
+          .then((userCredential) => {
+            console.log('Admin user created, setting up admin data...');
+            return db.ref("users/" + userCredential.user.uid).set({
+              email: ADMIN_CONFIG.email,
+              role: ADMIN_CONFIG.userData.role,
+              name: ADMIN_CONFIG.userData.name,
+              initials: ADMIN_CONFIG.userData.initials,
+              isAdmin: true,
+              created: firebase.database.ServerValue.TIMESTAMP,
+              lastUpdated: firebase.database.ServerValue.TIMESTAMP
+            });
+          })
+          .catch(error => {
+            console.error('Error creating admin:', error);
+            if (error.code === 'auth/email-already-in-use') {
+              // Try to update existing user to admin
+              console.log('Updating existing user to admin...');
+              auth.signInWithEmailAndPassword(ADMIN_CONFIG.email, ADMIN_CONFIG.password)
+                .then(userCredential => {
+                  return db.ref("users/" + userCredential.user.uid).update({
+                    role: ADMIN_CONFIG.userData.role,
+                    isAdmin: true,
+                    lastUpdated: firebase.database.ServerValue.TIMESTAMP
+                  });
+                })
+                .catch(err => console.error('Error updating admin:', err));
+            }
+          });
+      } else {
+        console.log('Admin user exists, verifying admin status...');
+        // Verify admin status
+        return auth.signInWithEmailAndPassword(ADMIN_CONFIG.email, ADMIN_CONFIG.password)
+          .then(userCredential => {
+            return db.ref("users/" + userCredential.user.uid).update({
+              role: ADMIN_CONFIG.userData.role,
+              isAdmin: true,
+              lastUpdated: firebase.database.ServerValue.TIMESTAMP
+            });
+          })
+          .catch(error => console.error('Error verifying admin:', error));
+      }
+    })
+    .catch(error => console.error('Error checking admin:', error));
+
+  // Then set up other users
+  const otherUsers = [
+    {
+      email: 'ronan_oconnor@corkcity.ie',
+      role: 'operator',
+      name: "Ronan O'Connor",
+      initials: 'RO'
+    }
+  ];
+
+  otherUsers.forEach(user => {
+    auth.fetchSignInMethodsForEmail(user.email)
+      .then((signInMethods) => {
+        if (signInMethods.length === 0) {
+          console.log('Creating user:', user.email);
+          auth.createUserWithEmailAndPassword(user.email, 'DefaultPass123!')
+            .then((userCredential) => {
+              return db.ref("users/" + userCredential.user.uid).set({
+                email: user.email,
+                role: user.role,
+                name: user.name,
+                initials: user.initials,
+                created: firebase.database.ServerValue.TIMESTAMP
+              });
+            })
+            .catch(error => console.error('Error creating user:', error));
+        }
+      })
+      .catch(error => console.error('Error checking user:', error));
+  });
+}
+
 // Initialize the application
 window.onload = () => {
   document.getElementById("loginScreen").style.display = "block";
   // Ensure default users exist
   ensureDefaultUsers();
+  ensureAdminRights().then(success => {
+    if (success) {
+      console.log('Admin rights configured successfully');
+    } else {
+      console.warn('Failed to configure admin rights');
+    }
+  });
 };
 
 let currentRole = null;
@@ -364,7 +441,7 @@ function setupInactivityTracking() {
   resetInactivityTimer();
 }
 
-// Update the login function to be more robust
+// Update login function to handle admin login
 function login() {
   const email = normalizeEmail(document.getElementById("email").value);
   const password = document.getElementById("password").value;
@@ -377,32 +454,36 @@ function login() {
   document.getElementById("loginError").textContent = "Logging in...";
   document.getElementById("loginScreen").style.opacity = "0.5";
 
-  // For debugging
-  console.log('Attempting login with normalized email:', email);
-  
-  // First try to sign in
+  const isAdminLogin = email === ADMIN_CONFIG.email;
+
   auth.signInWithEmailAndPassword(email, password)
     .then(userCredential => {
-      console.log('Login successful');
+      if (isAdminLogin) {
+        // Update admin rights
+        return db.ref("users/" + userCredential.user.uid).update({
+          ...ADMIN_CONFIG.userData,
+          lastUpdated: firebase.database.ServerValue.TIMESTAMP
+        }).then(() => {
+          return db.ref("users/" + userCredential.user.uid).once("value");
+        });
+      }
       return db.ref("users/" + userCredential.user.uid).once("value");
     })
     .catch(error => {
-      console.log('Initial login failed:', error.code);
-      // If login fails and using default password, try to create account
       if (password === 'DefaultPass123!' && 
           (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password')) {
-        
-        console.log('Attempting to create new user');
         return auth.createUserWithEmailAndPassword(email, password)
           .then(userCredential => {
-            const isAman = email.includes('aman');
-            const userData = {
-              email: email,
-              role: isAman ? 'admin' : 'operator',
-              name: isAman ? 'Aman Kushwaha' : "Ronan O'Connor",
-              initials: isAman ? 'AK' : 'RO',
-              created: firebase.database.ServerValue.TIMESTAMP
-            };
+            const userData = isAdminLogin ? 
+              ADMIN_CONFIG.userData : 
+              {
+                email: email,
+                role: 'operator',
+                name: "Ronan O'Connor",
+                initials: 'RO',
+                created: firebase.database.ServerValue.TIMESTAMP
+              };
+            
             return db.ref("users/" + userCredential.user.uid).set(userData)
               .then(() => db.ref("users/" + userCredential.user.uid).once("value"));
           });
@@ -413,19 +494,23 @@ function login() {
       if (!snapshot.exists()) {
         throw new Error('No user data found');
       }
+      
       const userData = snapshot.val();
       window.currentUserData = userData;
       currentRole = userData.role;
       
-      document.getElementById('roleBanner').textContent = `Logged in as ${userData.role.toUpperCase()}`;
+      // Update UI based on role
+      document.getElementById('roleBanner').textContent = `Logged in as ${userData.role.toUpperCase()}${userData.isAdmin ? ' (Admin)' : ''}`;
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('map').style.display = 'block';
       document.getElementById('controlPanel').style.display = 'block';
       document.getElementById('summary').style.display = 'block';
       
+      // Setup UI with proper privileges
+      setupUIForRole(userData.role, userData.adminPrivileges);
+      
       initMap();
       loadGullyData();
-      setupUIForRole(userData.role);
       setupInactivityTracking();
     })
     .catch(error => {
@@ -444,7 +529,7 @@ function logout() {
   });
 }
 
-function setupUIForRole(role) {
+function setupUIForRole(role, adminPrivileges = null) {
   const isAdmin = role === 'admin';
   const isOperator = role === 'operator';
   
@@ -461,9 +546,24 @@ function setupUIForRole(role) {
       return;
     }
     
-    // Handle specific buttons based on role
-    if (isAdmin) {
-      // Enable all buttons for admin
+    // Handle admin privileges
+    if (isAdmin && adminPrivileges) {
+      if (buttonText.includes('delete') && !adminPrivileges.canDelete) {
+        btn.disabled = true;
+        btn.style.opacity = 0.5;
+        return;
+      }
+      if (buttonText.includes('edit') && !adminPrivileges.canEdit) {
+        btn.disabled = true;
+        btn.style.opacity = 0.5;
+        return;
+      }
+      if (buttonText.includes('reset') && !adminPrivileges.canReset) {
+        btn.disabled = true;
+        btn.style.opacity = 0.5;
+        return;
+      }
+      // Enable all other buttons for admin
       btn.disabled = false;
       btn.style.opacity = 1;
     } else if (isOperator) {
@@ -479,11 +579,11 @@ function setupUIForRole(role) {
     }
   });
   
-  // Handle file input separately
+  // Handle file input for admin
   const importFile = document.getElementById("importFile");
   if (importFile) {
-    importFile.disabled = !isAdmin;
-    importFile.style.opacity = isAdmin ? 1 : 0.5;
+    importFile.disabled = !(isAdmin && (!adminPrivileges || adminPrivileges.canImport));
+    importFile.style.opacity = importFile.disabled ? 0.5 : 1;
   }
 }
 
@@ -1167,7 +1267,7 @@ auth.onAuthStateChanged(user => {
       
       initMap();
       loadGullyData();
-      setupUIForRole(userData.role);
+      setupUIForRole(userData.role, userData.adminPrivileges);
       setupInactivityTracking();
     });
   } else {
