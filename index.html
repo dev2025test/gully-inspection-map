@@ -490,9 +490,7 @@
   </style>
 </head>
 <body>
-<div id="roleBanner" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);
-background:#eee;padding:8px 20px;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,0.3);z-index:1001;
-font-weight:bold;"></div>
+<div id="map"></div>
 
 <div id="loginScreen" class="login-background">
   <div id="loginBox">
@@ -532,8 +530,6 @@ font-weight:bold;"></div>
     <p id="loginError" style="color:red;"></p>
   </div>
 </div>
-
-<div id="map"></div>
 
 <div class="bottom-toolbar" id="functionToolbar">
   <div class="toolbar-header" onclick="toggleToolbar()">
@@ -802,7 +798,6 @@ function login(isAutoLogin = false) {
       currentRole = userData.role;
       
       // Update UI
-      document.getElementById('roleBanner').textContent = `Logged in as ${userData.role.toUpperCase()}`;
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('map').style.display = 'block';
       document.getElementById('controlPanel').style.display = 'block';
@@ -949,14 +944,13 @@ function updateUserInfo(userData) {
 function handleLoginSuccess(userData) {
   console.log('Login successful, initializing map...');
   
-  // First hide login screen
+  // Hide login screen
   document.getElementById('loginScreen').style.display = 'none';
   
   // Show toolbar
   document.getElementById('functionToolbar').style.display = 'block';
   
-  // Update user info and role banner
-  document.getElementById('roleBanner').textContent = `Logged in as ${userData.role.toUpperCase()}`;
+  // Update user info
   updateUserInfo(userData);
   setupUIForRole(userData.role, userData.adminPrivileges);
   
@@ -1009,7 +1003,6 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
     window.dataLayers[layerType].addLayer(marker);
   } else {
     console.warn('Layer not found:', layerType);
-    // Fallback to adding directly to map
     marker.addTo(window.map);
   }
   
@@ -1019,6 +1012,39 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
     } else {
       currentMarker = marker;
       showInspectionPopup(marker, gullyId, latlng, layerType);
+    }
+  });
+  
+  // Make marker draggable in edit mode
+  marker.on('mousedown', function(e) {
+    if (editMode && currentRole === 'admin') {
+      e.originalEvent.preventDefault();
+      const startLatLng = marker.getLatLng();
+      
+      function onMouseMove(e) {
+        const mouseLatLng = window.map.mouseEventToLatLng(e);
+        marker.setLatLng(mouseLatLng);
+      }
+      
+      function onMouseUp(e) {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        
+        const newLatLng = marker.getLatLng();
+        if (newLatLng.lat !== startLatLng.lat || newLatLng.lng !== startLatLng.lng) {
+          // Update position in Firebase
+          db.ref(`${layerType}/${gullyId}/location`).set({
+            lat: newLatLng.lat,
+            lng: newLatLng.lng
+          }).catch(error => {
+            console.error('Error updating position:', error);
+            marker.setLatLng(startLatLng); // Revert on error
+          });
+        }
+      }
+      
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
     }
   });
   
@@ -2037,6 +2063,84 @@ function checkMapState() {
       }, 2000);
     }
   }
+}
+
+// Add the delete and edit functions
+function enableDeleteMode() {
+    if (!auth.currentUser || currentRole !== 'admin') {
+        alert('Only administrators can delete gullies');
+        return;
+    }
+    
+    deleteMode = !deleteMode;
+    editMode = false;
+    
+    const deleteButton = document.querySelector('button[onclick="enableDeleteMode()"]');
+    if (deleteButton) {
+        if (deleteMode) {
+            deleteButton.style.backgroundColor = '#ff4444';
+            deleteButton.style.color = 'white';
+            alert('Delete mode enabled. Click on gullies to delete them.');
+        } else {
+            deleteButton.style.backgroundColor = '';
+            deleteButton.style.color = '';
+        }
+    }
+}
+
+function enableEditMode() {
+    if (!auth.currentUser || currentRole !== 'admin') {
+        alert('Only administrators can edit gullies');
+        return;
+    }
+    
+    editMode = !editMode;
+    deleteMode = false;
+    
+    const editButton = document.querySelector('button[onclick="enableEditMode()"]');
+    if (editButton) {
+        if (editMode) {
+            editButton.style.backgroundColor = '#2196F3';
+            editButton.style.color = 'white';
+            alert('Edit mode enabled. Click on gullies to edit them.');
+        } else {
+            editButton.style.backgroundColor = '';
+            editButton.style.color = '';
+        }
+    }
+}
+
+async function handleGullyDelete(gullyId, marker, layerType) {
+    if (!deleteMode) return;
+    
+    try {
+        const confirmDelete = confirm('Are you sure you want to delete this gully?');
+        if (!confirmDelete) return;
+        
+        console.log('Deleting gully:', gullyId);
+        
+        // Remove from Firebase
+        await db.ref(`${layerType}/${gullyId}`).remove();
+        
+        // Remove from map
+        if (window.dataLayers[layerType]) {
+            window.dataLayers[layerType].removeLayer(marker);
+        }
+        
+        // Remove from gullyData array
+        const index = gullyData.findIndex(g => g.id === gullyId);
+        if (index !== -1) {
+            gullyData.splice(index, 1);
+        }
+        
+        // Update summary
+        updateSummary();
+        
+        console.log('Gully deleted successfully');
+    } catch (error) {
+        console.error('Error deleting gully:', error);
+        alert('Error deleting gully: ' + error.message);
+    }
 }
 </script>
 </body>
