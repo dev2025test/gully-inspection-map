@@ -2,7 +2,7 @@
   "users": [
     {
       "email": "shane_dorgan@corkcity.ie",
-      "password": "CHANGE_THIS_PASSWORD",
+      "password": "TestAdmin123!@#",
       "role": "admin",
       "initials": "SD"
     },
