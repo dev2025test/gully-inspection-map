@@ -14,7 +14,19 @@
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <style>
     html, body { height: 100%; margin: 0; font-family: Arial, sans-serif; }
-    #map { height: 100%; display: none; }
+    #map {
+      height: 100%;
+      width: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: #f0f0f0;
+      z-index: 1;
+    }
+    .leaflet-container {
+      width: 100%;
+      height: 100%;
+    }
     #loginScreen {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background: #f5f5f5; display: flex; align-items: center; justify-content: center; z-index: 10000;
@@ -782,76 +794,97 @@ function setupUIForRole(role, adminPrivileges = null) {
 }
 
 function initMap() {
-  // Create map instance
-  map = L.map('map', {
-    preferCanvas: false,
-    zoomControl: false,
-    maxZoom: 19,
-    attributionControl: false
-  }).setView([51.9, -8.5], 13);
-  
-  // Define base layers
-  window.baseLayers = {
-    streets: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '🇮🇪 Cork City Council GIS | © OpenStreetMap contributors'
-    }),
-    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: '🇮🇪 Cork City Council GIS | © Esri'
-    }),
-    hybrid: L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
-      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-      attribution: '🇮🇪 Cork City Council GIS | © Google'
-    })
-  };
+  try {
+    console.log('Initializing map...');
+    
+    // Create map instance
+    window.map = L.map('map', {
+      center: [51.9, -8.5],
+      zoom: 13,
+      preferCanvas: false,
+      zoomControl: false,
+      maxZoom: 19,
+      attributionControl: false
+    });
 
-  // Add default base layer
-  window.baseLayers.streets.addTo(map);
-  
-  // Initialize data layers
-  window.dataLayers = {
-    gullies: L.layerGroup().addTo(map),
-    signage: L.layerGroup().addTo(map),
-    playgrounds: L.layerGroup().addTo(map),
-    parks: L.layerGroup().addTo(map),
-    walkways: L.layerGroup().addTo(map),
-    lining: L.layerGroup().addTo(map)
-  };
+    console.log('Map instance created');
 
-  // Add custom attribution
-  L.control.attribution({
-    position: 'bottomright',
-    prefix: false
-  }).addTo(map);
+    // Define and add the base layer immediately
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '🇮🇪 Cork City Council GIS | © OpenStreetMap contributors',
+      maxZoom: 19
+    });
 
-  // Add zoom control to right side
-  L.control.zoom({
-    position: 'topright'
-  }).addTo(map);
+    // Add the base layer to the map
+    osmLayer.addTo(map);
+    console.log('Base layer added');
 
-  // Initialize other components
-  updateScaleControl();
-  setupMapControls();
-  
-  // Add event listeners
-  document.getElementById('importFile').addEventListener('change', handleKMLImport);
-  map.on('zoomend', updateScaleControl);
-  
-  // Set initial map style
-  document.getElementById('mapStyle').value = 'streets';
+    // Store base layers for later use
+    window.baseLayers = {
+      streets: osmLayer,
+      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '🇮🇪 Cork City Council GIS | © Esri'
+      }),
+      hybrid: L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        attribution: '🇮🇪 Cork City Council GIS | © Google'
+      })
+    };
+
+    // Initialize data layers
+    window.dataLayers = {
+      gullies: L.layerGroup().addTo(map),
+      signage: L.layerGroup().addTo(map),
+      playgrounds: L.layerGroup().addTo(map),
+      parks: L.layerGroup().addTo(map),
+      walkways: L.layerGroup().addTo(map),
+      lining: L.layerGroup().addTo(map)
+    };
+
+    // Add controls
+    L.control.attribution({
+      position: 'bottomright',
+      prefix: false
+    }).addTo(map);
+
+    L.control.zoom({
+      position: 'topright'
+    }).addTo(map);
+
+    // Initialize other components
+    updateScaleControl();
+    setupMapControls();
+    
+    // Add event listeners
+    document.getElementById('importFile').addEventListener('change', handleKMLImport);
+    map.on('zoomend', updateScaleControl);
+    
+    // Set initial map style
+    document.getElementById('mapStyle').value = 'streets';
+    
+    console.log('Map initialization complete');
+  } catch (error) {
+    console.error('Error initializing map:', error);
+  }
 }
 
 function changeMapStyle() {
-  const style = document.getElementById('mapStyle').value;
-  
-  // Remove all base layers
-  Object.values(window.baseLayers).forEach(layer => {
-    if (map.hasLayer(layer)) {
-      map.removeLayer(layer);
-    }
-  });
-  
-  // Add selected layer
-  window.baseLayers[style].addTo(map);
+  try {
+    const style = document.getElementById('mapStyle').value;
+    console.log('Changing map style to:', style);
+    
+    // Remove all base layers
+    Object.values(window.baseLayers).forEach(layer => {
+      if (map.hasLayer(layer)) {
+        map.removeLayer(layer);
+      }
+    });
+    
+    // Add selected layer
+    window.baseLayers[style].addTo(map);
+    console.log('Map style changed successfully');
+  } catch (error) {
+    console.error('Error changing map style:', error);
+  }
 }
 
 function toggleToolbar() {
@@ -873,18 +906,28 @@ function updateUserInfo(userData) {
 
 // Update the login success handler
 function handleLoginSuccess(userData) {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('map').style.display = 'block';
-  document.getElementById('functionToolbar').style.display = 'block';
-  
-  // Initialize map after elements are visible
-  setTimeout(() => {
-    initMap();
-    loadGullyData();
-  }, 100);
-  
-  updateUserInfo(userData);
-  setupUIForRole(userData.role, userData.adminPrivileges);
+  try {
+    console.log('Login successful, setting up UI...');
+    
+    // Hide login screen and show map
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('map').style.display = 'block';
+    document.getElementById('functionToolbar').style.display = 'block';
+    
+    // Update user info and permissions
+    updateUserInfo(userData);
+    setupUIForRole(userData.role, userData.adminPrivileges);
+    
+    // Initialize map with a slight delay to ensure DOM is ready
+    setTimeout(() => {
+      console.log('Initializing map after login...');
+      initMap();
+      loadGullyData();
+    }, 500);
+    
+  } catch (error) {
+    console.error('Error in handleLoginSuccess:', error);
+  }
 }
 
 function getStatusColor(status) {
