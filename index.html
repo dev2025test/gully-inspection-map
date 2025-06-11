@@ -434,85 +434,6 @@ font-weight:bold;"></div>
 
 <div id="map"></div>
 
-<div class="function-tabs" id="functionTabs">
-  <div class="tab-header" onclick="toggleFunctionTabs()">
-    <h3>Functions</h3>
-    <span id="tabToggleIcon">▼</span>
-  </div>
-  <div class="tab-content">
-    <div class="tab-group">
-      <h4>Map Controls</h4>
-      <div class="function-grid">
-        <button onclick="captureScreen()" title="Capture current map view">📸 Capture</button>
-        <button onclick="printMap()" title="Print map">🖨️ Print</button>
-        <button onclick="resetView()" title="Reset map view">🔄 Reset View</button>
-      </div>
-    </div>
-
-    <div class="tab-group">
-      <h4>Data Management</h4>
-      <div class="function-grid">
-        <label for="importFile" class="button">🗂️ Import KML</label>
-        <input type="file" id="importFile" accept=".kml" style="display:none;">
-        <button onclick="exportData()" title="Export to CSV">💾 Export CSV</button>
-        <button onclick="saveGullyData()" title="Backup data">💾 Backup JSON</button>
-        <button onclick="resetMap()" title="Reset all data" class="admin-only">♻️ Reset All</button>
-      </div>
-    </div>
-
-    <div class="tab-group">
-      <h4>Gully Management</h4>
-      <div class="function-grid">
-        <button onclick="enableDeleteMode()" class="admin-only">🗑️ Delete</button>
-        <button onclick="enableEditMode()">✏️ Edit</button>
-        <button onclick="addNewGully()" class="admin-only">➕ Add New</button>
-      </div>
-    </div>
-
-    <div class="tab-group">
-      <h4>Layer Selection</h4>
-      <div class="function-grid">
-        <select id="activeLayer" style="grid-column: span 2;">
-          <option value="gullies">🔵 Gullies</option>
-          <option value="signage">🚸 Signage</option>
-          <option value="playgrounds">🎮 Playgrounds</option>
-          <option value="parks">🌳 Parks</option>
-          <option value="walkways">🚶 Walkways</option>
-          <option value="lining">🎨 Lining</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="tab-group">
-      <h4>Account</h4>
-      <div class="function-grid">
-        <button onclick="logout()">🚪 Logout</button>
-        <button onclick="showUserManagement()" class="admin-only">👥 Users</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="map-controls">
-  <button onclick="map.zoomIn()" style="display:block;margin-bottom:5px;padding:6px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">➕</button>
-  <button onclick="map.zoomOut()" style="display:block;padding:6px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">➖</button>
-</div>
-
-<div id="summary">
-  <b>Summary</b><br>
-  <div id="summaryContent"></div>
-  <label>Filter:</label>
-  <select id="filterStatus" onchange="filterByStatus()">
-    <option value="All">All</option>
-    <option value="Clear">Clear</option>
-    <option value="Broken">Broken</option>
-    <option value="Remediation">Remediation</option>
-    <option value="Replacement">Replacement</option>
-    <option value="Blocked">Blocked</option>
-    <option value="Expired">Expired</option>
-  </select>
-</div>
-
 <div class="bottom-toolbar" id="functionToolbar">
   <div class="toolbar-header" onclick="toggleToolbar()">
     <h3>
@@ -861,6 +782,7 @@ function setupUIForRole(role, adminPrivileges = null) {
 }
 
 function initMap() {
+  // Create map instance
   map = L.map('map', {
     preferCanvas: false,
     zoomControl: false,
@@ -868,8 +790,8 @@ function initMap() {
     attributionControl: false
   }).setView([51.9, -8.5], 13);
   
-  // Initialize base layers
-  const layers = {
+  // Define base layers
+  window.baseLayers = {
     streets: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '🇮🇪 Cork City Council GIS | © OpenStreetMap contributors'
     }),
@@ -881,21 +803,41 @@ function initMap() {
       attribution: '🇮🇪 Cork City Council GIS | © Google'
     })
   };
+
+  // Add default base layer
+  window.baseLayers.streets.addTo(map);
   
-  // Set default layer
-  layers.streets.addTo(map);
-  window.baseLayers = layers;
-  
-  // Add custom attribution control
-  const attribution = L.control.attribution({
+  // Initialize data layers
+  window.dataLayers = {
+    gullies: L.layerGroup().addTo(map),
+    signage: L.layerGroup().addTo(map),
+    playgrounds: L.layerGroup().addTo(map),
+    parks: L.layerGroup().addTo(map),
+    walkways: L.layerGroup().addTo(map),
+    lining: L.layerGroup().addTo(map)
+  };
+
+  // Add custom attribution
+  L.control.attribution({
     position: 'bottomright',
     prefix: false
   }).addTo(map);
-  
-  // Initialize other map components
+
+  // Add zoom control to right side
+  L.control.zoom({
+    position: 'topright'
+  }).addTo(map);
+
+  // Initialize other components
   updateScaleControl();
   setupMapControls();
-  initLayerToggles();
+  
+  // Add event listeners
+  document.getElementById('importFile').addEventListener('change', handleKMLImport);
+  map.on('zoomend', updateScaleControl);
+  
+  // Set initial map style
+  document.getElementById('mapStyle').value = 'streets';
 }
 
 function changeMapStyle() {
@@ -935,10 +877,14 @@ function handleLoginSuccess(userData) {
   document.getElementById('map').style.display = 'block';
   document.getElementById('functionToolbar').style.display = 'block';
   
+  // Initialize map after elements are visible
+  setTimeout(() => {
+    initMap();
+    loadGullyData();
+  }, 100);
+  
   updateUserInfo(userData);
   setupUIForRole(userData.role, userData.adminPrivileges);
-  initMap();
-  loadGullyData();
 }
 
 function getStatusColor(status) {
