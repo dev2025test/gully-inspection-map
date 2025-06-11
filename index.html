@@ -13,24 +13,36 @@
   <script src="https://unpkg.com/togeojson@0.16.0/togeojson.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <style>
-    html, body { height: 100%; margin: 0; font-family: Arial, sans-serif; }
-    #map {
+    html, body {
       height: 100%;
-      width: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    #map {
       position: absolute;
       top: 0;
       left: 0;
-      background: #f0f0f0;
-      z-index: 1;
-    }
-    .leaflet-container {
       width: 100%;
       height: 100%;
+      z-index: 0;
+      background: #f0f0f0;
     }
+
     #loginScreen {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: #f5f5f5; display: flex; align-items: center; justify-content: center; z-index: 10000;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
     }
+
     #loginBox {
       background: rgba(255, 255, 255, 0.95);
       padding: 30px;
@@ -38,12 +50,14 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       min-width: 300px;
     }
+
     #controlPanel {
       top: 10px;
       left: 10px;
       display: none;
       z-index: 1000;
     }
+
     #summary { top: 10px; right: 10px; font-size: 0.9em; display: none; }
     .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #000; }
     .popup-form input, .popup-form select, .popup-form textarea { width: 100%; margin-bottom: 6px; }
@@ -326,7 +340,7 @@
       right: 0;
       background: rgba(255, 255, 255, 0.95);
       box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-      z-index: 1000;
+      z-index: 1001;
       transition: transform 0.3s ease;
     }
     .bottom-toolbar.minimized {
@@ -794,77 +808,58 @@ function setupUIForRole(role, adminPrivileges = null) {
 }
 
 function initMap() {
-  try {
-    console.log('Initializing map...');
-    
-    // Create map instance
-    window.map = L.map('map', {
-      center: [51.9, -8.5],
-      zoom: 13,
-      preferCanvas: false,
-      zoomControl: false,
-      maxZoom: 19,
-      attributionControl: false
-    });
-
-    console.log('Map instance created');
-
-    // Define and add the base layer immediately
-    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '🇮🇪 Cork City Council GIS | © OpenStreetMap contributors',
-      maxZoom: 19
-    });
-
-    // Add the base layer to the map
-    osmLayer.addTo(map);
-    console.log('Base layer added');
-
-    // Store base layers for later use
-    window.baseLayers = {
-      streets: osmLayer,
-      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: '🇮🇪 Cork City Council GIS | © Esri'
-      }),
-      hybrid: L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-        attribution: '🇮🇪 Cork City Council GIS | © Google'
-      })
-    };
-
-    // Initialize data layers
-    window.dataLayers = {
-      gullies: L.layerGroup().addTo(map),
-      signage: L.layerGroup().addTo(map),
-      playgrounds: L.layerGroup().addTo(map),
-      parks: L.layerGroup().addTo(map),
-      walkways: L.layerGroup().addTo(map),
-      lining: L.layerGroup().addTo(map)
-    };
-
-    // Add controls
-    L.control.attribution({
-      position: 'bottomright',
-      prefix: false
-    }).addTo(map);
-
-    L.control.zoom({
-      position: 'topright'
-    }).addTo(map);
-
-    // Initialize other components
-    updateScaleControl();
-    setupMapControls();
-    
-    // Add event listeners
-    document.getElementById('importFile').addEventListener('change', handleKMLImport);
-    map.on('zoomend', updateScaleControl);
-    
-    // Set initial map style
-    document.getElementById('mapStyle').value = 'streets';
-    
-    console.log('Map initialization complete');
-  } catch (error) {
-    console.error('Error initializing map:', error);
-  }
+  console.log('Initializing map...');
+  
+  // Make sure the map div is visible
+  const mapDiv = document.getElementById('map');
+  mapDiv.style.display = 'block';
+  
+  // Force a reflow
+  void mapDiv.offsetHeight;
+  
+  // Create map instance
+  window.map = L.map('map', {
+    center: [51.9, -8.5],
+    zoom: 13,
+    zoomControl: false,
+    attributionControl: false
+  });
+  
+  console.log('Map created, adding base layer...');
+  
+  // Add the base layer immediately
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '🇮🇪 Cork City Council GIS | © OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(window.map);
+  
+  // Add zoom control
+  L.control.zoom({
+    position: 'topright'
+  }).addTo(window.map);
+  
+  // Add attribution
+  L.control.attribution({
+    position: 'bottomright',
+    prefix: false
+  }).addTo(window.map);
+  
+  console.log('Base layer added');
+  
+  // Initialize layer groups
+  window.dataLayers = {
+    gullies: L.layerGroup().addTo(window.map),
+    signage: L.layerGroup().addTo(window.map),
+    playgrounds: L.layerGroup().addTo(window.map),
+    parks: L.layerGroup().addTo(window.map),
+    walkways: L.layerGroup().addTo(window.map),
+    lining: L.layerGroup().addTo(window.map)
+  };
+  
+  // Force a map update
+  window.map.invalidateSize();
+  
+  console.log('Map initialization complete');
 }
 
 function changeMapStyle() {
@@ -874,13 +869,13 @@ function changeMapStyle() {
     
     // Remove all base layers
     Object.values(window.baseLayers).forEach(layer => {
-      if (map.hasLayer(layer)) {
-        map.removeLayer(layer);
+      if (window.map.hasLayer(layer)) {
+        window.map.removeLayer(layer);
       }
     });
     
     // Add selected layer
-    window.baseLayers[style].addTo(map);
+    window.baseLayers[style].addTo(window.map);
     console.log('Map style changed successfully');
   } catch (error) {
     console.error('Error changing map style:', error);
@@ -906,28 +901,25 @@ function updateUserInfo(userData) {
 
 // Update the login success handler
 function handleLoginSuccess(userData) {
-  try {
-    console.log('Login successful, setting up UI...');
-    
-    // Hide login screen and show map
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('map').style.display = 'block';
-    document.getElementById('functionToolbar').style.display = 'block';
-    
-    // Update user info and permissions
-    updateUserInfo(userData);
-    setupUIForRole(userData.role, userData.adminPrivileges);
-    
-    // Initialize map with a slight delay to ensure DOM is ready
-    setTimeout(() => {
-      console.log('Initializing map after login...');
-      initMap();
-      loadGullyData();
-    }, 500);
-    
-  } catch (error) {
-    console.error('Error in handleLoginSuccess:', error);
-  }
+  console.log('Login successful, initializing map...');
+  
+  // First hide login screen
+  document.getElementById('loginScreen').style.display = 'none';
+  
+  // Show toolbar
+  document.getElementById('functionToolbar').style.display = 'block';
+  
+  // Update user info
+  updateUserInfo(userData);
+  setupUIForRole(userData.role, userData.adminPrivileges);
+  
+  // Initialize map immediately
+  initMap();
+  
+  // Load data after a short delay to ensure map is ready
+  setTimeout(() => {
+    loadGullyData();
+  }, 100);
 }
 
 function getStatusColor(status) {
@@ -1100,7 +1092,7 @@ async function handleKMLImport(event) {
       // Fit map to imported features
       const bounds = layers[currentActiveLayer].getBounds();
       if (bounds.isValid()) {
-        map.fitBounds(bounds);
+        window.map.fitBounds(bounds);
       }
       alert(`Successfully imported ${importCount} features`);
     } else {
@@ -1125,7 +1117,7 @@ function isValidCoordinate(lng, lat) {
 function showInspectionPopup(marker, gullyId, latlng, layerType) {
   // Close any existing popup first
   if (currentInspectionPopup) {
-    map.closePopup(currentInspectionPopup);
+    window.map.closePopup(currentInspectionPopup);
   }
 
   const popupContent = document.createElement('div');
@@ -1484,35 +1476,24 @@ function loadGullyData() {
 // Initialize auth state listener
 auth.onAuthStateChanged(user => {
   if (user) {
-    console.log('User logged in:', user.email);
+    console.log('User authenticated, getting user data...');
     db.ref('users/' + user.uid).once('value').then(snapshot => {
       const userData = snapshot.val();
       if (!userData) {
         console.error('No user data found');
         return;
       }
-      window.currentUserData = userData;
-      currentRole = userData.role;
+      console.log('User data retrieved, handling login success...');
+      handleLoginSuccess(userData);
       
-      document.getElementById('roleBanner').textContent = `Logged in as ${userData.role.toUpperCase()}`;
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('map').style.display = 'block';
-      document.getElementById('controlPanel').style.display = 'block';
-      document.getElementById('summary').style.display = 'block';
-      
-      initMap();
-      loadGullyData();
-      setupUIForRole(userData.role, userData.adminPrivileges);
-      setupInactivityTracking();
+      // Check map status after a moment
+      setTimeout(checkMapStatus, 1000);
     });
   } else {
-    console.log('No user logged in');
-    window.currentUserData = null;
-    currentRole = null;
-    document.getElementById('loginScreen').style.display = 'block';
+    console.log('No user logged in, showing login screen');
+    document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('map').style.display = 'none';
-    document.getElementById('controlPanel').style.display = 'none';
-    document.getElementById('summary').style.display = 'none';
+    document.getElementById('functionToolbar').style.display = 'none';
   }
 });
 
@@ -1864,21 +1845,21 @@ function updateWelcomeMessage(email) {
 
 // Update scale control
 function updateScaleControl() {
-  if (map.scale) map.scale.remove();
+  if (window.map.scale) window.map.scale.remove();
   
-  map.scale = L.control.scale({
+  window.map.scale = L.control.scale({
     metric: true,
     imperial: false,
     maxWidth: 200,
     position: 'bottomleft',
     updateWhenIdle: true
-  }).addTo(map);
+  }).addTo(window.map);
   
   // Custom scale factor to correct the scale
   const scaleFactor = 0.333333; // 1km = 3000m correction
   
-  const originalGetScaleText = map.scale._getScaleText;
-  map.scale._getScaleText = function(ratio, text) {
+  const originalGetScaleText = window.map.scale._getScaleText;
+  window.map.scale._getScaleText = function(ratio, text) {
     const distance = ratio * scaleFactor;
     if (distance >= 1) {
       return distance.toFixed(0) + ' km';
@@ -1893,6 +1874,16 @@ function toggleFunctionTabs() {
   const icon = document.getElementById('tabToggleIcon');
   tabs.classList.toggle('minimized');
   icon.textContent = tabs.classList.contains('minimized') ? '▲' : '▼';
+}
+
+// Add a function to check map status
+function checkMapStatus() {
+  console.log('Map container:', document.getElementById('map'));
+  console.log('Map instance:', window.map);
+  if (window.map) {
+    console.log('Map center:', window.map.getCenter());
+    console.log('Map zoom:', window.map.getZoom());
+  }
 }
 </script>
 </body>
