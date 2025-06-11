@@ -1066,85 +1066,152 @@ let currentInspectionPopup = null;
 let deleteMode = false;
 let editMode = false;
 
+// Add a Set to track imported file names and GPS positions
+let importedFiles = new Set();
+let importedPositions = new Set();
+
+// Add helper function to check for duplicate positions
+function isDuplicatePosition(lat, lng, tolerance = 0.0001) { // tolerance is roughly 11 meters
+    const positionKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+    if (importedPositions.has(positionKey)) {
+        return true;
+    }
+    
+    // Check nearby positions within tolerance
+    for (const pos of importedPositions) {
+        const [existingLat, existingLng] = pos.split(',').map(Number);
+        const distance = Math.sqrt(
+            Math.pow(existingLat - lat, 2) + 
+            Math.pow(existingLng - lng, 2)
+        );
+        if (distance < tolerance) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Update the handleKMLImport function
 async function handleKMLImport(event) {
-  if (!auth.currentUser || currentRole !== 'admin') {
-    alert('Only administrators can import KML files');
-    return;
-  }
+    if (!auth.currentUser || currentRole !== 'admin') {
+        alert('Only administrators can import KML files');
+        return;
+    }
 
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  try {
-    console.log('Starting KML import...');
-    const text = await file.text();
-    const kml = new DOMParser().parseFromString(text, 'text/xml');
-    const geojson = toGeoJSON.kml(kml);
-    
-    console.log('Parsed KML:', geojson);
-    
-    if (!geojson || !geojson.features || !geojson.features.length) {
-      alert('No valid features found in KML file');
-      return;
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Check for duplicate file name
+    if (importedFiles.has(file.name)) {
+        alert('This file has already been imported. Please choose a different file or reset the map first.');
+        event.target.value = '';
+        return;
     }
     
-    // Process and add features
-    let importCount = 0;
-    const timestamp = Date.now();
-    const currentLayer = document.getElementById('activeLayer').value;
-    
-    console.log('Importing to layer:', currentLayer);
-    
-    // Create bounds object to track imported features
-    const bounds = L.latLngBounds([]);
-    
-    for (const feature of geojson.features) {
-      if (feature.geometry && feature.geometry.coordinates) {
-        const [lng, lat] = feature.geometry.coordinates;
+    try {
+        console.log('Starting KML import...');
+        const text = await file.text();
+        const kml = new DOMParser().parseFromString(text, 'text/xml');
+        const geojson = toGeoJSON.kml(kml);
         
-        if (isValidCoordinate(lng, lat)) {
-          const id = `${currentLayer}_${timestamp}_${importCount}`;
-          console.log('Adding feature:', id, lat, lng);
-          
-          // Add marker to map
-          const marker = addGullyToMap({ lat, lng }, id, currentLayer);
-          
-          // Extend bounds with new marker position
-          bounds.extend([lat, lng]);
-          
-          // Save to Firebase
-          await db.ref(`${currentLayer}/${id}`).set({
-            location: { lat, lng },
-            status: 'Unmarked',
-            created: firebase.database.ServerValue.TIMESTAMP,
-            createdBy: auth.currentUser.uid
-          });
-          
-          importCount++;
+        console.log('Parsed KML:', geojson);
+        
+        if (!geojson || !geojson.features || !geojson.features.length) {
+            alert('No valid features found in KML file');
+            return;
         }
-      }
+        
+        // Process and add features
+        let importCount = 0;
+        let duplicateCount = 0;
+        const timestamp = Date.now();
+        const currentLayer = document.getElementById('activeLayer').value;
+        
+        console.log('Importing to layer:', currentLayer);
+        
+        // Show progress indicator
+        const progressDiv = document.createElement('div');
+        progressDiv.className = 'loading-spinner';
+        progressDiv.innerHTML = `
+            <div class="spinner"></div>
+            <div>Importing features...</div>
+            <div id="import-progress">0/${geojson.features.length}</div>
+        `;
+        document.body.appendChild(progressDiv);
+        
+        for (const feature of geojson.features) {
+            if (feature.geometry && feature.geometry.coordinates) {
+                const [lng, lat] = feature.geometry.coordinates;
+                
+                if (isValidCoordinate(lng, lat)) {
+                    // Check for duplicate position
+                    if (isDuplicatePosition(lat, lng)) {
+                        console.log(`Skipping duplicate position: ${lat}, ${lng}`);
+                        duplicateCount++;
+                        continue;
+                    }
+                    
+                    const id = `${currentLayer}_${timestamp}_${importCount}`;
+                    console.log('Adding feature:', id, lat, lng);
+                    
+                    // Add marker to map
+                    const marker = addGullyToMap({ lat, lng }, id, currentLayer);
+                    
+                    // Save position to Set
+                    importedPositions.add(`${lat.toFixed(5)},${lng.toFixed(5)}`);
+                    
+                    // Save to Firebase
+                    await db.ref(`${currentLayer}/${id}`).set({
+                        location: { lat, lng },
+                        status: 'Unmarked',
+                        created: firebase.database.ServerValue.TIMESTAMP,
+                        createdBy: auth.currentUser.uid,
+                        sourceFile: file.name
+                    });
+                    
+                    importCount++;
+                    
+                    // Update progress
+                    const progressElement = document.getElementById('import-progress');
+                    if (progressElement) {
+                        progressElement.textContent = `${importCount}/${geojson.features.length}`;
+                    }
+                }
+            }
+        }
+        
+        // Remove progress indicator
+        progressDiv.remove();
+        
+        // Add file name to imported set
+        importedFiles.add(file.name);
+        
+        console.log('Import complete:', importCount, 'features imported,', duplicateCount, 'duplicates skipped');
+        
+        if (importCount > 0) {
+            // Fit map to imported features
+            const bounds = L.latLngBounds(Array.from(importedPositions).map(pos => {
+                const [lat, lng] = pos.split(',').map(Number);
+                return [lat, lng];
+            }));
+            
+            if (bounds.isValid()) {
+                window.map.fitBounds(bounds);
+            }
+            
+            const message = `Successfully imported ${importCount} features.\n${duplicateCount} duplicate positions were skipped.`;
+            alert(message);
+        } else {
+            alert('No valid features were imported. All positions were duplicates or invalid.');
+        }
+        
+    } catch (error) {
+        console.error('Import error:', error);
+        alert('Error importing KML file: ' + error.message);
+    } finally {
+        // Clear the file input
+        event.target.value = '';
     }
-    
-    console.log('Import complete:', importCount, 'features imported');
-    
-    if (importCount > 0) {
-      // Fit map to imported features using the bounds we collected
-      if (bounds.isValid()) {
-        window.map.fitBounds(bounds);
-      }
-      alert(`Successfully imported ${importCount} features`);
-    } else {
-      alert('No valid features were imported');
-    }
-    
-  } catch (error) {
-    console.error('Import error:', error);
-    alert('Error importing KML file: ' + error.message);
-  } finally {
-    // Clear the file input
-    event.target.value = '';
-  }
 }
 
 function isValidCoordinate(lng, lat) {
@@ -1778,6 +1845,10 @@ function resetMap() {
     if (typeof updateSummary === 'function') {
       updateSummary();
     }
+
+    // Clear the sets of imported files and positions
+    importedFiles.clear();
+    importedPositions.clear();
 
     // Remove loading spinner after a short delay
     setTimeout(() => {
