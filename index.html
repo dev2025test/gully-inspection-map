@@ -152,13 +152,15 @@
       align-items: center;
       gap: 10px;
       padding: 5px;
-      background: white;
-      border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
     .ribbon-group {
-      border-right: 1px solid #ddd;
+      display: flex;
+      gap: 5px;
       padding: 0 10px;
+      border-right: 1px solid #ddd;
+      flex-shrink: 0;
     }
     .ribbon-group:last-child {
       border-right: none;
@@ -173,6 +175,73 @@
       border-radius: 4px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       z-index: 1000;
+    }
+    .bottom-controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+      transition: transform 0.3s ease;
+    }
+    .bottom-controls.hidden {
+      transform: translateY(100%);
+    }
+    .toggle-controls {
+      position: fixed;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 5px 15px;
+      border-radius: 8px 8px 0 0;
+      box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+      cursor: pointer;
+      z-index: 1001;
+    }
+    .bottom-controls button,
+    .bottom-controls select,
+    .bottom-controls label.button {
+      padding: 8px 15px;
+      border-radius: 4px;
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .bottom-controls button:hover,
+    .bottom-controls select:hover,
+    .bottom-controls label.button:hover {
+      background: #f0f0f0;
+      border-color: #ccc;
+    }
+    .bottom-controls button:active,
+    .bottom-controls select:active,
+    .bottom-controls label.button:active {
+      background: #e8e8e8;
+      transform: translateY(1px);
+    }
+    .bottom-controls button:disabled,
+    .bottom-controls select:disabled,
+    .bottom-controls label.button.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .bottom-controls select {
+      padding-right: 25px;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 12px;
     }
   </style>
 </head>
@@ -203,41 +272,46 @@ font-weight:bold;"></div>
 
 <div id="map"></div>
 
-<div id="controlPanel" class="ribbon-bar">
-  <div class="ribbon-group">
-    <button onclick="captureScreen()" title="Capture Screen" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">📸 Capture</button>
-    <button onclick="printMap()" title="Print Map" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">🖨️ Print</button>
+<div class="bottom-controls" id="controlPanel">
+  <div class="toggle-controls" onclick="toggleControls()">
+    <span id="toggleIcon">▼</span>
   </div>
-  
-  <div class="ribbon-group">
-    <label for="importFile" style="background:#ddd;padding:6px 12px;border-radius:4px;cursor:pointer;">🗂️ Import</label>
-    <input type="file" id="importFile" accept=".kml" style="display:none;">
-    <button onclick="exportData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">💾 Export CSV</button>
-  </div>
-  
-  <div class="ribbon-group">
-    <button onclick="resetMap()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">♻️ Reset</button>
-    <button onclick="saveGullyData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">💾 Backup JSON</button>
-  </div>
-  
-  <div class="ribbon-group">
-    <button onclick="enableDeleteMode()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">🗑️ Delete Gully</button>
-    <button onclick="enableEditMode()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">✏️ Edit Gully</button>
-  </div>
-  
-  <div class="ribbon-group">
-    <select id="activeLayer" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;cursor:pointer;">
-      <option value="gullies">🔵 Gullies</option>
-      <option value="signage">🚸 Signage</option>
-      <option value="playgrounds">🎮 Playgrounds</option>
-      <option value="parks">🌳 Parks</option>
-      <option value="walkways">🚶 Walkways</option>
-      <option value="lining">🎨 Lining</option>
-    </select>
-  </div>
-  
-  <div class="ribbon-group">
-    <button onclick="logout()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">🚪 Logout</button>
+  <div class="ribbon-bar">
+    <div class="ribbon-group">
+      <button onclick="captureScreen()" title="Capture Screen">📸 Capture</button>
+      <button onclick="printMap()" title="Print Map">🖨️ Print</button>
+    </div>
+    
+    <div class="ribbon-group">
+      <label for="importFile" class="button">🗂️ Import</label>
+      <input type="file" id="importFile" accept=".kml" style="display:none;">
+      <button onclick="exportData()">💾 Export CSV</button>
+    </div>
+    
+    <div class="ribbon-group">
+      <button onclick="resetMap()">♻️ Reset</button>
+      <button onclick="saveGullyData()">💾 Backup JSON</button>
+    </div>
+    
+    <div class="ribbon-group">
+      <button onclick="enableDeleteMode()">🗑️ Delete Gully</button>
+      <button onclick="enableEditMode()">✏️ Edit Gully</button>
+    </div>
+    
+    <div class="ribbon-group">
+      <select id="activeLayer">
+        <option value="gullies">🔵 Gullies</option>
+        <option value="signage">🚸 Signage</option>
+        <option value="playgrounds">🎮 Playgrounds</option>
+        <option value="parks">🌳 Parks</option>
+        <option value="walkways">🚶 Walkways</option>
+        <option value="lining">🎨 Lining</option>
+      </select>
+    </div>
+    
+    <div class="ribbon-group">
+      <button onclick="logout()">🚪 Logout</button>
+    </div>
   </div>
 </div>
 
@@ -765,7 +839,30 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
   return marker;
 }
 
+// Add after the Firebase initialization
+const layers = {
+  gullies: L.layerGroup(),
+  signage: L.layerGroup(),
+  playgrounds: L.layerGroup(),
+  parks: L.layerGroup(),
+  walkways: L.layerGroup(),
+  lining: L.layerGroup()
+};
+
+let currentActiveLayer = 'gullies';
+let gullyData = [];
+let currentMarker = null;
+let currentInspectionPopup = null;
+let deleteMode = false;
+let editMode = false;
+
+// Update the handleKMLImport function
 async function handleKMLImport(event) {
+  if (!auth.currentUser || currentRole !== 'admin') {
+    alert('Only administrators can import KML files');
+    return;
+  }
+
   const file = event.target.files[0];
   if (!file) return;
   
@@ -779,36 +876,45 @@ async function handleKMLImport(event) {
       return;
     }
     
-    // Clear existing features
-    layers.gullies.clearLayers();
-    
     // Process and add features
-    geojson.features.forEach(feature => {
+    let importCount = 0;
+    const timestamp = Date.now();
+    
+    for (const feature of geojson.features) {
       if (feature.geometry && feature.geometry.coordinates) {
         const [lng, lat] = feature.geometry.coordinates;
-        const marker = L.marker([lat, lng], {
-          icon: L.divIcon({
-            className: 'gully-marker',
-            html: '<div class="dot" style="background:blue;"></div>'
-          })
-        });
         
-        // Add properties to marker
-        marker.feature = {
-          properties: feature.properties || {}
-        };
-        
-        layers.gullies.addLayer(marker);
+        if (isValidCoordinate(lng, lat)) {
+          const gullyId = `gully_${timestamp}_${importCount}`;
+          const marker = addGullyToMap({ lat, lng }, gullyId, currentActiveLayer);
+          
+          // Save to Firebase
+          await db.ref(`${currentActiveLayer}/${gullyId}`).set({
+            location: { lat, lng },
+            status: 'Unmarked',
+            created: firebase.database.ServerValue.TIMESTAMP,
+            createdBy: auth.currentUser.uid
+          });
+          
+          importCount++;
+        }
       }
-    });
-    
-    // Fit map to imported features
-    const bounds = layers.gullies.getBounds();
-    if (bounds.isValid()) {
-      map.fitBounds(bounds);
     }
     
-    alert('Import successful!');
+    if (importCount > 0) {
+      // Fit map to imported features
+      const bounds = layers[currentActiveLayer].getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds);
+      }
+      alert(`Successfully imported ${importCount} features`);
+    } else {
+      alert('No valid features were imported');
+    }
+    
+    // Clear the file input
+    event.target.value = '';
+    
   } catch (error) {
     console.error('Import error:', error);
     alert('Error importing KML file. Please check the file format.');
@@ -1585,6 +1691,18 @@ function updateScaleControl() {
       return (distance * 1000).toFixed(0) + ' m';
     }
   };
+}
+
+function toggleControls() {
+  const controls = document.querySelector('.bottom-controls');
+  const icon = document.getElementById('toggleIcon');
+  if (controls.classList.contains('hidden')) {
+    controls.classList.remove('hidden');
+    icon.textContent = '▼';
+  } else {
+    controls.classList.add('hidden');
+    icon.textContent = '▲';
+  }
 }
 </script>
 </body>
