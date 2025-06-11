@@ -996,67 +996,50 @@ function getMarkerOptions(status) {
 }
 
 function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
-  const marker = L.circleMarker([latlng.lat, latlng.lng], getMarkerOptions('Unmarked'));
-  
-  // Add to the correct layer group
-  if (window.dataLayers && window.dataLayers[layerType]) {
-    window.dataLayers[layerType].addLayer(marker);
-  } else {
-    console.warn('Layer not found:', layerType);
-    marker.addTo(window.map);
-  }
-  
-  marker.on('click', () => {
-    if (deleteMode) {
-      handleGullyDelete(gullyId, marker, layerType);
+    const marker = L.circleMarker([latlng.lat, latlng.lng], getMarkerOptions('Unmarked'));
+    
+    // Add to the correct layer group
+    if (window.dataLayers && window.dataLayers[layerType]) {
+        window.dataLayers[layerType].addLayer(marker);
     } else {
-      currentMarker = marker;
-      showInspectionPopup(marker, gullyId, latlng, layerType);
+        console.warn('Layer not found:', layerType);
+        marker.addTo(window.map);
     }
-  });
-  
-  // Make marker draggable in edit mode
-  marker.on('mousedown', function(e) {
-    if (editMode && currentRole === 'admin') {
-      e.originalEvent.preventDefault();
-      const startLatLng = marker.getLatLng();
-      
-      function onMouseMove(e) {
-        const mouseLatLng = window.map.mouseEventToLatLng(e);
-        marker.setLatLng(mouseLatLng);
-      }
-      
-      function onMouseUp(e) {
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
-        
-        const newLatLng = marker.getLatLng();
-        if (newLatLng.lat !== startLatLng.lat || newLatLng.lng !== startLatLng.lng) {
-          // Update position in Firebase
-          db.ref(`${layerType}/${gullyId}/location`).set({
-            lat: newLatLng.lat,
-            lng: newLatLng.lng
-          }).catch(error => {
-            console.error('Error updating position:', error);
-            marker.setLatLng(startLatLng); // Revert on error
-          });
+    
+    // Add click handler
+    marker.on('click', function(e) {
+        if (deleteMode) {
+            handleGullyDelete(gullyId, marker, layerType);
+        } else {
+            currentMarker = marker;
+            showInspectionPopup(marker, gullyId, latlng, layerType);
         }
-      }
-      
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
-    }
-  });
-  
-  // Add to gullyData with initial status
-  gullyData.push({ 
-    marker, 
-    id: gullyId, 
-    layer: layerType,
-    status: 'Unmarked'
-  });
-  
-  return marker;
+    });
+    
+    // Add hover effect
+    marker.on('mouseover', function() {
+        if (deleteMode) {
+            marker.setStyle({ radius: 10 }); // Bigger on hover in delete mode
+        }
+    });
+    
+    marker.on('mouseout', function() {
+        if (deleteMode) {
+            marker.setStyle({ radius: 8 }); // Return to delete mode size
+        } else {
+            marker.setStyle({ radius: 6 }); // Return to normal size
+        }
+    });
+    
+    // Add to gullyData with initial status
+    gullyData.push({ 
+        marker, 
+        id: gullyId, 
+        layer: layerType,
+        status: 'Unmarked'
+    });
+    
+    return marker;
 }
 
 // Add after the Firebase initialization
@@ -2075,17 +2058,31 @@ function enableDeleteMode() {
     deleteMode = !deleteMode;
     editMode = false;
     
+    // Update cursor and button style
+    const mapElement = document.getElementById('map');
     const deleteButton = document.querySelector('button[onclick="enableDeleteMode()"]');
-    if (deleteButton) {
-        if (deleteMode) {
-            deleteButton.style.backgroundColor = '#ff4444';
-            deleteButton.style.color = 'white';
-            alert('Delete mode enabled. Click on gullies to delete them.');
-        } else {
-            deleteButton.style.backgroundColor = '';
-            deleteButton.style.color = '';
-        }
+    
+    if (deleteMode) {
+        mapElement.style.cursor = 'pointer';
+        deleteButton.style.backgroundColor = '#ff4444';
+        deleteButton.style.color = 'white';
+        alert('Delete mode enabled. Click on gullies to delete them.');
+    } else {
+        mapElement.style.cursor = '';
+        deleteButton.style.backgroundColor = '';
+        deleteButton.style.color = '';
     }
+    
+    // Update all markers to show they're clickable in delete mode
+    gullyData.forEach(gully => {
+        if (gully.marker) {
+            if (deleteMode) {
+                gully.marker.setStyle({ radius: 8 }); // Make markers slightly bigger in delete mode
+            } else {
+                gully.marker.setStyle({ radius: 6 }); // Reset to normal size
+            }
+        }
+    });
 }
 
 function enableEditMode() {
@@ -2111,7 +2108,7 @@ function enableEditMode() {
 }
 
 async function handleGullyDelete(gullyId, marker, layerType) {
-    if (!deleteMode) return;
+    if (!deleteMode || !auth.currentUser || currentRole !== 'admin') return;
     
     try {
         const confirmDelete = confirm('Are you sure you want to delete this gully?');
@@ -2119,27 +2116,45 @@ async function handleGullyDelete(gullyId, marker, layerType) {
         
         console.log('Deleting gully:', gullyId);
         
+        // Show loading state
+        marker.setStyle({
+            fillColor: '#ff0000',
+            radius: 8
+        });
+        
         // Remove from Firebase
         await db.ref(`${layerType}/${gullyId}`).remove();
+        console.log('Removed from Firebase');
         
-        // Remove from map
-        if (window.dataLayers[layerType]) {
+        // Remove from map layer
+        if (window.dataLayers && window.dataLayers[layerType]) {
             window.dataLayers[layerType].removeLayer(marker);
+            console.log('Removed from map layer');
         }
         
         // Remove from gullyData array
         const index = gullyData.findIndex(g => g.id === gullyId);
         if (index !== -1) {
             gullyData.splice(index, 1);
+            console.log('Removed from gullyData array');
         }
         
         // Update summary
         updateSummary();
         
         console.log('Gully deleted successfully');
+        
+        // Disable delete mode after successful deletion
+        enableDeleteMode();
+        
     } catch (error) {
         console.error('Error deleting gully:', error);
         alert('Error deleting gully: ' + error.message);
+        
+        // Reset marker style on error
+        if (marker) {
+            marker.setStyle(getMarkerOptions('Unmarked'));
+        }
     }
 }
 </script>
