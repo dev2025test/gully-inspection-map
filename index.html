@@ -480,7 +480,7 @@ font-weight:bold;"></div>
 
     <div class="button-group">
       <label for="importFile" class="toolbar-button">🗂️ Import KML</label>
-      <input type="file" id="importFile" accept=".kml" style="display:none;">
+      <input type="file" id="importFile" accept=".kml" style="display:none;" onchange="handleKMLImport(event)">
       <button class="toolbar-button" onclick="exportData()">💾 Export CSV</button>
       <button class="toolbar-button" onclick="saveGullyData()">💾 Backup</button>
     </div>
@@ -499,14 +499,6 @@ font-weight:bold;"></div>
         <option value="parks">🌳 Parks</option>
         <option value="walkways">🚶 Walkways</option>
         <option value="lining">🎨 Lining</option>
-      </select>
-    </div>
-
-    <div class="button-group">
-      <select id="mapStyle" class="toolbar-button" onchange="changeMapStyle()">
-        <option value="streets">🗺️ Streets</option>
-        <option value="satellite">🛰️ Satellite</option>
-        <option value="hybrid">🌍 Hybrid</option>
       </select>
     </div>
 
@@ -862,26 +854,6 @@ function initMap() {
   console.log('Map initialization complete');
 }
 
-function changeMapStyle() {
-  try {
-    const style = document.getElementById('mapStyle').value;
-    console.log('Changing map style to:', style);
-    
-    // Remove all base layers
-    Object.values(window.baseLayers).forEach(layer => {
-      if (window.map.hasLayer(layer)) {
-        window.map.removeLayer(layer);
-      }
-    });
-    
-    // Add selected layer
-    window.baseLayers[style].addTo(window.map);
-    console.log('Map style changed successfully');
-  } catch (error) {
-    console.error('Error changing map style:', error);
-  }
-}
-
 function toggleToolbar() {
   const toolbar = document.getElementById('functionToolbar');
   const icon = document.getElementById('toolbarToggleIcon');
@@ -1054,9 +1026,12 @@ async function handleKMLImport(event) {
   if (!file) return;
   
   try {
+    console.log('Starting KML import...');
     const text = await file.text();
     const kml = new DOMParser().parseFromString(text, 'text/xml');
     const geojson = toGeoJSON.kml(kml);
+    
+    console.log('Parsed KML:', geojson);
     
     if (!geojson || !geojson.features || !geojson.features.length) {
       alert('No valid features found in KML file');
@@ -1066,17 +1041,23 @@ async function handleKMLImport(event) {
     // Process and add features
     let importCount = 0;
     const timestamp = Date.now();
+    const currentLayer = document.getElementById('activeLayer').value;
+    
+    console.log('Importing to layer:', currentLayer);
     
     for (const feature of geojson.features) {
       if (feature.geometry && feature.geometry.coordinates) {
         const [lng, lat] = feature.geometry.coordinates;
         
         if (isValidCoordinate(lng, lat)) {
-          const gullyId = `gully_${timestamp}_${importCount}`;
-          const marker = addGullyToMap({ lat, lng }, gullyId, currentActiveLayer);
+          const id = `${currentLayer}_${timestamp}_${importCount}`;
+          console.log('Adding feature:', id, lat, lng);
+          
+          // Add marker to map
+          const marker = addGullyToMap({ lat, lng }, id, currentLayer);
           
           // Save to Firebase
-          await db.ref(`${currentActiveLayer}/${gullyId}`).set({
+          await db.ref(`${currentLayer}/${id}`).set({
             location: { lat, lng },
             status: 'Unmarked',
             created: firebase.database.ServerValue.TIMESTAMP,
@@ -1088,9 +1069,11 @@ async function handleKMLImport(event) {
       }
     }
     
+    console.log('Import complete:', importCount, 'features imported');
+    
     if (importCount > 0) {
       // Fit map to imported features
-      const bounds = layers[currentActiveLayer].getBounds();
+      const bounds = layers[currentLayer].getBounds();
       if (bounds.isValid()) {
         window.map.fitBounds(bounds);
       }
@@ -1099,12 +1082,12 @@ async function handleKMLImport(event) {
       alert('No valid features were imported');
     }
     
-    // Clear the file input
-    event.target.value = '';
-    
   } catch (error) {
     console.error('Import error:', error);
-    alert('Error importing KML file. Please check the file format.');
+    alert('Error importing KML file: ' + error.message);
+  } finally {
+    // Clear the file input
+    event.target.value = '';
   }
 }
 
