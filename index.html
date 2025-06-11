@@ -1681,24 +1681,35 @@ function exportData() {
 }
 
 function resetMap() {
+  if (!auth.currentUser) {
+    alert('You must be logged in to reset the map');
+    return;
+  }
+
+  const confirmReset = confirm('Are you sure you want to reset the map? This will remove all gullies from the map.');
+  if (!confirmReset) {
+    return;
+  }
+
   try {
-    console.log('Resetting map view...');
+    console.log('Resetting map...');
     
     // Default center coordinates for Cork City
     const defaultCenter = [51.9, -8.5];
     const defaultZoom = 13;
     
+    // Clear all layers
+    Object.values(window.dataLayers).forEach(layer => {
+      layer.clearLayers();
+    });
+
+    // Clear the gullyData array
+    gullyData.length = 0;
+
     // Reset the map view with animation
     window.map.setView(defaultCenter, defaultZoom, {
       animate: true,
       duration: 1.0
-    });
-
-    // Make all markers visible again
-    gullyData.forEach(gully => {
-      if (gully.marker) {
-        gully.marker.setOpacity(1);
-      }
     });
 
     // Reset any active filters
@@ -1706,11 +1717,18 @@ function resetMap() {
     if (filterStatus) {
       filterStatus.value = 'All';
     }
+
+    // Clear file input
+    const importFile = document.getElementById('importFile');
+    if (importFile) {
+      importFile.value = '';
+    }
     
     console.log('Map reset complete');
+    alert('Map has been reset successfully');
   } catch (error) {
     console.error('Error resetting map:', error);
-    alert('Error resetting map view');
+    alert('Error resetting map: ' + error.message);
   }
 }
 
