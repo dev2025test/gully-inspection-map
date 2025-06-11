@@ -11,6 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
   <script src="https://unpkg.com/togeojson@0.16.0/togeojson.js"></script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <style>
     html, body { height: 100%; margin: 0; font-family: Arial, sans-serif; }
     #map { height: 100%; display: none; }
@@ -19,14 +20,18 @@
       background: #f5f5f5; display: flex; align-items: center; justify-content: center; z-index: 10000;
     }
     #loginBox {
-      background: white; padding: 20px; border-radius: 8px;
-      box-shadow: 0 0 6px rgba(0,0,0,0.3); text-align: center;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 300px;
     }
-    #controlPanel, #summary {
-      position: absolute; background: white; padding: 10px;
-      border-radius: 6px; box-shadow: 0 0 4px rgba(0,0,0,0.3); z-index: 999;
+    #controlPanel {
+      top: 10px;
+      left: 10px;
+      display: none;
+      z-index: 1000;
     }
-    #controlPanel { bottom: 10px; left: 10px; display: none; }
     #summary { top: 10px; right: 10px; font-size: 0.9em; display: none; }
     .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #000; }
     .popup-form input, .popup-form select, .popup-form textarea { width: 100%; margin-bottom: 6px; }
@@ -97,6 +102,78 @@
     .collapse-icon.expanded {
       transform: rotate(180deg);
     }
+    .login-background {
+      background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
+                  url('https://www.corkcity.ie/en/media/cork-city-hall.jpg');
+      background-size: cover;
+      background-position: center;
+    }
+    .password-container {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+    .password-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      user-select: none;
+    }
+    .remember-me {
+      margin-top: 10px;
+      text-align: left;
+    }
+    .login-input {
+      width: 100%;
+      padding: 8px 12px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .login-button {
+      background: #2196F3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+      margin-top: 15px;
+    }
+    .login-button:hover {
+      background: #1976D2;
+    }
+    .ribbon-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px;
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .ribbon-group {
+      border-right: 1px solid #ddd;
+      padding: 0 10px;
+    }
+    .ribbon-group:last-child {
+      border-right: none;
+    }
+    .map-controls {
+      position: fixed;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: white;
+      padding: 5px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
@@ -104,32 +181,51 @@
 background:#eee;padding:8px 20px;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,0.3);z-index:1001;
 font-weight:bold;"></div>
 
-<div id="loginScreen">
+<div id="loginScreen" class="login-background">
   <div id="loginBox">
-    <h2>Login</h2>
-    <input type="email" id="email" placeholder="Email"><br><br>
-    <input type="password" id="password" placeholder="Password"><br><br>
-    <button onclick="login()">Login</button>
+    <h2>Welcome to Gully Inspection System</h2>
+    <form id="loginForm" autocomplete="on">
+      <input type="email" id="email" placeholder="Email" class="login-input" autocomplete="username">
+      <div class="password-container">
+        <input type="password" id="password" placeholder="Password" class="login-input" autocomplete="current-password">
+        <span class="password-toggle" onclick="togglePassword()">👁️</span>
+      </div>
+      <div class="remember-me">
+        <label>
+          <input type="checkbox" id="rememberMe"> Remember me
+        </label>
+      </div>
+      <button type="submit" class="login-button" onclick="login(); return false;">Login</button>
+    </form>
     <p id="loginError" style="color:red;"></p>
   </div>
 </div>
 
 <div id="map"></div>
 
-<div id="controlPanel">
-  <label for="importFile" style="background:#ddd;padding:6px 12px;border-radius:4px;cursor:pointer;">🗂️ Import</label>
-  <input type="file" id="importFile" accept=".kml" style="display:none;">
-  <span id="fileNameDisplay" style="margin-left:10px;font-style:italic;color:#555;"></span>
+<div id="controlPanel" class="ribbon-bar">
+  <div class="ribbon-group">
+    <button onclick="captureScreen()" title="Capture Screen" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">📸 Capture</button>
+    <button onclick="printMap()" title="Print Map" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">🖨️ Print</button>
+  </div>
   
-  <button onclick="exportData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">💾 Export CSV</button>
-  <button onclick="resetMap()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">♻️ Reset</button>
-  <button onclick="saveGullyData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">💾 Backup JSON</button>
-  <button onclick="enableDeleteMode()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">🗑️ Delete Gully</button>
-  <button onclick="enableEditMode()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">✏️ Edit Gully</button>
-  <button onclick="logout()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;margin-left:5px;">🚪 Logout</button>
+  <div class="ribbon-group">
+    <label for="importFile" style="background:#ddd;padding:6px 12px;border-radius:4px;cursor:pointer;">🗂️ Import</label>
+    <input type="file" id="importFile" accept=".kml" style="display:none;">
+    <button onclick="exportData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">💾 Export CSV</button>
+  </div>
   
-  <div style="margin-top:10px;display:flex;gap:5px;align-items:center;">
-    <button onclick="toggleLayerPanel()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">🗺️ Layers</button>
+  <div class="ribbon-group">
+    <button onclick="resetMap()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">♻️ Reset</button>
+    <button onclick="saveGullyData()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">💾 Backup JSON</button>
+  </div>
+  
+  <div class="ribbon-group">
+    <button onclick="enableDeleteMode()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">🗑️ Delete Gully</button>
+    <button onclick="enableEditMode()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">✏️ Edit Gully</button>
+  </div>
+  
+  <div class="ribbon-group">
     <select id="activeLayer" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;cursor:pointer;">
       <option value="gullies">🔵 Gullies</option>
       <option value="signage">🚸 Signage</option>
@@ -139,29 +235,15 @@ font-weight:bold;"></div>
       <option value="lining">🎨 Lining</option>
     </select>
   </div>
-
-  <div id="layerPanel" style="display:none;margin-top:5px;background:#f8f8f8;padding:8px;border-radius:4px;border:1px solid #ddd;">
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">
-      <button class="layer-toggle" data-layer="gullies" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;text-align:left;">
-        <span style="color:blue;">⬤</span> Gullies
-      </button>
-      <button class="layer-toggle" data-layer="signage" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;text-align:left;">
-        <span style="color:orange;">⬤</span> Signage
-      </button>
-      <button class="layer-toggle" data-layer="playgrounds" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;text-align:left;">
-        <span style="color:green;">⬤</span> Playgrounds
-      </button>
-      <button class="layer-toggle" data-layer="parks" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;text-align:left;">
-        <span style="color:darkgreen;">⬤</span> Parks
-      </button>
-      <button class="layer-toggle" data-layer="walkways" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;text-align:left;">
-        <span style="color:purple;">⬤</span> Walkways
-      </button>
-      <button class="layer-toggle" data-layer="lining" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;text-align:left;">
-        <span style="color:red;">⬤</span> Lining
-      </button>
-    </div>
+  
+  <div class="ribbon-group">
+    <button onclick="logout()" style="padding:6px 12px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">🚪 Logout</button>
   </div>
+</div>
+
+<div class="map-controls">
+  <button onclick="map.zoomIn()" style="display:block;margin-bottom:5px;padding:6px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">➕</button>
+  <button onclick="map.zoomOut()" style="display:block;padding:6px;border-radius:4px;background:#f0f0f0;border:1px solid #ccc;">➖</button>
 </div>
 
 <div id="summary">
@@ -367,6 +449,7 @@ async function ensureAllUsers() {
 function login(isAutoLogin = false) {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
+  const rememberMe = document.getElementById("rememberMe").checked;
   
   if (!email || !password) {
     document.getElementById("loginError").textContent = "❌ Please enter both email and password";
@@ -409,6 +492,14 @@ function login(isAutoLogin = false) {
       initMap();
       loadGullyData();
       setupInactivityTracking();
+      
+      // Save credentials if remember me is checked
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+        // Note: We don't store the password for security reasons
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
       
       // Clear URL parameters after auto-login
       if (isAutoLogin) {
@@ -497,42 +588,35 @@ function setupUIForRole(role, adminPrivileges = null) {
 }
 
 function initMap() {
-  // Add custom CSS to ensure markers are always on top
-  const customCSS = `
-    .gully-marker {
-      z-index: 1000 !important;
-    }
-    .dot {
-      z-index: 1000 !important;
-      opacity: 1 !important;
-    }
-    .leaflet-marker-icon {
-      z-index: 1000 !important;
-    }
-    .leaflet-marker-pane {
-      z-index: 600 !important;
-    }
-    .leaflet-popup-pane {
-      z-index: 700 !important;
-    }
-  `;
-  const style = document.createElement('style');
-  style.textContent = customCSS;
-  document.head.appendChild(style);
-
   map = L.map('map', {
     preferCanvas: false,
-    zoomControl: true,
-    maxZoom: 19
+    zoomControl: false,
+    maxZoom: 19,
+    attributionControl: false  // Disable default attribution
   }).setView([51.9, -8.5], 13);
   
-  // Add tile layer with explicit z-index
+  // Add Irish-styled tile layer
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    zIndex: 100
+    attribution: '🇮🇪 Cork City Council GIS | © OpenStreetMap contributors'
   }).addTo(map);
   
-  // Add scale control
-  L.control.scale().addTo(map);
+  // Add custom attribution control
+  const attribution = L.control.attribution({
+    position: 'bottomright',
+    prefix: false
+  }).addTo(map);
+  
+  // Initialize scale with correction
+  updateScaleControl();
+  
+  // Enable pan hand cursor
+  map.getContainer().style.cursor = 'grab';
+  map.on('mousedown', function() {
+    map.getContainer().style.cursor = 'grabbing';
+  });
+  map.on('mouseup', function() {
+    map.getContainer().style.cursor = 'grab';
+  });
 
   // Add all layers to map
   Object.values(layers).forEach(layer => layer.addTo(map));
@@ -540,6 +624,9 @@ function initMap() {
   initLayerToggles();
   
   document.getElementById('importFile').addEventListener('change', handleKMLImport);
+  
+  // Call updateScaleControl whenever the map zooms
+  map.on('zoomend', updateScaleControl);
 }
 
 function initLayerToggles() {
@@ -678,116 +765,54 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
   return marker;
 }
 
-function handleKMLImport(event) {
-  if (currentRole !== 'admin') {
-    alert('Only administrators can import KML files');
-    return;
-  }
-
+async function handleKMLImport(event) {
   const file = event.target.files[0];
-  if (importedFiles.has(file.name)) {
-    alert("This file has already been imported.");
-    return;
-  }
+  if (!file) return;
   
-  importedFiles.add(file.name);
-  const reader = new FileReader();
-  
-  reader.onload = async () => {
-    try {
-      console.log('File read successfully, parsing KML...');
-      const kml = new DOMParser().parseFromString(reader.result, 'text/xml');
-      const geojson = toGeoJSON.kml(kml);
-      
-      if (!geojson.features || geojson.features.length === 0) {
-        alert('No valid points found in KML file');
-        return;
-      }
-
-      console.log(`Found ${geojson.features.length} features in KML`);
-
-      let pointsAdded = 0;
-      let bounds = L.latLngBounds([]);
-      let markers = [];
-      
-      // Process points
-      for (const f of geojson.features) {
-        if (f.geometry && f.geometry.type === 'Point' && f.geometry.coordinates) {
-          const [lng, lat] = f.geometry.coordinates;
-          
-          if (isValidCoordinate(lng, lat)) {
-            const itemId = `${currentActiveLayer}_${Date.now()}_${pointsAdded}`;
-            
-            try {
-              // Create marker with current layer type
-              const marker = new L.Marker([lat, lng], {
-                icon: new L.DivIcon({
-                  className: 'custom-div-icon',
-                  html: "<div style='background-color:#808080;width:15px;height:15px;border-radius:50%;border:2px solid black'></div>",
-                  iconSize: [20, 20],
-                  iconAnchor: [10, 10]
-                })
-              });
-              
-              // Add to appropriate layer
-              layers[currentActiveLayer].addLayer(marker);
-              
-              // Set up click handler
-              marker.on('click', () => {
-                if (deleteMode) {
-                  handleGullyDelete(itemId, marker, currentActiveLayer);
-                } else {
-                  showInspectionPopup(marker, itemId, { lat, lng }, currentActiveLayer);
-                }
-              });
-              
-              markers.push(marker);
-              gullyData.push({ marker, id: itemId, layer: currentActiveLayer });
-              bounds.extend([lat, lng]);
-              pointsAdded++;
-              
-              // Save to Firebase under the current layer
-              await db.ref(`${currentActiveLayer}/${itemId}`).set({
-                location: { lat, lng },
-                created: firebase.database.ServerValue.TIMESTAMP,
-                createdBy: auth.currentUser.uid,
-                status: 'Unmarked'
-              });
-              
-            } catch (err) {
-              console.error('Error creating marker:', err);
-            }
-          }
-        }
-      }
-      
-      if (pointsAdded > 0) {
-        const paddedBounds = bounds.pad(0.2);
-        map.fitBounds(paddedBounds);
-        
-        markers.forEach(marker => {
-          if (marker) {
-            marker.setZIndexOffset(1000);
-          }
+  try {
+    const text = await file.text();
+    const kml = new DOMParser().parseFromString(text, 'text/xml');
+    const geojson = toGeoJSON.kml(kml);
+    
+    if (!geojson || !geojson.features || !geojson.features.length) {
+      alert('No valid features found in KML file');
+      return;
+    }
+    
+    // Clear existing features
+    layers.gullies.clearLayers();
+    
+    // Process and add features
+    geojson.features.forEach(feature => {
+      if (feature.geometry && feature.geometry.coordinates) {
+        const [lng, lat] = feature.geometry.coordinates;
+        const marker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            className: 'gully-marker',
+            html: '<div class="dot" style="background:blue;"></div>'
+          })
         });
         
-        updateSummary();
-        alert(`Successfully imported ${pointsAdded} points to ${layerNames[currentActiveLayer]} layer`);
-      } else {
-        alert('No valid points found in the KML file');
+        // Add properties to marker
+        marker.feature = {
+          properties: feature.properties || {}
+        };
+        
+        layers.gullies.addLayer(marker);
       }
-    } catch (error) {
-      console.error('Error in KML import:', error);
-      alert('Error importing KML file: ' + error.message);
+    });
+    
+    // Fit map to imported features
+    const bounds = layers.gullies.getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds);
     }
-  };
-  
-  reader.onerror = (error) => {
-    console.error('Error reading file:', error);
-    alert('Error reading file: ' + error.message);
-  };
-  
-  reader.readAsText(file);
+    
+    alert('Import successful!');
+  } catch (error) {
+    console.error('Import error:', error);
+    alert('Error importing KML file. Please check the file format.');
+  }
 }
 
 function isValidCoordinate(lng, lat) {
@@ -1485,6 +1510,82 @@ window.onload = () => {
     console.error('Error during initialization:', error);
   });
 };
+
+function togglePassword() {
+  const passwordInput = document.getElementById('password');
+  const toggle = document.querySelector('.password-toggle');
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    toggle.textContent = '👁️‍🗨️';
+  } else {
+    passwordInput.type = 'password';
+    toggle.textContent = '👁️';
+  }
+}
+
+// Load saved email on page load
+window.addEventListener('load', function() {
+  const savedEmail = localStorage.getItem('rememberedEmail');
+  if (savedEmail) {
+    document.getElementById('email').value = savedEmail;
+    document.getElementById('rememberMe').checked = true;
+  }
+});
+
+function captureScreen() {
+  html2canvas(document.querySelector("#map")).then(canvas => {
+    const link = document.createElement('a');
+    link.download = 'map-capture.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  });
+}
+
+function printMap() {
+  window.print();
+}
+
+function updateWelcomeMessage(email) {
+  const welcomeDiv = document.getElementById('welcomeMessage');
+  if (welcomeDiv) {
+    welcomeDiv.textContent = `Welcome ${email.split('@')[0]}!`;
+    welcomeDiv.style.padding = '10px';
+    welcomeDiv.style.background = 'white';
+    welcomeDiv.style.borderRadius = '4px';
+    welcomeDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+    welcomeDiv.style.position = 'absolute';
+    welcomeDiv.style.top = '10px';
+    welcomeDiv.style.right = '10px';
+    welcomeDiv.style.zIndex = '1000';
+    welcomeDiv.style.display = 'block';
+  }
+}
+
+// Update scale control
+function updateScaleControl() {
+  if (map.scale) map.scale.remove();
+  
+  map.scale = L.control.scale({
+    metric: true,
+    imperial: false,
+    maxWidth: 200,
+    position: 'bottomleft',
+    updateWhenIdle: true
+  }).addTo(map);
+  
+  // Custom scale factor to correct the scale
+  const scaleFactor = 0.333333; // 1km = 3000m correction
+  
+  const originalGetScaleText = map.scale._getScaleText;
+  map.scale._getScaleText = function(ratio, text) {
+    const distance = ratio * scaleFactor;
+    if (distance >= 1) {
+      return distance.toFixed(0) + ' km';
+    } else {
+      return (distance * 1000).toFixed(0) + ' m';
+    }
+  };
+}
 </script>
 </body>
 </html>

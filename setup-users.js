@@ -3,30 +3,21 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
 
-// Load service account from environment variable if provided, otherwise from file
+// Load service account from file
 let serviceAccount;
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  try {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  } catch (error) {
-    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT environment variable:', error);
-    process.exit(1);
-  }
-} else {
-  try {
-    serviceAccount = require('./serviceAccountKey.json');
-  } catch (error) {
-    console.error('Error loading serviceAccountKey.json:', error);
-    console.error('Please ensure serviceAccountKey.json exists or set FIREBASE_SERVICE_ACCOUNT environment variable');
-    process.exit(1);
-  }
+try {
+  serviceAccount = require('./serviceAccountKey.json');
+} catch (error) {
+  console.error('Error loading serviceAccountKey.json:', error);
+  console.error('Please ensure serviceAccountKey.json exists');
+  process.exit(1);
 }
 
 // Initialize Firebase Admin
 try {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: process.env.FIREBASE_DATABASE_URL || "https://gullytest3-default-rtdb.europe-west1.firebasedatabase.app"
+    databaseURL: "https://gullytest3-default-rtdb.europe-west1.firebasedatabase.app"
   });
 } catch (error) {
   console.error('Error initializing Firebase Admin:', error);
@@ -36,7 +27,7 @@ try {
 // Load users from JSON file
 let users;
 try {
-  users = require('./users.json');
+  users = require('./users.json').users;
 } catch (error) {
   console.error('Error loading users.json:', error);
   process.exit(1);
