@@ -200,6 +200,21 @@ const USER_CONFIG = {
   defaultPassword: 'DefaultPass123!',
   users: [
     {
+      email: 'shane_dorgan@corkcity.ie',
+      role: 'admin',
+      name: 'Shane Dorgan',
+      initials: 'SD',
+      isAdmin: true,
+      adminPrivileges: {
+        canDelete: true,
+        canEdit: true,
+        canImport: true,
+        canExport: true,
+        canReset: true,
+        canManageUsers: true
+      }
+    },
+    {
       email: 'aman_kushwaha@corkcity.ie',
       role: 'admin',
       name: 'Aman Kushwaha',
@@ -232,6 +247,9 @@ function validateAndNormalizeEmail(email) {
   
   // Admin email variations
   const adminVariations = [
+    'shane_dorgan@corkcity.ie',
+    'shane.dorgan@corkcity.ie',
+    'shanedorgan@corkcity.ie',
     'aman_kushwaha@corkcity.ie',
     'aman.kushwaha@corkcity.ie',
     'nan_kushwaha@corkcity.ie',
