@@ -307,6 +307,85 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       z-index: 1000;
     }
+    .bottom-toolbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+      transition: transform 0.3s ease;
+    }
+    .bottom-toolbar.minimized {
+      transform: translateY(calc(100% - 40px));
+    }
+    .toolbar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 15px;
+      background: #f0f0f0;
+      cursor: pointer;
+    }
+    .toolbar-header h3 {
+      margin: 0;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      padding: 4px 12px;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .user-role {
+      font-weight: bold;
+      color: #2196F3;
+    }
+    .toolbar-content {
+      padding: 10px;
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .button-group {
+      display: flex;
+      gap: 5px;
+      padding: 0 10px;
+      border-right: 1px solid #ddd;
+      align-items: center;
+    }
+    .button-group:last-child {
+      border-right: none;
+    }
+    .toolbar-button {
+      padding: 8px 15px;
+      border-radius: 4px;
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+    }
+    .toolbar-button:hover {
+      background: #f0f0f0;
+      border-color: #ccc;
+    }
+    .toolbar-button:active {
+      background: #e8e8e8;
+      transform: translateY(1px);
+    }
   </style>
 </head>
 <body>
@@ -432,6 +511,63 @@ font-weight:bold;"></div>
     <option value="Blocked">Blocked</option>
     <option value="Expired">Expired</option>
   </select>
+</div>
+
+<div class="bottom-toolbar" id="functionToolbar">
+  <div class="toolbar-header" onclick="toggleToolbar()">
+    <h3>
+      <span id="toolbarToggleIcon">▼</span>
+      Functions
+      <div class="user-info">
+        <span id="userInitials" class="user-role"></span>
+        <span id="userName"></span>
+      </div>
+    </h3>
+  </div>
+  <div class="toolbar-content">
+    <div class="button-group">
+      <button class="toolbar-button" onclick="captureScreen()">📸 Capture</button>
+      <button class="toolbar-button" onclick="printMap()">🖨️ Print</button>
+      <button class="toolbar-button" onclick="resetView()">🔄 Reset View</button>
+    </div>
+
+    <div class="button-group">
+      <label for="importFile" class="toolbar-button">🗂️ Import KML</label>
+      <input type="file" id="importFile" accept=".kml" style="display:none;">
+      <button class="toolbar-button" onclick="exportData()">💾 Export CSV</button>
+      <button class="toolbar-button" onclick="saveGullyData()">💾 Backup</button>
+    </div>
+
+    <div class="button-group admin-only">
+      <button class="toolbar-button" onclick="enableDeleteMode()">🗑️ Delete</button>
+      <button class="toolbar-button" onclick="enableEditMode()">✏️ Edit</button>
+      <button class="toolbar-button" onclick="addNewGully()">➕ Add New</button>
+    </div>
+
+    <div class="button-group">
+      <select id="activeLayer" class="toolbar-button">
+        <option value="gullies">🔵 Gullies</option>
+        <option value="signage">🚸 Signage</option>
+        <option value="playgrounds">🎮 Playgrounds</option>
+        <option value="parks">🌳 Parks</option>
+        <option value="walkways">🚶 Walkways</option>
+        <option value="lining">🎨 Lining</option>
+      </select>
+    </div>
+
+    <div class="button-group">
+      <select id="mapStyle" class="toolbar-button" onchange="changeMapStyle()">
+        <option value="streets">🗺️ Streets</option>
+        <option value="satellite">🛰️ Satellite</option>
+        <option value="hybrid">🌍 Hybrid</option>
+      </select>
+    </div>
+
+    <div class="button-group">
+      <button class="toolbar-button admin-only" onclick="showUserManagement()">👥 Users</button>
+      <button class="toolbar-button" onclick="logout()">🚪 Logout</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -729,13 +865,26 @@ function initMap() {
     preferCanvas: false,
     zoomControl: false,
     maxZoom: 19,
-    attributionControl: false  // Disable default attribution
+    attributionControl: false
   }).setView([51.9, -8.5], 13);
   
-  // Add Irish-styled tile layer
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '🇮🇪 Cork City Council GIS | © OpenStreetMap contributors'
-  }).addTo(map);
+  // Initialize base layers
+  const layers = {
+    streets: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '🇮🇪 Cork City Council GIS | © OpenStreetMap contributors'
+    }),
+    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '🇮🇪 Cork City Council GIS | © Esri'
+    }),
+    hybrid: L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      attribution: '🇮🇪 Cork City Council GIS | © Google'
+    })
+  };
+  
+  // Set default layer
+  layers.streets.addTo(map);
+  window.baseLayers = layers;
   
   // Add custom attribution control
   const attribution = L.control.attribution({
@@ -743,59 +892,53 @@ function initMap() {
     prefix: false
   }).addTo(map);
   
-  // Initialize scale with correction
+  // Initialize other map components
   updateScaleControl();
-  
-  // Enable pan hand cursor
-  map.getContainer().style.cursor = 'grab';
-  map.on('mousedown', function() {
-    map.getContainer().style.cursor = 'grabbing';
-  });
-  map.on('mouseup', function() {
-    map.getContainer().style.cursor = 'grab';
-  });
-
-  // Add all layers to map
-  Object.values(layers).forEach(layer => layer.addTo(map));
-  
+  setupMapControls();
   initLayerToggles();
-  
-  document.getElementById('importFile').addEventListener('change', handleKMLImport);
-  
-  // Call updateScaleControl whenever the map zooms
-  map.on('zoomend', updateScaleControl);
 }
 
-function initLayerToggles() {
-  // Add click handlers for layer toggle buttons
-  document.querySelectorAll('.layer-toggle').forEach(button => {
-    const layerName = button.dataset.layer;
-    
-    // Update the icon in the button
-    const icon = button.querySelector('span');
-    if (layerName === 'playgrounds' || layerName === 'parks') {
-      icon.innerHTML = '▲'; // Triangle symbol
-      icon.style.fontSize = '12px';
+function changeMapStyle() {
+  const style = document.getElementById('mapStyle').value;
+  
+  // Remove all base layers
+  Object.values(window.baseLayers).forEach(layer => {
+    if (map.hasLayer(layer)) {
+      map.removeLayer(layer);
     }
-    
-    button.addEventListener('click', () => {
-      const isActive = button.classList.toggle('active');
-      button.style.background = isActive ? '#e0e0e0' : '#f0f0f0';
-      if (isActive) {
-        layers[layerName].addTo(map);
-      } else {
-        map.removeLayer(layers[layerName]);
-      }
-    });
-    // Start with all layers active
-    button.classList.add('active');
-    button.style.background = '#e0e0e0';
   });
+  
+  // Add selected layer
+  window.baseLayers[style].addTo(map);
+}
 
-  // Add change handler for active layer dropdown
-  document.getElementById('activeLayer').addEventListener('change', (e) => {
-    currentActiveLayer = e.target.value;
-  });
+function toggleToolbar() {
+  const toolbar = document.getElementById('functionToolbar');
+  const icon = document.getElementById('toolbarToggleIcon');
+  toolbar.classList.toggle('minimized');
+  icon.textContent = toolbar.classList.contains('minimized') ? '▲' : '▼';
+}
+
+function updateUserInfo(userData) {
+  const userInitials = document.getElementById('userInitials');
+  const userName = document.getElementById('userName');
+  
+  if (userData) {
+    userInitials.textContent = userData.initials || userData.email.substring(0, 2).toUpperCase();
+    userName.textContent = `${userData.name || userData.email.split('@')[0]} (${userData.role})`;
+  }
+}
+
+// Update the login success handler
+function handleLoginSuccess(userData) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('map').style.display = 'block';
+  document.getElementById('functionToolbar').style.display = 'block';
+  
+  updateUserInfo(userData);
+  setupUIForRole(userData.role, userData.adminPrivileges);
+  initMap();
+  loadGullyData();
 }
 
 function getStatusColor(status) {
