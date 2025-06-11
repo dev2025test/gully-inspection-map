@@ -487,6 +487,18 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+    
+    #add-tooltip {
+        display: none;
+        position: fixed;
+        background: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 1000;
+        pointer-events: none;
+        font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -557,9 +569,9 @@
     </div>
 
     <div class="button-group admin-only">
-      <button class="toolbar-button" onclick="enableDeleteMode()">🗑️ Delete</button>
       <button class="toolbar-button" onclick="enableEditMode()">✏️ Edit</button>
-      <button class="toolbar-button" onclick="addNewGully()">➕ Add New</button>
+      <button class="toolbar-button" onclick="enableAddMode()">➕ Add New</button>
+      <button class="toolbar-button" onclick="enableDeleteMode()">🗑️ Delete</button>
     </div>
 
     <div class="button-group">
@@ -921,6 +933,21 @@ function initMap() {
   window.map.invalidateSize();
   
   console.log('Map initialization complete');
+  
+  // Initialize click handler for add mode
+  window.map.on('mousemove', (e) => {
+      if (addMode) {
+          // Show coordinates in a tooltip
+          const tooltip = document.getElementById('add-tooltip') || createTooltip();
+          tooltip.style.display = 'block';
+          tooltip.style.left = (e.originalEvent.pageX + 10) + 'px';
+          tooltip.style.top = (e.originalEvent.pageY + 10) + 'px';
+          tooltip.textContent = `Lat: ${e.latlng.lat.toFixed(6)}, Lng: ${e.latlng.lng.toFixed(6)}`;
+      } else {
+          const tooltip = document.getElementById('add-tooltip');
+          if (tooltip) tooltip.style.display = 'none';
+      }
+  });
 }
 
 function toggleToolbar() {
@@ -2156,6 +2183,100 @@ async function handleGullyDelete(gullyId, marker, layerType) {
             marker.setStyle(getMarkerOptions('Unmarked'));
         }
     }
+}
+
+// Add the new mode variable
+let addMode = false;
+
+// Add the new functions
+function enableAddMode() {
+    if (!auth.currentUser || currentRole !== 'admin') {
+        alert('Only administrators can add new gullies');
+        return;
+    }
+    
+    addMode = !addMode;
+    editMode = false;
+    deleteMode = false;
+    
+    // Update cursor and button style
+    const mapElement = document.getElementById('map');
+    const addButton = document.querySelector('button[onclick="enableAddMode()"]');
+    
+    if (addMode) {
+        mapElement.style.cursor = 'crosshair';
+        addButton.style.backgroundColor = '#4CAF50';
+        addButton.style.color = 'white';
+        alert('Add mode enabled. Click on the map to add new gullies.');
+        
+        // Add click handler to map
+        window.map.on('click', handleMapClick);
+    } else {
+        mapElement.style.cursor = '';
+        addButton.style.backgroundColor = '';
+        addButton.style.color = '';
+        
+        // Remove click handler from map
+        window.map.off('click', handleMapClick);
+    }
+}
+
+async function handleMapClick(e) {
+    if (!addMode || !auth.currentUser || currentRole !== 'admin') return;
+    
+    try {
+        const timestamp = Date.now();
+        const currentLayer = document.getElementById('activeLayer').value;
+        const newId = `${currentLayer}_${timestamp}`;
+        const latlng = e.latlng;
+        
+        console.log('Adding new gully at:', latlng);
+        
+        // Add marker to map
+        const marker = addGullyToMap(latlng, newId, currentLayer);
+        
+        // Save to Firebase
+        await db.ref(`${currentLayer}/${newId}`).set({
+            location: { 
+                lat: latlng.lat, 
+                lng: latlng.lng 
+            },
+            status: 'Unmarked',
+            created: firebase.database.ServerValue.TIMESTAMP,
+            createdBy: auth.currentUser.uid
+        });
+        
+        console.log('New gully added successfully');
+        
+        // Show inspection popup immediately
+        currentMarker = marker;
+        showInspectionPopup(marker, newId, latlng, currentLayer);
+        
+        // Disable add mode after successful addition
+        enableAddMode();
+        
+    } catch (error) {
+        console.error('Error adding new gully:', error);
+        alert('Error adding new gully: ' + error.message);
+    }
+}
+
+// Helper function to create tooltip
+function createTooltip() {
+    const tooltip = document.createElement('div');
+    tooltip.id = 'add-tooltip';
+    tooltip.style.cssText = `
+        position: fixed;
+        background: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 1000;
+        pointer-events: none;
+        font-size: 12px;
+    `;
+    document.body.appendChild(tooltip);
+    return tooltip;
 }
 </script>
 </body>
