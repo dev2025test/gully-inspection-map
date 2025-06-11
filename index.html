@@ -412,6 +412,53 @@
       background: #e8e8e8;
       transform: translateY(1px);
     }
+    .summary-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        z-index: 2000;
+        max-width: 80%;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .summary-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .summary-content {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+
+    .status-card {
+        background: #f5f5f5;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 4px solid;
+    }
+
+    .status-count {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 5px 0;
+    }
+
+    .status-description {
+        font-size: 0.9em;
+        color: #666;
+    }
   </style>
 </head>
 <body>
@@ -473,9 +520,9 @@ font-weight:bold;"></div>
   </div>
   <div class="toolbar-content">
     <div class="button-group">
-      <button class="toolbar-button" onclick="captureScreen()">📸 Capture</button>
       <button class="toolbar-button" onclick="printMap()">🖨️ Print</button>
-      <button class="toolbar-button" onclick="resetView()">🔄 Reset View</button>
+      <button class="toolbar-button" onclick="resetMap()">🔄 Reset</button>
+      <button class="toolbar-button" onclick="showSummaryPopup()">📊 Summary</button>
     </div>
 
     <div class="button-group">
@@ -727,8 +774,7 @@ function login(isAutoLogin = false) {
       currentRole = userData.role;
       
       // Update UI
-      document.getElementById('roleBanner').textContent = 
-        `Logged in as ${userData.role.toUpperCase()}${userData.isAdmin ? ' (Admin)' : ''}`;
+      document.getElementById('roleBanner').textContent = `Logged in as ${userData.role.toUpperCase()}`;
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('map').style.display = 'block';
       document.getElementById('controlPanel').style.display = 'block';
@@ -881,7 +927,8 @@ function handleLoginSuccess(userData) {
   // Show toolbar
   document.getElementById('functionToolbar').style.display = 'block';
   
-  // Update user info
+  // Update user info and role banner
+  document.getElementById('roleBanner').textContent = `Logged in as ${userData.role.toUpperCase()}`;
   updateUserInfo(userData);
   setupUIForRole(userData.role, userData.adminPrivileges);
   
@@ -895,41 +942,15 @@ function handleLoginSuccess(userData) {
 }
 
 function getStatusColor(status) {
-  const statusColors = {
-    // Gully statuses
-    'Clear': '#4CAF50',      // Green
-    'Blocked': '#FF9800',    // Orange
-    'Broken': '#f44336',     // Red
-    'Remediation': '#9C27B0', // Purple
-    'Replacement': '#795548', // Brown
-    'Expired': '#607D8B',    // Blue Grey
-    'Unmarked': '#9E9E9E',   // Grey
-
-    // Signage statuses
-    'Good': '#4CAF50',       // Green
-    'Damaged': '#FF9800',    // Orange
-    'Missing': '#f44336',    // Red
-
-    // Playground statuses
-    'Operational': '#4CAF50',     // Green
-    'Needs Repair': '#FF9800',    // Orange
-    'Out of Service': '#f44336',  // Red
-
-    // Park statuses
-    'Open': '#4CAF50',           // Green
-    'Under Maintenance': '#FF9800', // Orange
-    'Closed': '#f44336',         // Red
-
-    // Walkway statuses
-    'Obstructed': '#FF9800',     // Orange
-    'Under Repair': '#9C27B0',   // Purple
-
-    // Lining statuses
-    'Faded': '#FF9800',          // Orange
-    'Needs Repainting': '#f44336' // Red
+  const colors = {
+    Clear: '#4CAF50',      // Green
+    Blocked: '#FF9800',    // Orange
+    Broken: '#f44336',     // Red
+    Remediation: '#9C27B0', // Purple
+    Replacement: '#795548', // Brown
+    Unmarked: '#9E9E9E'    // Grey
   };
-
-  return statusColors[status] || '#9E9E9E'; // Default to grey if status not found
+  return colors[status] || '#9E9E9E';
 }
 
 function createDot(color) {
@@ -1660,114 +1681,106 @@ function exportData() {
 }
 
 function resetMap() {
-  if (!auth.currentUser) {
-    alert('You must be logged in to reset the map');
-    return;
-  }
-
-  if (currentRole !== 'admin') {
-    alert('Only administrators can reset the map');
-    return;
-  }
-
-  const confirmReset = confirm('Are you sure you want to reset the map? This will delete all gullies and their inspection history.');
-  if (!confirmReset) {
-    return;
-  }
-
   try {
-    // Show loading message
-    const loadingDiv = document.createElement('div');
-    loadingDiv.id = 'resetLoadingMessage';
-    loadingDiv.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      z-index: 10000;
-      text-align: center;
-    `;
-    loadingDiv.innerHTML = '<h3>Resetting map data...</h3><p>Please wait...</p>';
-    document.body.appendChild(loadingDiv);
-
-    // Clear all layers
-    Object.values(layers).forEach(layer => {
-      layer.clearLayers();
+    console.log('Resetting map view...');
+    
+    // Default center coordinates for Cork City
+    const defaultCenter = [51.9, -8.5];
+    const defaultZoom = 13;
+    
+    // Reset the map view with animation
+    window.map.setView(defaultCenter, defaultZoom, {
+      animate: true,
+      duration: 1.0
     });
 
-    // Clear memory data
-    gullyData.length = 0;
-    importedFiles.clear();
+    // Make all markers visible again
+    gullyData.forEach(gully => {
+      if (gully.marker) {
+        gully.marker.setOpacity(1);
+      }
+    });
 
-    // Clear Firebase data with proper error handling
-    const deletePromises = [
-      db.ref('gullies').remove(),
-      db.ref('gully_history').remove(),
-      db.ref('signage').remove(),
-      db.ref('playgrounds').remove(),
-      db.ref('parks').remove(),
-      db.ref('walkways').remove(),
-      db.ref('lining').remove()
-    ];
-
-    // Also clear storage
-    storage.ref().listAll()
-      .then(result => {
-        const deleteFilePromises = result.items.map(item => item.delete());
-        return Promise.all(deleteFilePromises);
-      })
-      .catch(error => {
-        console.error('Error clearing storage:', error);
-      });
-
-    // Wait for all deletes to complete
-    Promise.all(deletePromises)
-      .then(() => {
-        // Remove loading message
-        const loadingMessage = document.getElementById('resetLoadingMessage');
-        if (loadingMessage) {
-          loadingMessage.remove();
-        }
-
-        // Reset the filter
-        const filterStatus = document.getElementById('filterStatus');
-        if (filterStatus) {
-          filterStatus.value = 'All';
-          filterByStatus();
-        }
-
-        // Update summary
-        updateSummary();
-
-        // Show success message
-        alert('Map has been reset successfully');
-      })
-      .catch(error => {
-        console.error('Reset error:', error);
-        // Remove loading message
-        const loadingMessage = document.getElementById('resetLoadingMessage');
-        if (loadingMessage) {
-          loadingMessage.remove();
-        }
-        alert('Error resetting map: ' + error.message);
-      });
-
-  } catch (error) {
-    console.error('Reset error:', error);
-    // Remove loading message
-    const loadingMessage = document.getElementById('resetLoadingMessage');
-    if (loadingMessage) {
-      loadingMessage.remove();
+    // Reset any active filters
+    const filterStatus = document.getElementById('filterStatus');
+    if (filterStatus) {
+      filterStatus.value = 'All';
     }
-    alert('Error resetting map: ' + error.message);
+    
+    console.log('Map reset complete');
+  } catch (error) {
+    console.error('Error resetting map:', error);
+    alert('Error resetting map view');
   }
 }
 
-// Update window.onload to include new initialization
+function showSummaryPopup() {
+  // Calculate summary data
+  const summary = {
+    total: 0,
+    Clear: 0,
+    Blocked: 0,
+    Broken: 0,
+    Remediation: 0,
+    Replacement: 0,
+    Unmarked: 0
+  };
+
+  // Count gullies by status
+  gullyData.forEach(gully => {
+    if (gully.layer === 'gullies') {
+      summary.total++;
+      const status = gully.status || 'Unmarked';
+      if (summary.hasOwnProperty(status)) {
+        summary[status]++;
+      }
+    }
+  });
+
+  // Create popup HTML
+  const popupDiv = document.createElement('div');
+  popupDiv.className = 'summary-popup';
+  
+  const statusDescriptions = {
+    Clear: 'Gullies that are clean and functioning properly',
+    Blocked: 'Gullies that are obstructed and need cleaning',
+    Broken: 'Gullies that are damaged and not functioning',
+    Remediation: 'Gullies that require maintenance work',
+    Replacement: 'Gullies that need to be completely replaced',
+    Unmarked: 'Gullies that have not been inspected yet'
+  };
+
+  popupDiv.innerHTML = `
+    <div class="summary-header">
+      <h2 style="margin:0">Gully Inspection Summary</h2>
+      <button onclick="this.parentElement.parentElement.remove()" 
+              style="border:none;background:#f0f0f0;padding:5px 10px;border-radius:4px;cursor:pointer;">
+        ✖ Close
+      </button>
+    </div>
+    <div class="summary-content">
+      <div class="status-card" style="border-left-color:#2196F3">
+        <h3>Total Gullies</h3>
+        <div class="status-count">${summary.total}</div>
+        <div class="status-description">Total number of gullies in the system</div>
+      </div>
+      ${Object.entries(summary)
+        .filter(([status]) => status !== 'total')
+        .map(([status, count]) => `
+          <div class="status-card" style="border-left-color:${getStatusColor(status)}">
+            <h3>${status}</h3>
+            <div class="status-count">${count}</div>
+            <div class="status-description">${statusDescriptions[status] || ''}</div>
+          </div>
+        `).join('')}
+    </div>
+  `;
+
+  // Add popup to document
+  document.body.appendChild(popupDiv);
+}
+
+// Update the window.onload to include new initialization
 window.onload = () => {
   document.getElementById("loginScreen").style.display = "block";
   
@@ -1803,15 +1816,6 @@ window.addEventListener('load', function() {
     document.getElementById('rememberMe').checked = true;
   }
 });
-
-function captureScreen() {
-  html2canvas(document.querySelector("#map")).then(canvas => {
-    const link = document.createElement('a');
-    link.download = 'map-capture.png';
-    link.href = canvas.toDataURL();
-    link.click();
-  });
-}
 
 function printMap() {
   window.print();
