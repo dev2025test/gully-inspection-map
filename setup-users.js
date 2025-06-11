@@ -1,50 +1,59 @@
+require('dotenv').config();
 const admin = require('firebase-admin');
-const serviceAccount = require('./serviceAccountKey.json');
+const fs = require('fs');
+const path = require('path');
+
+// Load service account from environment variable if provided, otherwise from file
+let serviceAccount;
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } catch (error) {
+    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT environment variable:', error);
+    process.exit(1);
+  }
+} else {
+  try {
+    serviceAccount = require('./serviceAccountKey.json');
+  } catch (error) {
+    console.error('Error loading serviceAccountKey.json:', error);
+    console.error('Please ensure serviceAccountKey.json exists or set FIREBASE_SERVICE_ACCOUNT environment variable');
+    process.exit(1);
+  }
+}
 
 // Initialize Firebase Admin
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://gullytest3-default-rtdb.europe-west1.firebasedatabase.app"
-});
+try {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: process.env.FIREBASE_DATABASE_URL || "https://gullytest3-default-rtdb.europe-west1.firebasedatabase.app"
+  });
+} catch (error) {
+  console.error('Error initializing Firebase Admin:', error);
+  process.exit(1);
+}
 
-const users = [
-  {
-    email: 'shane_dorgan@corkcity.ie',
-    password: 'Admin123!@#',  // You should change this password
-    role: 'admin',
-    initials: 'SD'
-  },
-  {
-    email: 'aman_kushawaha@corkcity.ie',
-    password: 'Admin123!@#',
-    role: 'admin',
-    initials: 'AK'
-  },
-  {
-    email: 'richard_daly@corkcity.ie',
-    password: 'Operator123!@#',
-    role: 'operator',
-    initials: 'RD'
-  },
-  {
-    email: 'john_ocallaghan@corkcity.ie',
-    password: 'Operator123!@#',
-    role: 'operator',
-    initials: 'JO'
-  },
-  {
-    email: 'ronan_oconnor@corkcity.ie',
-    password: 'Operator123!@#',
-    role: 'operator',
-    initials: 'RO'
-  },
-  {
-    email: 'viewer@corkcity.ie',
-    password: 'Viewer123!@#',  // You should change this password
-    role: 'viewer',
-    initials: 'VW'
+// Load users from JSON file
+let users;
+try {
+  users = require('./users.json');
+} catch (error) {
+  console.error('Error loading users.json:', error);
+  process.exit(1);
+}
+
+// Validate user data
+function validateUser(user) {
+  if (!user.email || !user.password || !user.role || !user.initials) {
+    throw new Error(`Invalid user data: ${JSON.stringify(user)}`);
   }
-];
+  if (!['admin', 'operator', 'viewer'].includes(user.role)) {
+    throw new Error(`Invalid role '${user.role}' for user ${user.email}`);
+  }
+  if (user.password.length < 8) {
+    throw new Error(`Password too short for user ${user.email}`);
+  }
+}
 
 async function deleteUserIfExists(email) {
   try {
@@ -54,75 +63,92 @@ async function deleteUserIfExists(email) {
     console.log(`Deleted existing user: ${email}`);
   } catch (error) {
     if (error.code !== 'auth/user-not-found') {
-      console.error(`Error deleting user ${email}:`, error);
+      throw error;
     }
   }
 }
 
 async function cleanupDatabase() {
   try {
-    // Remove all existing users from the database
     await admin.database().ref('users').remove();
     console.log('Cleaned up existing database entries');
   } catch (error) {
     console.error('Error cleaning up database:', error);
+    throw error;
   }
 }
 
 async function setupUsers() {
+  const results = {
+    success: [],
+    failures: []
+  };
+
   try {
-    // First, clean up the database
+    console.log('Starting user setup...');
     await cleanupDatabase();
 
     for (const user of users) {
       try {
+        validateUser(user);
         const email = user.email.toLowerCase();
         
-        // First, delete the user if they exist
         await deleteUserIfExists(email);
 
-        // Create new user in Authentication
         const userRecord = await admin.auth().createUser({
           email: email,
           password: user.password,
           emailVerified: true
         });
 
-        console.log('Created user:', userRecord.uid);
-
-        // Set user role and initials in Realtime Database
         await admin.database().ref(`users/${userRecord.uid}`).set({
           email: email,
           role: user.role,
           initials: user.initials,
-          created: admin.database.ServerValue.TIMESTAMP
+          created: admin.database.ServerValue.TIMESTAMP,
+          lastUpdated: admin.database.ServerValue.TIMESTAMP
         });
 
-        console.log(`Set role '${user.role}' and initials '${user.initials}' for user:`, email);
+        results.success.push({
+          email: email,
+          uid: userRecord.uid,
+          role: user.role
+        });
+        
+        console.log(`Created user ${email} with role ${user.role}`);
       } catch (error) {
-        console.error(`Error processing user ${user.email}:`, error);
+        results.failures.push({
+          email: user.email,
+          error: error.message
+        });
+        console.error(`Error processing user ${user.email}:`, error.message);
       }
     }
 
-    console.log('\nSetup completed. Verifying users...');
-    
-    // Verify the setup
-    const listUsersResult = await admin.auth().listUsers();
-    console.log('\nUsers in Authentication:');
-    listUsersResult.users.forEach(userRecord => {
-      console.log(`- ${userRecord.email} (UID: ${userRecord.uid})`);
-    });
+    // Final report
+    console.log('\nSetup Summary:');
+    console.log(`Successfully created: ${results.success.length} users`);
+    console.log(`Failed to create: ${results.failures.length} users`);
 
-    const usersSnapshot = await admin.database().ref('users').once('value');
-    const dbUsers = usersSnapshot.val();
-    console.log('\nUsers in Database:');
-    for (const [uid, userData] of Object.entries(dbUsers)) {
-      console.log(`- ${userData.email} (Role: ${userData.role}, Initials: ${userData.initials})`);
+    if (results.failures.length > 0) {
+      console.log('\nFailed users:');
+      results.failures.forEach(failure => {
+        console.log(`- ${failure.email}: ${failure.error}`);
+      });
     }
 
+    // Write results to log file
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const logFile = path.join(__dirname, `setup-results-${timestamp}.json`);
+    fs.writeFileSync(logFile, JSON.stringify(results, null, 2));
+    console.log(`\nDetailed results written to: ${logFile}`);
+
+    if (results.failures.length > 0) {
+      process.exit(1);
+    }
     process.exit(0);
   } catch (error) {
-    console.error('Setup failed:', error);
+    console.error('Fatal error during setup:', error);
     process.exit(1);
   }
 }
