@@ -965,15 +965,17 @@ function getMarkerIcon(layerType, status = 'Unmarked') {
 }
 
 function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
-  const marker = new L.Marker([latlng.lat, latlng.lng], {
+  const marker = L.marker([latlng.lat, latlng.lng], {
     icon: getMarkerIcon(layerType)
   });
   
-  if (layers[layerType]) {
-    layers[layerType].addLayer(marker);
+  // Add to the correct layer group
+  if (window.dataLayers && window.dataLayers[layerType]) {
+    window.dataLayers[layerType].addLayer(marker);
   } else {
-    console.warn('Unknown layer type:', layerType);
-    layers.gullies.addLayer(marker);
+    console.warn('Layer not found:', layerType);
+    // Fallback to adding directly to map
+    marker.addTo(window.map);
   }
   
   marker.on('click', () => {
@@ -992,7 +994,7 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
     marker, 
     id: gullyId, 
     layer: layerType,
-    status: 'Unmarked'  // Set initial status
+    status: 'Unmarked'
   });
   
   return marker;
@@ -1045,6 +1047,9 @@ async function handleKMLImport(event) {
     
     console.log('Importing to layer:', currentLayer);
     
+    // Create bounds object to track imported features
+    const bounds = L.latLngBounds([]);
+    
     for (const feature of geojson.features) {
       if (feature.geometry && feature.geometry.coordinates) {
         const [lng, lat] = feature.geometry.coordinates;
@@ -1055,6 +1060,9 @@ async function handleKMLImport(event) {
           
           // Add marker to map
           const marker = addGullyToMap({ lat, lng }, id, currentLayer);
+          
+          // Extend bounds with new marker position
+          bounds.extend([lat, lng]);
           
           // Save to Firebase
           await db.ref(`${currentLayer}/${id}`).set({
@@ -1072,8 +1080,7 @@ async function handleKMLImport(event) {
     console.log('Import complete:', importCount, 'features imported');
     
     if (importCount > 0) {
-      // Fit map to imported features
-      const bounds = layers[currentLayer].getBounds();
+      // Fit map to imported features using the bounds we collected
       if (bounds.isValid()) {
         window.map.fitBounds(bounds);
       }
