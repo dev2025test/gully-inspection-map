@@ -981,42 +981,28 @@ function getStatusColor(status) {
   return colors[status] || '#9E9E9E';
 }
 
-function createDot(color) {
-  return L.divIcon({
-    className: 'gully-marker',
-    html: `<div class='dot' style='background:${color};width:14px;height:14px;border-radius:50%;border:2px solid #000;box-shadow:0 0 2px #fff, 0 0 4px #000;'></div>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-    popupAnchor: [0, -9]
-  });
-}
-
-function createTriangle(color) {
-  return L.divIcon({
-    className: 'triangle-marker',
-    html: `<div style='width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:16px solid ${color};filter:drop-shadow(0 0 2px rgba(0,0,0,0.5));'></div>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 16],
-    popupAnchor: [0, -16]
-  });
-}
-
-function getMarkerIcon(layerType, status = 'Unmarked') {
-  const color = getStatusColor(status);
+function getMarkerOptions(status) {
+  const colors = {
+    Clear: '#4CAF50',      // Green
+    Blocked: '#FF9800',    // Orange
+    Broken: '#f44336',     // Red
+    Remediation: '#9C27B0', // Purple
+    Replacement: '#795548', // Brown
+    Unmarked: '#9E9E9E'    // Grey
+  };
   
-  switch(layerType) {
-    case 'playgrounds':
-    case 'parks':
-      return createTriangle(color);
-    default:
-      return createDot(color);
-  }
+  return {
+    radius: 6,
+    fillColor: colors[status] || '#9E9E9E',
+    color: colors[status] || '#9E9E9E', // Same as fill color to remove visible border
+    weight: 0,             // No border
+    opacity: 1,
+    fillOpacity: 1        // Fully opaque
+  };
 }
 
 function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
-  const marker = L.marker([latlng.lat, latlng.lng], {
-    icon: getMarkerIcon(layerType)
-  });
+  const marker = L.circleMarker([latlng.lat, latlng.lng], getMarkerOptions('Unmarked'));
   
   // Add to the correct layer group
   if (window.dataLayers && window.dataLayers[layerType]) {
@@ -1035,8 +1021,6 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
       showInspectionPopup(marker, gullyId, latlng, layerType);
     }
   });
-  
-  marker.setZIndexOffset(1000);
   
   // Add to gullyData with initial status
   gullyData.push({ 
@@ -1439,8 +1423,14 @@ function capturePhoto() {
 }
 
 function updateMarkerStatus(marker, status, layerType) {
-  const newIcon = getMarkerIcon(layerType, status);
-  marker.setIcon(newIcon);
+  const options = getMarkerOptions(status);
+  marker.setStyle({
+    fillColor: options.fillColor,
+    color: options.fillColor, // Same as fill color
+    weight: 0,               // No border
+    fillOpacity: 1,          // Fully opaque
+    opacity: 1
+  });
   
   // Update gullyData status
   const gullyIndex = gullyData.findIndex(g => g.marker === marker);
