@@ -459,6 +459,34 @@
         font-size: 0.9em;
         color: #666;
     }
+
+    .loading-spinner {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        z-index: 2000;
+        text-align: center;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        margin: 10px auto;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -1692,19 +1720,30 @@ function resetMap() {
   }
 
   try {
-    console.log('Resetting map...');
+    console.log('Starting map reset...');
     
+    // Show loading spinner
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading-spinner';
+    loadingDiv.innerHTML = `
+      <div class="spinner"></div>
+      <div>Resetting map...</div>
+    `;
+    document.body.appendChild(loadingDiv);
+
     // Default center coordinates for Cork City
     const defaultCenter = [51.9, -8.5];
     const defaultZoom = 13;
     
     // Clear all layers
     Object.values(window.dataLayers).forEach(layer => {
+      console.log('Clearing layer:', layer);
       layer.clearLayers();
     });
 
     // Clear the gullyData array
     gullyData.length = 0;
+    console.log('Cleared gully data array');
 
     // Reset the map view with animation
     window.map.setView(defaultCenter, defaultZoom, {
@@ -1716,18 +1755,44 @@ function resetMap() {
     const filterStatus = document.getElementById('filterStatus');
     if (filterStatus) {
       filterStatus.value = 'All';
+      console.log('Reset filter status');
     }
 
     // Clear file input
     const importFile = document.getElementById('importFile');
     if (importFile) {
       importFile.value = '';
+      console.log('Cleared file input');
     }
+
+    // Clear any existing popups
+    window.map.closePopup();
     
-    console.log('Map reset complete');
-    alert('Map has been reset successfully');
+    // Remove any existing summary popups
+    const existingSummary = document.querySelector('.summary-popup');
+    if (existingSummary) {
+      existingSummary.remove();
+    }
+
+    // Update summary if it exists
+    if (typeof updateSummary === 'function') {
+      updateSummary();
+    }
+
+    // Remove loading spinner after a short delay
+    setTimeout(() => {
+      loadingDiv.remove();
+      console.log('Map reset complete');
+      alert('Map has been reset successfully');
+    }, 1000);
+
   } catch (error) {
     console.error('Error resetting map:', error);
+    // Remove loading spinner if there's an error
+    const loadingDiv = document.querySelector('.loading-spinner');
+    if (loadingDiv) {
+      loadingDiv.remove();
+    }
     alert('Error resetting map: ' + error.message);
   }
 }
@@ -1895,6 +1960,21 @@ function checkMapStatus() {
   if (window.map) {
     console.log('Map center:', window.map.getCenter());
     console.log('Map zoom:', window.map.getZoom());
+  }
+}
+
+// Add a function to check if map needs reset
+function checkMapState() {
+  if (gullyData.length > 0) {
+    const resetButton = document.querySelector('button[onclick="resetMap()"]');
+    if (resetButton) {
+      resetButton.style.backgroundColor = '#ff9800';
+      resetButton.style.color = 'white';
+      setTimeout(() => {
+        resetButton.style.backgroundColor = '';
+        resetButton.style.color = '';
+      }, 2000);
+    }
   }
 }
 </script>
