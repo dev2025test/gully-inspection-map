@@ -12,7 +12,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
   <script src="https://unpkg.com/togeojson@0.16.0/togeojson.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     html, body {
       height: 100%;
@@ -291,12 +290,6 @@
     .bottom-controls label.button:active {
       background: #e8e8e8;
       transform: translateY(1px);
-    }
-    .bottom-controls button:disabled,
-    .bottom-controls select:disabled,
-    .bottom-controls label.button.disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
     }
     .bottom-controls select {
       padding-right: 25px;
@@ -610,7 +603,7 @@
       <button class="toolbar-button" onclick="resetMap()">🔄 Reset</button>
       <button class="toolbar-button" onclick="showSummaryPopup()">📊 Summary</button>
       <label for="importFile" class="toolbar-button">📂 Import</label>
-      <input type="file" id="importFile" accept=".kmz" style="display:none;" onchange="handleKMZImport(event)">
+      <input type="file" id="importFile" accept=".kml" style="display:none;" onchange="handleKMLImport(event)">
       <button class="toolbar-button" onclick="exportData()">💾 Export CSV</button>
       <button class="toolbar-button" onclick="saveGullyData()">💾 Backup</button>
     </div>
@@ -2547,50 +2540,6 @@ function initializeLayerVisibility() {
     }
   });
   currentActiveLayer = 'gullies';
-}
-
-// Add to the existing initMap function
-//window.initMap = function() {
-  originalInitMap.call(this);
-  initializeLayerVisibility();
-
-// Add/replace import handler for KMZ
-function handleKMZImport(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  if (!file.name.toLowerCase().endsWith('.kmz')) {
-    alert('Please select a KMZ file');
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    try {
-      const zip = await JSZip.loadAsync(e.target.result);
-      // Find the first KML file in the KMZ
-      let kmlFile = null;
-      zip.forEach((relativePath, zipEntry) => {
-        if (zipEntry.name.toLowerCase().endsWith('.kml') && !kmlFile) {
-          kmlFile = zipEntry;
-        }
-      });
-      if (!kmlFile) {
-        alert('No KML file found inside the KMZ');
-        return;
-      }
-      const kmlText = await kmlFile.async('text');
-      const kml = new DOMParser().parseFromString(kmlText, 'text/xml');
-      const geojson = toGeoJSON.kml(kml);
-      // Call your existing logic to add geojson to the map here
-      // Example: addGeoJsonToMap(geojson);
-      alert('KMZ imported successfully!');
-    } catch (error) {
-      console.error('Error importing KMZ:', error);
-      alert('Error importing KMZ file. Please check the file and try again.');
-    }
-  };
-  reader.readAsArrayBuffer(file);
 }
 </script>
 </body>
