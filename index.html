@@ -1077,6 +1077,7 @@ function handleLoginSuccess(userData) {
   setTimeout(() => {
     initMap();
     loadGullyData();
+    initializeLayerVisibility(); // Call after map and layers are initialized
     console.log('Map initialized and data loaded after delay.'); // Added log
   }, 100);
 
@@ -1169,14 +1170,14 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
 }
 
 // Add after the Firebase initialization
-const layers = {
-  gullies: L.layerGroup(),
-  signage: L.layerGroup(),
-  playgrounds: L.layerGroup(),
-  parks: L.layerGroup(),
-  walkways: L.layerGroup(),
-  lining: L.layerGroup()
-};
+// const layers = {
+//   gullies: L.layerGroup(),
+//   signage: L.layerGroup(),
+//   playgrounds: L.layerGroup(),
+//   parks: L.layerGroup(),
+//   walkways: L.layerGroup(),
+//   lining: L.layerGroup()
+// };
 
 let currentActiveLayer = 'gullies';
 let gullyData = [];
@@ -2554,7 +2555,7 @@ function createLayerControlContainer() {
     </div>
   `;
   document.body.appendChild(container);
-  initializeLayerVisibility(); // Ensure initial state is correct
+  // initializeLayerVisibility(); // Removed from here
 }
 
 function toggleLayerControl() {
