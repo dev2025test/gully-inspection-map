@@ -1,3 +1,9 @@
+require('dotenv').config();
+
+const firebase = require('firebase/compat/app');
+require('firebase/compat/auth');
+require('firebase/compat/database');
+
 const admin = require('firebase-admin');
 const serviceAccount = require('./serviceAccountKey.json');
 

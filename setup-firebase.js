@@ -116,6 +116,3 @@ service firebase.storage {
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'operator');
     }
-  }
-}
-`; 
