@@ -657,29 +657,17 @@
       <input type="file" id="importFile" accept=".kml" style="display:none;" onchange="handleKMLImport(event)">
       <button class="toolbar-button" onclick="exportData()">💾 Export CSV</button>
       <button class="toolbar-button" onclick="saveGullyData()">💾 Backup</button>
-      <button class="toolbar-button" onclick="showLayerControl()">🗺️ Layers</button>
-    </div>
-
-    <div class="button-group admin-only">
-      <button class="toolbar-button" onclick="enableEditMode()">✏️ Edit</button>
-      <button class="toolbar-button" onclick="enableAddMode()">➕ Add New</button>
-      <button class="toolbar-button" onclick="enableDeleteMode()">🗑️ Delete</button>
-    </div>
-
-    <div class="button-group">
-      <button class="toolbar-button admin-only" onclick="showUserManagement()">👥 Users</button>
-      <button class="toolbar-button" onclick="logout()">🚪 Logout</button>
     </div>
   </div>
-</div>
 
-<!-- Layer buttons in the bottom panel -->
-<div class="bottom-panel">
-  <button class="layer-button active" onclick="toggleLayer('gullies')">🔵 Gullies</button>
-  <button class="layer-button" onclick="toggleLayer('playgrounds')">🎮 Playgrounds</button>
-  <button class="layer-button" onclick="toggleLayer('walkways')">🚶 Walkways</button>
-  <button class="layer-button" onclick="toggleLayer('signage')">🚸 Signage</button>
-  <button class="layer-button" onclick="toggleLayer('lining')">🎨 Road Lining</button>
+  <!-- Keep the bottom panel with layer buttons -->
+  <div class="bottom-panel">
+    <button class="layer-button active" onclick="toggleLayer('gullies')">🔵 Gullies</button>
+    <button class="layer-button" onclick="toggleLayer('playgrounds')">🎮 Playgrounds</button>
+    <button class="layer-button" onclick="toggleLayer('walkways')">🚶 Walkways</button>
+    <button class="layer-button" onclick="toggleLayer('signage')">🚸 Signage</button>
+    <button class="layer-button" onclick="toggleLayer('lining')">🎨 Road Lining</button>
+  </div>
 </div>
 
 <script>
@@ -1053,33 +1041,29 @@ function toggleLayer(layerName) {
     const layer = window.dataLayers[layerName];
     const isVisible = window.map.hasLayer(layer);
     
-    console.log('Layer visibility before toggle:', isVisible);
-    
+    // Toggle the clicked layer
     if (!isVisible) {
       layer.addTo(window.map);
       currentActiveLayer = layerName;
-      console.log('Added layer to map:', layerName);
     } else {
       layer.removeFrom(window.map);
       if (currentActiveLayer === layerName) {
         currentActiveLayer = null;
       }
-      console.log('Removed layer from map:', layerName);
     }
     
-    // Update button states
+    // Update visual state of buttons
     updateLayerButtonStates();
   }
 }
 
-// Function to update button states
+// Update button states in bottom panel
 function updateLayerButtonStates() {
-  ['gullies', 'playgrounds', 'walkways', 'signage', 'lining'].forEach(layerName => {
-    const button = document.querySelector(`[onclick="toggleLayer('${layerName}')"]`);
-    if (button) {
-      const isVisible = window.map.hasLayer(window.dataLayers[layerName]);
-      button.classList.toggle('active', isVisible);
-    }
+  const buttons = document.querySelectorAll('.layer-button');
+  buttons.forEach(button => {
+    const layerName = button.onclick.toString().match(/'([^']+)'/)[1];
+    const isVisible = window.dataLayers[layerName] && window.map.hasLayer(window.dataLayers[layerName]);
+    button.classList.toggle('active', isVisible);
   });
 }
 
@@ -2468,36 +2452,8 @@ function showUserManagement() {
 
 // 4. Layer control modal for toggling layers
 function showLayerControl() {
-  if (!window.dataLayers) return;
-  const modal = document.createElement('div');
-  modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.2);z-index:2002;min-width:250px;';
-  let html = `<h3>Layer Visibility</h3><form id='layerToggleForm'>`;
-  Object.keys(window.dataLayers).forEach(layer => {
-    html += `<div style='margin-bottom:8px;'><label><input type='checkbox' data-layer='${layer}' checked> ${layer.charAt(0).toUpperCase() + layer.slice(1)}</label></div>`;
-  });
-  html += `</form><div style='text-align:right;margin-top:10px;'><button onclick='this.parentElement.parentElement.remove()' style='padding:6px 12px;border-radius:4px;'>Close</button></div>`;
-  modal.innerHTML = html;
-  document.body.appendChild(modal);
-  // Add event listeners
-  setTimeout(() => {
-    document.querySelectorAll('#layerToggleForm input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener('change', function() {
-        const layer = this.getAttribute('data-layer');
-        if (window.dataLayers[layer]) {
-          if (this.checked) {
-            window.map.addLayer(window.dataLayers[layer]);
-          } else {
-            window.map.removeLayer(window.dataLayers[layer]);
-          }
-        }
-      });
-    });
-  }, 100);
+  // This function is no longer needed
 }
-
-// Add a button to open the layer control modal in the toolbar
-// Find the toolbar-content div and add:
-// <button class="toolbar-button" onclick="showLayerControl()">🗺️ Layers</button>
 
 // Layer management
 let mapLayers = {
@@ -2513,33 +2469,29 @@ function toggleLayer(layerName) {
     const layer = window.dataLayers[layerName];
     const isVisible = window.map.hasLayer(layer);
     
-    console.log('Layer visibility before toggle:', isVisible);
-    
+    // Toggle the clicked layer
     if (!isVisible) {
       layer.addTo(window.map);
       currentActiveLayer = layerName;
-      console.log('Added layer to map:', layerName);
     } else {
       layer.removeFrom(window.map);
       if (currentActiveLayer === layerName) {
         currentActiveLayer = null;
       }
-      console.log('Removed layer from map:', layerName);
     }
     
-    // Update button states
+    // Update visual state of buttons
     updateLayerButtonStates();
   }
 }
 
-// Function to update button states
+// Update button states in bottom panel
 function updateLayerButtonStates() {
-  ['gullies', 'playgrounds', 'walkways', 'signage', 'lining'].forEach(layerName => {
-    const button = document.querySelector(`[onclick="toggleLayer('${layerName}')"]`);
-    if (button) {
-      const isVisible = window.map.hasLayer(window.dataLayers[layerName]);
-      button.classList.toggle('active', isVisible);
-    }
+  const buttons = document.querySelectorAll('.layer-button');
+  buttons.forEach(button => {
+    const layerName = button.onclick.toString().match(/'([^']+)'/)[1];
+    const isVisible = window.dataLayers[layerName] && window.map.hasLayer(window.dataLayers[layerName]);
+    button.classList.toggle('active', isVisible);
   });
 }
 
