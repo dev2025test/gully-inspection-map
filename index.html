@@ -548,46 +548,6 @@
     .layer-button:hover {
       background-color: #f0f0f0;
     }
-
-    .bottom-panel {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      padding: 10px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      display: flex;
-      gap: 10px;
-      z-index: 1000;
-      flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
-      justify-content: center;
-      max-width: 90%; /* Prevent panel from being too wide */
-    }
-
-    .layer-button {
-      padding: 8px 15px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      background: white;
-      cursor: pointer;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      transition: all 0.2s ease;
-    }
-
-    .layer-button:hover {
-      background: #f0f0f0;
-    }
-
-    .layer-button.active {
-      background: #e3f2fd;
-      border-color: #2196F3;
-      color: #1976D2;
-    }
   </style>
 </head>
 <body>
@@ -659,15 +619,6 @@
       <button class="toolbar-button" onclick="saveGullyData()">💾 Backup</button>
     </div>
   </div>
-
-  <!-- Keep the bottom panel with layer buttons -->
-  <div class="bottom-panel">
-    <button class="layer-button active" onclick="toggleLayer('gullies')">🔵 Gullies</button>
-    <button class="layer-button" onclick="toggleLayer('playgrounds')">🎮 Playgrounds</button>
-    <button class="layer-button" onclick="toggleLayer('walkways')">🚶 Walkways</button>
-    <button class="layer-button" onclick="toggleLayer('signage')">🚸 Signage</button>
-    <button class="layer-button" onclick="toggleLayer('lining')">🎨 Road Lining</button>
-  </div>
 </div>
 
 <script>
@@ -718,7 +669,8 @@ const USER_CONFIG = {
         canExport: true,
         canReset: true,
         canManageUsers: true
-      }
+      },
+      tempPassword: 'TempAman2024!'
     },
     {
       email: 'ronan_oconnor@corkcity.ie',
