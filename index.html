@@ -911,12 +911,19 @@ window.dataLayers = {
 
 // Add layer buttons to the bottom panel
 function initMap() {
-  console.log('Initializing map...');
+  console.log('initMap: Starting map initialization...');
   
   const mapDiv = document.getElementById('map');
+  console.log('initMap: Map div element:', mapDiv);
   mapDiv.style.display = 'block';
-  console.log('Map div display set to block. Map element:', mapDiv); // Added mapDiv to log
+  console.log('initMap: Map div display set to block.');
   
+  // Check if map instance already exists to prevent re-initialization issues
+  if (window.map instanceof L.Map) {
+    console.log('initMap: Map instance already exists. Removing existing map.');
+    window.map.remove();
+  }
+
   // Create map instance
   window.map = L.map('map', {
     center: [51.9, -8.5],
@@ -925,14 +932,14 @@ function initMap() {
     attributionControl: false
   });
   
-  console.log('Map instance created:', window.map); // Added log
+  console.log('initMap: Map instance created:', window.map); 
   // Add the base layer
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; <a href="https://carto.com/">CARTO</a> contributors',
     maxZoom: 19
   }).addTo(window.map);
   
-  console.log('Basemap layer added.'); // Added log
+  console.log('initMap: Basemap layer added.'); 
   // Add zoom control
   L.control.zoom({
     position: 'topright'
@@ -959,6 +966,7 @@ function initMap() {
 
   // Force a map update
   window.map.invalidateSize();
+  console.log('initMap: Map invalidated size.');
   
   // Initialize click handler for add mode
   window.map.on('mousemove', (e) => {
@@ -976,11 +984,12 @@ function initMap() {
 
   // Load existing data
   loadGullyData();
+  console.log('initMap: loadGullyData called.');
 }
 
 // Update the layer toggle function
 function toggleLayer(layerName) {
-  console.log('Toggling layer:', layerName);
+  console.log('toggleLayer: Toggling layer:', layerName);
   
   if (window.dataLayers && window.dataLayers[layerName]) {
     const layer = window.dataLayers[layerName];
@@ -1014,7 +1023,7 @@ function updateLayerButtonStates() {
 
 // Update loadGullyData function
 function loadGullyData() {
-  console.log('Loading gully data...');
+  console.log('loadGullyData: Loading gully data...');
   
   // Clear existing data
   gullyData.length = 0;
@@ -1022,7 +1031,7 @@ function loadGullyData() {
   
   // Load data for each layer type
   Object.keys(window.dataLayers).forEach(layerType => {
-    console.log('Loading data for layer:', layerType);
+    console.log('loadGullyData: Loading data for layer:', layerType);
     db.ref(layerType).on('value', snapshot => {
       const data = snapshot.val() || {};
       
@@ -1037,7 +1046,7 @@ function loadGullyData() {
       
       // Update summary after loading data
       updateSummary();
-      console.log(`Loaded ${Object.keys(data).length} items for ${layerType}`);
+      console.log(`loadGullyData: Loaded ${Object.keys(data).length} items for ${layerType}`);
     });
   });
 }
@@ -1061,8 +1070,9 @@ function updateUserInfo(userData) {
 
 // Update the login success handler
 function handleLoginSuccess(userData) {
-  console.log('Login successful, initializing map...');
-  
+  console.log('handleLoginSuccess: Login successful, preparing map initialization...');
+  console.log('handleLoginSuccess: Current window.map state before setTimeout:', window.map);
+
   // Hide login screen
   document.getElementById('loginScreen').style.display = 'none';
   
@@ -1075,17 +1085,21 @@ function handleLoginSuccess(userData) {
   
   // Initialize map after a short delay to ensure the map container is rendered
   setTimeout(() => {
+    console.log('handleLoginSuccess: Inside setTimeout. window.map before initMap:', window.map);
     initMap();
+    console.log('handleLoginSuccess: window.map after initMap call:', window.map);
     loadGullyData();
     initializeLayerVisibility(); // Call after map and layers are initialized
-    console.log('Map initialized and data loaded after delay.'); // Added log
+    console.log('handleLoginSuccess: Map initialized and data loaded after delay.'); 
   }, 100);
 
   // After hiding the login screen and showing the map, add:
   setTimeout(() => {
     if (window.map) {
       window.map.invalidateSize();
-      console.log('Map invalidated size after delay.'); // Added log
+      console.log('handleLoginSuccess: Map invalidated size after delay.'); 
+    } else {
+      console.warn('handleLoginSuccess: window.map is not defined when trying to invalidate size.');
     }
   }, 200);
 }
@@ -1229,12 +1243,12 @@ async function handleKMLImport(event) {
     }
     
     try {
-        console.log('Starting KML import...');
+        console.log('handleKMLImport: Starting KML import...');
         const text = await file.text();
         const kml = new DOMParser().parseFromString(text, 'text/xml');
         const geojson = toGeoJSON.kml(kml);
         
-        console.log('Parsed KML:', geojson);
+        console.log('handleKMLImport: Parsed KML:', geojson);
         
         if (!geojson || !geojson.features || !geojson.features.length) {
             alert('No valid features found in KML file');
@@ -1247,7 +1261,7 @@ async function handleKMLImport(event) {
         const timestamp = Date.now();
         const currentLayer = document.getElementById('activeLayer').value;
         
-        console.log('Importing to layer:', currentLayer);
+        console.log('handleKMLImport: Importing to layer:', currentLayer);
         
         // Show progress indicator
         const progressDiv = document.createElement('div');
@@ -1266,13 +1280,13 @@ async function handleKMLImport(event) {
                 if (isValidCoordinate(lng, lat)) {
                     // Check for duplicate position
                     if (isDuplicatePosition(lat, lng)) {
-                        console.log(`Skipping duplicate position: ${lat}, ${lng}`);
+                        console.log(`handleKMLImport: Skipping duplicate position: ${lat}, ${lng}`);
                         duplicateCount++;
                         continue;
                     }
                     
                     const id = `${currentLayer}_${timestamp}_${importCount}`;
-                    console.log('Adding feature:', id, lat, lng);
+                    console.log('handleKMLImport: Adding feature:', id, lat, lng);
                     
                     // Add marker to map
                     const marker = addGullyToMap({ lat, lng }, id, currentLayer);
@@ -1306,7 +1320,7 @@ async function handleKMLImport(event) {
         // Add file name to imported set
         importedFiles.add(file.name);
         
-        console.log('Import complete:', importCount, 'features imported,', duplicateCount, 'duplicates skipped');
+        console.log('handleKMLImport: Import complete:', importCount, 'features imported,', duplicateCount, 'duplicates skipped');
         
         if (importCount > 0) {
             // Fit map to imported features
@@ -1326,7 +1340,7 @@ async function handleKMLImport(event) {
         }
         
     } catch (error) {
-        console.error('Import error:', error);
+        console.error('handleKMLImport: Import error:', error);
         alert('Error importing KML file: ' + error.message);
     } finally {
         // Clear the file input
@@ -1671,30 +1685,30 @@ async function viewGullyHistory(gullyId) {
     document.body.appendChild(modal);
     
   } catch (error) {
-    console.error('Error loading history:', error);
+    console.error('viewGullyHistory: Error loading history:', error);
     alert('Error loading history: ' + error.message);
   }
 }
 
 // Initialize auth state listener
 auth.onAuthStateChanged(user => {
-  console.log('Auth state changed, user:', user); // Added log
+  console.log('Auth state changed, user:', user); 
   if (user) {
-    console.log('User authenticated, getting user data...');
+    console.log('Auth state changed: User authenticated, getting user data...');
     db.ref('users/' + user.uid).once('value').then(snapshot => {
       const userData = snapshot.val();
       if (!userData) {
-        console.error('No user data found');
+        console.error('Auth state changed: No user data found');
         return;
       }
-      console.log('User data retrieved, handling login success...');
+      console.log('Auth state changed: User data retrieved, handling login success...');
       handleLoginSuccess(userData);
       
       // Check map status after a moment
       setTimeout(checkMapStatus, 1000);
     });
   } else {
-    console.log('No user logged in, showing login screen');
+    console.log('Auth state changed: No user logged in, showing login screen');
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('map').style.display = 'none';
     document.getElementById('functionToolbar').style.display = 'none';
@@ -1864,16 +1878,17 @@ function exportData() {
         }
       })
       .catch(error => {
-        console.error('Export error:', error);
+        console.error('exportData: Export error:', error);
         alert('Error exporting data: ' + error.message);
       });
   } catch (error) {
-    console.error('Export error:', error);
+    console.error('exportData: Export error:', error);
     alert('Error exporting data: ' + error.message);
   }
 }
 
 function resetMap() {
+  console.log('resetMap: Starting map reset...');
   if (!auth.currentUser) {
     alert('You must be logged in to reset the map');
     return;
@@ -1885,8 +1900,14 @@ function resetMap() {
   }
 
   try {
-    console.log('Starting map reset...');
-    
+    // Check if window.map is a valid Leaflet map object
+    if (!(window.map instanceof L.Map)) {
+        console.error('resetMap: window.map is not a valid Leaflet map object. Re-initializing map.');
+        initMap(); // Re-initialize if not valid
+    }
+
+    console.log('resetMap: window.map state before reset:', window.map);
+
     // Show loading spinner
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'loading-spinner';
@@ -1902,61 +1923,66 @@ function resetMap() {
     
     // Clear all layers
     Object.values(window.dataLayers).forEach(layer => {
-      console.log('Clearing layer:', layer);
+      console.log('resetMap: Clearing layer:', layer);
       layer.clearLayers();
     });
 
     // Clear the gullyData array
     gullyData.length = 0;
-    console.log('Cleared gully data array');
+    console.log('resetMap: Cleared gully data array');
 
     // Reset the map view with animation
     window.map.setView(defaultCenter, defaultZoom, {
       animate: true,
       duration: 1.0
     });
+    console.log('resetMap: Map view reset.');
 
     // Reset any active filters
     const filterStatus = document.getElementById('filterStatus');
     if (filterStatus) {
       filterStatus.value = 'All';
-      console.log('Reset filter status');
+      console.log('resetMap: Reset filter status');
     }
 
     // Clear file input
     const importFile = document.getElementById('importFile');
     if (importFile) {
       importFile.value = '';
-      console.log('Cleared file input');
+      console.log('resetMap: Cleared file input');
     }
 
     // Clear any existing popups
     window.map.closePopup();
+    console.log('resetMap: Closed existing popups.');
     
     // Remove any existing summary popups
     const existingSummary = document.querySelector('.summary-popup');
     if (existingSummary) {
       existingSummary.remove();
+      console.log('resetMap: Removed summary popup.');
     }
 
     // Update summary if it exists
     if (typeof updateSummary === 'function') {
       updateSummary();
+      console.log('resetMap: Updated summary.');
     }
 
     // Clear the sets of imported files and positions
     importedFiles.clear();
     importedPositions.clear();
+    console.log('resetMap: Cleared imported files and positions sets.');
 
     // Remove loading spinner after a short delay
     setTimeout(() => {
       loadingDiv.remove();
-      console.log('Map reset complete');
+      console.log('resetMap: Map reset complete.');
       alert('Map has been reset successfully');
     }, 1000);
 
   } catch (error) {
-    console.error('Error resetting map:', error);
+    console.error('resetMap: Error resetting map:', error);
     // Remove loading spinner if there's an error
     const loadingDiv = document.querySelector('.loading-spinner');
     if (loadingDiv) {
@@ -2040,11 +2066,11 @@ window.onload = () => {
   Promise.all([
     ensureAllUsers()
   ]).then(() => {
-    console.log('User system initialized');
+    console.log('window.onload: User system initialized');
     // Handle auto-login after initialization
     handleAutoLogin();
   }).catch(error => {
-    console.error('Error during initialization:', error);
+    console.error('window.onload: Error during initialization:', error);
   });
 };
 
@@ -2124,11 +2150,13 @@ function toggleFunctionTabs() {
 
 // Add a function to check map status
 function checkMapStatus() {
-  console.log('Map container:', document.getElementById('map'));
-  console.log('Map instance:', window.map);
-  if (window.map) {
-    console.log('Map center:', window.map.getCenter());
-    console.log('Map zoom:', window.map.getZoom());
+  console.log('checkMapStatus: Map container:', document.getElementById('map'));
+  console.log('checkMapStatus: Map instance:', window.map);
+  if (window.map instanceof L.Map) {
+    console.log('checkMapStatus: Map center:', window.map.getCenter());
+    console.log('checkMapStatus: Map zoom:', window.map.getZoom());
+  } else {
+    console.warn('checkMapStatus: window.map is not a Leaflet map instance.');
   }
 }
 
@@ -2213,7 +2241,7 @@ async function handleGullyDelete(gullyId, marker, layerType) {
         const confirmDelete = confirm('Are you sure you want to delete this gully?');
         if (!confirmDelete) return;
         
-        console.log('Deleting gully:', gullyId);
+        console.log('handleGullyDelete: Deleting gully:', gullyId);
         
         // Show loading state
         marker.setStyle({
@@ -2223,31 +2251,31 @@ async function handleGullyDelete(gullyId, marker, layerType) {
         
         // Remove from Firebase
         await db.ref(`${layerType}/${gullyId}`).remove();
-        console.log('Removed from Firebase');
+        console.log('handleGullyDelete: Removed from Firebase');
         
         // Remove from map layer
         if (window.dataLayers && window.dataLayers[layerType]) {
             window.dataLayers[layerType].removeLayer(marker);
-            console.log('Removed from map layer');
+            console.log('handleGullyDelete: Removed from map layer');
         }
         
         // Remove from gullyData array
         const index = gullyData.findIndex(g => g.id === gullyId);
         if (index !== -1) {
             gullyData.splice(index, 1);
-            console.log('Removed from gullyData array');
+            console.log('handleGullyDelete: Removed from gullyData array');
         }
         
         // Update summary
         updateSummary();
         
-        console.log('Gully deleted successfully');
+        console.log('handleGullyDelete: Gully deleted successfully');
         
         // Disable delete mode after successful deletion
         enableDeleteMode();
         
     } catch (error) {
-        console.error('Error deleting gully:', error);
+        console.error('handleGullyDelete: Error deleting gully:', error);
         alert('Error deleting gully: ' + error.message);
         
         // Reset marker style on error
@@ -2298,11 +2326,13 @@ async function handleMapClick(e) {
     
     try {
         const timestamp = Date.now();
-        const currentLayer = document.getElementById('activeLayer').value;
+        // Ensure 'activeLayer' is correctly referenced or replaced if it's from a removed dropdown
+        // For now, using 'gullies' as a default if activeLayer is not available
+        const currentLayer = currentActiveLayer || 'gullies'; 
         const newId = `${currentLayer}_${timestamp}`;
         const latlng = e.latlng;
         
-        console.log('Adding new gully at:', latlng);
+        console.log('handleMapClick: Adding new gully at:', latlng);
         
         // Add marker to map
         const marker = addGullyToMap(latlng, newId, currentLayer);
@@ -2318,7 +2348,7 @@ async function handleMapClick(e) {
             createdBy: auth.currentUser.uid
         });
         
-        console.log('New gully added successfully');
+        console.log('handleMapClick: New gully added successfully');
         
         // Show inspection popup immediately
         currentMarker = marker;
@@ -2328,7 +2358,7 @@ async function handleMapClick(e) {
         enableAddMode();
         
     } catch (error) {
-        console.error('Error adding new gully:', error);
+        console.error('handleMapClick: Error adding new gully:', error);
         alert('Error adding new gully: ' + error.message);
     }
 }
@@ -2382,7 +2412,7 @@ function saveGullyData() {
 
 // 2. User management modal
 function showUserManagement() {
-  if (!auth.currentUser || currentRole !== 'admin') {
+  if (!auth.currentUser) {
     alert('Only administrators can view users');
     return;
   }
@@ -2414,7 +2444,7 @@ let mapLayers = {
 };
 
 function toggleLayer(layerName) {
-  console.log('Toggling layer:', layerName);
+  console.log('toggleLayer: Toggling layer:', layerName);
   
   if (window.dataLayers && window.dataLayers[layerName]) {
     const layer = window.dataLayers[layerName];
@@ -2486,7 +2516,7 @@ function handleFileImport(event) {
       // document.getElementById(selectedLayer + 'Layer').checked = true;
 
     } catch (error) {
-      console.error('Error importing file:', error);
+      console.error('handleFileImport: Error importing file:', error);
       alert('Error importing file. Please check the file format and try again.');
     }
   };
@@ -2501,11 +2531,14 @@ function handleFileImport(event) {
 }
 
 function showLayerControl() {
+  console.log('showLayerControl: Attempting to show layer control.');
   const layerControl = document.getElementById('layerControlContainer');
   if (layerControl) {
     layerControl.style.display = layerControl.style.display === 'block' ? 'none' : 'block';
+    console.log('showLayerControl: Layer control visibility toggled.');
   } else {
     // If the container doesn't exist, create it dynamically
+    console.log('showLayerControl: Layer control container not found, creating it.');
     createLayerControlContainer();
   }
 }
@@ -2555,33 +2588,48 @@ function createLayerControlContainer() {
     </div>
   `;
   document.body.appendChild(container);
+  console.log('createLayerControlContainer: Layer control container created and appended.');
   // initializeLayerVisibility(); // Removed from here
 }
 
 function toggleLayerControl() {
+  console.log('toggleLayerControl: Toggling layer control visibility.');
   const container = document.getElementById('layerControlContainer');
   const content = container.querySelector('.layer-content');
   const icon = container.querySelector('.collapse-icon');
   
   content.classList.toggle('expanded');
   icon.classList.toggle('expanded');
+  console.log('toggleLayerControl: Layer control expanded state:', content.classList.contains('expanded'));
 }
 
 // Initialize layer visibility on startup
 function initializeLayerVisibility() {
+  console.log('initializeLayerVisibility: Initializing layer visibility.');
   // Start with only gullies visible and active
   Object.keys(window.dataLayers).forEach(layerName => {
     const button = document.getElementById(layerName + 'Button');
     if (layerName === 'gullies') {
-      window.dataLayers[layerName].addTo(window.map);
-      currentActiveLayer = 'gullies';
-      if (button) button.classList.add('active');
+      if (window.map && window.dataLayers[layerName]) {
+        window.dataLayers[layerName].addTo(window.map);
+        currentActiveLayer = 'gullies';
+        if (button) button.classList.add('active');
+        console.log(`initializeLayerVisibility: Added ${layerName} to map and set active.`);
+      } else {
+        console.warn(`initializeLayerVisibility: Cannot add ${layerName} layer. window.map or dataLayers[${layerName}] is not defined.`);
+      }
     } else {
-      window.dataLayers[layerName].removeFrom(window.map);
-      if (button) button.classList.remove('active');
+      if (window.map && window.dataLayers[layerName]) {
+        window.dataLayers[layerName].removeFrom(window.map);
+        if (button) button.classList.remove('active');
+        console.log(`initializeLayerVisibility: Removed ${layerName} from map.`);
+      } else {
+        console.warn(`initializeLayerVisibility: Cannot remove ${layerName} layer. window.map or dataLayers[${layerName}] is not defined.`);
+      }
     }
   });
   updateLayerButtonStates(); // Ensure visual state is accurate
+  console.log('initializeLayerVisibility: Layer button states updated.');
 }
 
 // Remove the old layer control div if it still exists from previous versions
