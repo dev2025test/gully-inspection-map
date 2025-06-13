@@ -2403,11 +2403,6 @@ function showUserManagement() {
   });
 }
 
-// 4. Layer control modal for toggling layers
-function showLayerControl() {
-  // This function is no longer needed
-}
-
 // Layer management
 let mapLayers = {
   gullies: { visible: true, data: null },
@@ -2555,7 +2550,6 @@ function initializeLayerVisibility() {
 }
 
 // Add to the existing initMap function
-const originalInitMap = window.initMap;
 window.initMap = function() {
   originalInitMap.call(this);
   initializeLayerVisibility();
