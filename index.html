@@ -95,6 +95,46 @@
       box-shadow: 0 0 4px rgba(0,0,0,0.3);
       margin-left: 10px;
       margin-top: 10px;
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      transition: transform 0.3s ease;
+    }
+    .layer-control.hidden {
+      transform: translateX(-120%);
+    }
+    .toggle-layers {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 999;
+      background: white;
+      padding: 8px;
+      border-radius: 4px;
+      box-shadow: 0 0 4px rgba(0,0,0,0.3);
+      cursor: pointer;
+      display: none;
+    }
+    .layer-control.hidden + .toggle-layers {
+      display: block;
+    }
+    .layer-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    .layer-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .layer-checkbox {
+      margin: 0;
     }
     .layer-control select {
       padding: 5px;
@@ -542,6 +582,27 @@
     <p id="loginError" style="color:red;"></p>
   </div>
 </div>
+
+<div class="layer-control" id="layerControl">
+  <div class="layer-item">
+    <input type="checkbox" id="gulliesLayer" class="layer-checkbox" checked>
+    <div class="layer-icon">🔵</div>
+    <label for="gulliesLayer">Gullies</label>
+  </div>
+  <div class="layer-item">
+    <input type="checkbox" id="playgroundsLayer" class="layer-checkbox">
+    <div class="layer-icon">🎮</div>
+    <label for="playgroundsLayer">Playgrounds</label>
+  </div>
+  <div class="layer-item">
+    <input type="checkbox" id="walkwaysLayer" class="layer-checkbox">
+    <div class="layer-icon">🚶</div>
+    <label for="walkwaysLayer">Walkways</label>
+  </div>
+  <button onclick="toggleLayerControl()" style="margin-top: 10px; width: 100%;">Hide</button>
+</div>
+
+<div class="toggle-layers" onclick="toggleLayerControl()">🗺️ Show Layers</div>
 
 <div class="bottom-toolbar" id="functionToolbar">
   <div class="toolbar-header" onclick="toggleToolbar()">
@@ -2365,6 +2426,99 @@ function showLayerControl() {
 // Add a button to open the layer control modal in the toolbar
 // Find the toolbar-content div and add:
 // <button class="toolbar-button" onclick="showLayerControl()">🗺️ Layers</button>
+
+// Layer management
+let mapLayers = {
+  gullies: { visible: true, data: null },
+  playgrounds: { visible: false, data: null },
+  walkways: { visible: false, data: null }
+};
+
+function toggleLayer(layerName) {
+  const layer = mapLayers[layerName];
+  layer.visible = !layer.visible;
+  
+  if (layer.data) {
+    if (layer.visible) {
+      layer.data.addTo(map);
+    } else {
+      layer.data.remove();
+    }
+  }
+}
+
+document.getElementById('gulliesLayer').addEventListener('change', function(e) {
+  toggleLayer('gullies');
+});
+
+document.getElementById('playgroundsLayer').addEventListener('change', function(e) {
+  toggleLayer('playgrounds');
+});
+
+document.getElementById('walkwaysLayer').addEventListener('change', function(e) {
+  toggleLayer('walkways');
+});
+
+// Modify the import function to handle different layer types
+function handleFileImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Determine which layer is currently selected
+  let selectedLayer = null;
+  if (document.getElementById('playgroundsLayer').checked) selectedLayer = 'playgrounds';
+  else if (document.getElementById('walkwaysLayer').checked) selectedLayer = 'walkways';
+  else if (document.getElementById('gulliesLayer').checked) selectedLayer = 'gullies';
+
+  if (!selectedLayer) {
+    alert('Please select a layer before importing data');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const extension = file.name.split('.').pop().toLowerCase();
+      let geoJsonData;
+
+      if (extension === 'kml') {
+        const kml = new DOMParser().parseFromString(e.target.result, 'text/xml');
+        geoJsonData = toGeoJSON.kml(kml);
+      } else if (extension === 'geojson') {
+        geoJsonData = JSON.parse(e.target.result);
+      } else {
+        throw new Error('Unsupported file format');
+      }
+
+      // Remove existing layer if it exists
+      if (mapLayers[selectedLayer].data) {
+        mapLayers[selectedLayer].data.remove();
+      }
+
+      // Create and add the new layer
+      mapLayers[selectedLayer].data = L.geoJSON(geoJsonData).addTo(map);
+      mapLayers[selectedLayer].visible = true;
+      document.getElementById(selectedLayer + 'Layer').checked = true;
+
+    } catch (error) {
+      console.error('Error importing file:', error);
+      alert('Error importing file. Please check the file format and try again.');
+    }
+  };
+
+  if (file.name.endsWith('.kml')) {
+    reader.readAsText(file);
+  } else if (file.name.endsWith('.geojson')) {
+    reader.readAsText(file);
+  } else {
+    alert('Please select a KML or GeoJSON file');
+  }
+}
+
+function toggleLayerControl() {
+  const control = document.getElementById('layerControl');
+  control.classList.toggle('hidden');
+}
 </script>
 </body>
 </html>
