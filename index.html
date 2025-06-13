@@ -627,18 +627,6 @@
     </div>
 
     <div class="button-group">
-      <button id="gulliesLayerBtn" class="toolbar-button layer-button active" onclick="toggleLayerFromToolbar('gullies')">
-        🔵 Gullies
-      </button>
-      <button id="playgroundsLayerBtn" class="toolbar-button layer-button" onclick="toggleLayerFromToolbar('playgrounds')">
-        🎮 Playgrounds
-      </button>
-      <button id="walkwaysLayerBtn" class="toolbar-button layer-button" onclick="toggleLayerFromToolbar('walkways')">
-        🚶 Walkways
-      </button>
-    </div>
-
-    <div class="button-group">
       <button class="toolbar-button admin-only" onclick="showUserManagement()">👥 Users</button>
       <button class="toolbar-button" onclick="logout()">🚪 Logout</button>
     </div>
@@ -2532,21 +2520,27 @@ document.querySelector('.layer-control')?.remove();
 
 // Update the layer management code
 function toggleLayerFromToolbar(layerName) {
-  const button = document.getElementById(layerName + 'LayerBtn');
+  const button = document.getElementById(layerName + 'Button');
   const isActive = button.classList.toggle('active');
   
   if (window.dataLayers && window.dataLayers[layerName]) {
     if (isActive) {
       window.dataLayers[layerName].addTo(window.map);
       currentActiveLayer = layerName;
+      
+      // Deactivate other layers
+      ['gullies', 'playgrounds', 'walkways'].forEach(layer => {
+        if (layer !== layerName) {
+          const otherButton = document.getElementById(layer + 'Button');
+          otherButton.classList.remove('active');
+          window.dataLayers[layer].removeFrom(window.map);
+        }
+      });
     } else {
       window.dataLayers[layerName].removeFrom(window.map);
-      // If this was the current active layer, switch to another visible layer
+      // If this was the current active layer, try to switch to another layer
       if (currentActiveLayer === layerName) {
-        const activeButtons = document.querySelectorAll('.layer-button.active');
-        if (activeButtons.length > 0) {
-          currentActiveLayer = activeButtons[0].id.replace('LayerBtn', '');
-        }
+        currentActiveLayer = null;
       }
     }
   }
@@ -2555,9 +2549,9 @@ function toggleLayerFromToolbar(layerName) {
 // Initialize layer visibility on startup
 function initializeLayerVisibility() {
   // Start with only gullies visible
-  document.getElementById('gulliesLayerBtn').classList.add('active');
+  document.getElementById('gulliesButton').classList.add('active');
   ['playgrounds', 'walkways'].forEach(layer => {
-    const button = document.getElementById(layer + 'LayerBtn');
+    const button = document.getElementById(layer + 'Button');
     button.classList.remove('active');
     if (window.dataLayers && window.dataLayers[layer]) {
       window.dataLayers[layer].removeFrom(window.map);
