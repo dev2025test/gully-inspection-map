@@ -952,13 +952,13 @@ function initMap() {
   }).addTo(window.map);
 
   // Initialize layer groups
-  window.dataLayers = {
-    gullies: L.layerGroup(),
-    playgrounds: L.layerGroup(),
-    walkways: L.layerGroup(),
-    signage: L.layerGroup(),
-    lining: L.layerGroup()
-  };
+  // Removed: window.dataLayers = {
+  //   gullies: L.layerGroup(),
+  //   playgrounds: L.layerGroup(),
+  //   walkways: L.layerGroup(),
+  //   signage: L.layerGroup(),
+  //   lining: L.layerGroup()
+  // };
 
   // Add gullies layer by default
   window.dataLayers.gullies.addTo(window.map);
