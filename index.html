@@ -837,9 +837,8 @@ function login(isAutoLogin = false) {
       // Setup UI with proper privileges
       setupUIForRole(userData.role, userData.adminPrivileges);
       
-      initMap();
-      loadGullyData();
-      setupInactivityTracking();
+      // Removed direct initMap, loadGullyData, and setupInactivityTracking calls here.
+      // These are now handled by handleLoginSuccess which is called by auth.onAuthStateChanged.
       
       // Save credentials if remember me is checked
       if (rememberMe) {
@@ -866,6 +865,11 @@ function login(isAutoLogin = false) {
         document.getElementById("loginScreen").style.opacity = "1";
       }
     });
+}
+
+// Placeholder for setupInactivityTracking if not defined elsewhere
+function setupInactivityTracking() {
+  console.log('setupInactivityTracking function called (placeholder).');
 }
 
 function logout() {
