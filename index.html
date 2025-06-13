@@ -1259,7 +1259,7 @@ async function handleKMLImport(event) {
         let importCount = 0;
         let duplicateCount = 0;
         const timestamp = Date.now();
-        const currentLayer = document.getElementById('activeLayer').value;
+        const currentLayer = currentActiveLayer || 'gullies'; // Use global currentActiveLayer or default
         
         console.log('handleKMLImport: Importing to layer:', currentLayer);
         
@@ -1923,7 +1923,7 @@ function resetMap() {
     
     // Clear all layers
     Object.values(window.dataLayers).forEach(layer => {
-      console.log('resetMap: Clearing layer:', layer);
+      console.log(`resetMap: Attempting to clear layer: ${layer.id || "unknown"}`);
       layer.clearLayers();
     });
 
