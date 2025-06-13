@@ -90,41 +90,28 @@
     }
     .layer-control {
       background: white;
-      padding: 10px;
+      padding: 15px;
       border-radius: 4px;
-      box-shadow: 0 0 4px rgba(0,0,0,0.3);
-      margin-left: 10px;
-      margin-top: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       position: absolute;
       top: 10px;
-      left: 10px;
+      right: 10px;
       z-index: 1000;
-      transition: transform 0.3s ease;
-    }
-    .layer-control.hidden {
-      transform: translateX(-120%);
-    }
-    .toggle-layers {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 999;
-      background: white;
-      padding: 8px;
-      border-radius: 4px;
-      box-shadow: 0 0 4px rgba(0,0,0,0.3);
-      cursor: pointer;
-      display: none;
-    }
-    .layer-control.hidden + .toggle-layers {
-      display: block;
+      min-width: 200px;
     }
     .layer-item {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 8px;
+      border-radius: 4px;
+      background: #f8f8f8;
       cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .layer-item:hover {
+      background: #f0f0f0;
     }
     .layer-icon {
       width: 24px;
@@ -132,9 +119,18 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 18px;
     }
     .layer-checkbox {
+      width: 18px;
+      height: 18px;
       margin: 0;
+      cursor: pointer;
+    }
+    .layer-item label {
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
     }
     .layer-control select {
       padding: 5px;
@@ -599,7 +595,6 @@
     <div class="layer-icon">🚶</div>
     <label for="walkwaysLayer">Walkways</label>
   </div>
-  <button onclick="toggleLayerControl()" style="margin-top: 10px; width: 100%;">Hide</button>
 </div>
 
 <div class="toggle-layers" onclick="toggleLayerControl()">🗺️ Show Layers</div>
@@ -634,17 +629,6 @@
       <button class="toolbar-button" onclick="enableEditMode()">✏️ Edit</button>
       <button class="toolbar-button" onclick="enableAddMode()">➕ Add New</button>
       <button class="toolbar-button" onclick="enableDeleteMode()">🗑️ Delete</button>
-    </div>
-
-    <div class="button-group">
-      <select id="activeLayer" class="toolbar-button">
-        <option value="gullies">🔵 Gullies</option>
-        <option value="signage">🚸 Signage</option>
-        <option value="playgrounds">🎮 Playgrounds</option>
-        <option value="parks">🌳 Parks</option>
-        <option value="walkways">🚶 Walkways</option>
-        <option value="lining">🎨 Lining</option>
-      </select>
     </div>
 
     <div class="button-group">
@@ -984,12 +968,21 @@ function initMap() {
   // Initialize layer groups
   window.dataLayers = {
     gullies: L.layerGroup().addTo(window.map),
-    signage: L.layerGroup().addTo(window.map),
-    playgrounds: L.layerGroup().addTo(window.map),
-    parks: L.layerGroup().addTo(window.map),
-    walkways: L.layerGroup().addTo(window.map),
-    lining: L.layerGroup().addTo(window.map)
+    playgrounds: L.layerGroup(),  // Don't add to map by default
+    walkways: L.layerGroup()      // Don't add to map by default
   };
+  
+  // Set initial layer visibility based on checkboxes
+  document.querySelectorAll('.layer-checkbox').forEach(checkbox => {
+    const layerName = checkbox.id.replace('Layer', '');
+    if (window.dataLayers[layerName]) {
+      if (checkbox.checked) {
+        window.dataLayers[layerName].addTo(window.map);
+      } else {
+        window.dataLayers[layerName].removeFrom(window.map);
+      }
+    }
+  });
   
   // Force a map update
   window.map.invalidateSize();
@@ -998,17 +991,17 @@ function initMap() {
   
   // Initialize click handler for add mode
   window.map.on('mousemove', (e) => {
-      if (addMode) {
-          // Show coordinates in a tooltip
-          const tooltip = document.getElementById('add-tooltip') || createTooltip();
-          tooltip.style.display = 'block';
-          tooltip.style.left = (e.originalEvent.pageX + 10) + 'px';
-          tooltip.style.top = (e.originalEvent.pageY + 10) + 'px';
-          tooltip.textContent = `Lat: ${e.latlng.lat.toFixed(6)}, Lng: ${e.latlng.lng.toFixed(6)}`;
-      } else {
-          const tooltip = document.getElementById('add-tooltip');
-          if (tooltip) tooltip.style.display = 'none';
-      }
+    if (addMode) {
+      // Show coordinates in a tooltip
+      const tooltip = document.getElementById('add-tooltip') || createTooltip();
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.originalEvent.pageX + 10) + 'px';
+      tooltip.style.top = (e.originalEvent.pageY + 10) + 'px';
+      tooltip.textContent = `Lat: ${e.latlng.lat.toFixed(6)}, Lng: ${e.latlng.lng.toFixed(6)}`;
+    } else {
+      const tooltip = document.getElementById('add-tooltip');
+      if (tooltip) tooltip.style.display = 'none';
+    }
   });
 }
 
@@ -2435,27 +2428,33 @@ let mapLayers = {
 };
 
 function toggleLayer(layerName) {
-  const layer = mapLayers[layerName];
-  layer.visible = !layer.visible;
+  const checkbox = document.getElementById(layerName + 'Layer');
+  const isVisible = checkbox.checked;
   
-  if (layer.data) {
-    if (layer.visible) {
-      layer.data.addTo(map);
+  if (window.dataLayers && window.dataLayers[layerName]) {
+    if (isVisible) {
+      window.dataLayers[layerName].addTo(window.map);
     } else {
-      layer.data.remove();
+      window.dataLayers[layerName].removeFrom(window.map);
     }
+  }
+  
+  // Update the active layer for adding new items
+  if (isVisible) {
+    currentActiveLayer = layerName;
   }
 }
 
-document.getElementById('gulliesLayer').addEventListener('change', function(e) {
+// Update event listeners for layer toggles
+document.getElementById('gulliesLayer').addEventListener('change', function() {
   toggleLayer('gullies');
 });
 
-document.getElementById('playgroundsLayer').addEventListener('change', function(e) {
+document.getElementById('playgroundsLayer').addEventListener('change', function() {
   toggleLayer('playgrounds');
 });
 
-document.getElementById('walkwaysLayer').addEventListener('change', function(e) {
+document.getElementById('walkwaysLayer').addEventListener('change', function() {
   toggleLayer('walkways');
 });
 
