@@ -2550,10 +2550,9 @@ function initializeLayerVisibility() {
 }
 
 // Add to the existing initMap function
-window.initMap = function() {
+//window.initMap = function() {
   originalInitMap.call(this);
   initializeLayerVisibility();
-};
 
 // Add/replace import handler for KMZ
 function handleKMZImport(event) {
