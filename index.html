@@ -561,6 +561,9 @@
       display: flex;
       gap: 10px;
       z-index: 1000;
+      flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+      justify-content: center;
+      max-width: 90%; /* Prevent panel from being too wide */
     }
 
     .layer-button {
@@ -675,6 +678,8 @@
   <button class="layer-button active" onclick="toggleLayer('gullies')">🔵 Gullies</button>
   <button class="layer-button" onclick="toggleLayer('playgrounds')">🎮 Playgrounds</button>
   <button class="layer-button" onclick="toggleLayer('walkways')">🚶 Walkways</button>
+  <button class="layer-button" onclick="toggleLayer('signage')">🚸 Signage</button>
+  <button class="layer-button" onclick="toggleLayer('lining')">🎨 Road Lining</button>
 </div>
 
 <script>
@@ -969,7 +974,9 @@ function setupUIForRole(role, adminPrivileges = null) {
 window.dataLayers = {
   gullies: L.layerGroup(),
   playgrounds: L.layerGroup(),
-  walkways: L.layerGroup()
+  walkways: L.layerGroup(),
+  signage: L.layerGroup(),
+  lining: L.layerGroup()
 };
 
 // Add layer buttons to the bottom panel
@@ -1008,7 +1015,9 @@ function initMap() {
   window.dataLayers = {
     gullies: L.layerGroup(),
     playgrounds: L.layerGroup(),
-    walkways: L.layerGroup()
+    walkways: L.layerGroup(),
+    signage: L.layerGroup(),
+    lining: L.layerGroup()
   };
 
   // Add gullies layer by default
@@ -1065,7 +1074,7 @@ function toggleLayer(layerName) {
 
 // Function to update button states
 function updateLayerButtonStates() {
-  ['gullies', 'playgrounds', 'walkways'].forEach(layerName => {
+  ['gullies', 'playgrounds', 'walkways', 'signage', 'lining'].forEach(layerName => {
     const button = document.querySelector(`[onclick="toggleLayer('${layerName}')"]`);
     if (button) {
       const isVisible = window.map.hasLayer(window.dataLayers[layerName]);
@@ -2525,7 +2534,7 @@ function toggleLayer(layerName) {
 
 // Function to update button states
 function updateLayerButtonStates() {
-  ['gullies', 'playgrounds', 'walkways'].forEach(layerName => {
+  ['gullies', 'playgrounds', 'walkways', 'signage', 'lining'].forEach(layerName => {
     const button = document.querySelector(`[onclick="toggleLayer('${layerName}')"]`);
     if (button) {
       const isVisible = window.map.hasLayer(window.dataLayers[layerName]);
