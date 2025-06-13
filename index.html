@@ -837,21 +837,16 @@ function login(isAutoLogin = false) {
       // Setup UI with proper privileges
       setupUIForRole(userData.role, userData.adminPrivileges);
       
-      // Removed direct initMap, loadGullyData, and setupInactivityTracking calls here.
-      // These are now handled by handleLoginSuccess which is called by auth.onAuthStateChanged.
-      
-      // Save credentials if remember me is checked
-      if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
-        // Note: We don't store the password for security reasons
-      } else {
-        localStorage.removeItem('rememberedEmail');
-      }
-      
-      // Clear URL parameters after auto-login
-      if (isAutoLogin) {
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
+      // Initialize map after a short delay to ensure the map container is rendered
+      setTimeout(() => {
+        initMap();
+        loadGullyData();
+      }, 100);
+
+      // After hiding the login screen and showing the map, add:
+      setTimeout(() => {
+        if (window.map) window.map.invalidateSize();
+      }, 200);
     })
     .catch(error => {
       console.error('Login error:', error);
@@ -918,6 +913,7 @@ function initMap() {
   
   const mapDiv = document.getElementById('map');
   mapDiv.style.display = 'block';
+  console.log('Map div display set to block. Map element:', mapDiv); // Added mapDiv to log
   
   // Create map instance
   window.map = L.map('map', {
@@ -927,12 +923,14 @@ function initMap() {
     attributionControl: false
   });
   
+  console.log('Map instance created:', window.map); // Added log
   // Add the base layer
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; <a href="https://carto.com/">CARTO</a> contributors',
     maxZoom: 19
   }).addTo(window.map);
   
+  console.log('Basemap layer added.'); // Added log
   // Add zoom control
   L.control.zoom({
     position: 'topright'
@@ -1073,17 +1071,19 @@ function handleLoginSuccess(userData) {
   updateUserInfo(userData);
   setupUIForRole(userData.role, userData.adminPrivileges);
   
-  // Initialize map immediately
-  initMap();
-  
-  // Load data after a short delay to ensure map is ready
+  // Initialize map after a short delay to ensure the map container is rendered
   setTimeout(() => {
+    initMap();
     loadGullyData();
+    console.log('Map initialized and data loaded after delay.'); // Added log
   }, 100);
 
   // After hiding the login screen and showing the map, add:
   setTimeout(() => {
-    if (window.map) window.map.invalidateSize();
+    if (window.map) {
+      window.map.invalidateSize();
+      console.log('Map invalidated size after delay.'); // Added log
+    }
   }, 200);
 }
 
@@ -1675,6 +1675,7 @@ async function viewGullyHistory(gullyId) {
 
 // Initialize auth state listener
 auth.onAuthStateChanged(user => {
+  console.log('Auth state changed, user:', user); // Added log
   if (user) {
     console.log('User authenticated, getting user data...');
     db.ref('users/' + user.uid).once('value').then(snapshot => {
