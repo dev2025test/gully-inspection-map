@@ -535,6 +535,19 @@
         pointer-events: none;
         font-size: 12px;
     }
+    .layer-button {
+      position: relative;
+      padding-left: 30px !important;
+    }
+
+    .layer-button.active {
+      background-color: #e3f2fd !important;
+      border-color: #2196F3 !important;
+    }
+
+    .layer-button:hover {
+      background-color: #f0f0f0;
+    }
   </style>
 </head>
 <body>
@@ -579,24 +592,6 @@
   </div>
 </div>
 
-<div class="layer-control" id="layerControl">
-  <div class="layer-item">
-    <input type="checkbox" id="gulliesLayer" class="layer-checkbox" checked>
-    <div class="layer-icon">🔵</div>
-    <label for="gulliesLayer">Gullies</label>
-  </div>
-  <div class="layer-item">
-    <input type="checkbox" id="playgroundsLayer" class="layer-checkbox">
-    <div class="layer-icon">🎮</div>
-    <label for="playgroundsLayer">Playgrounds</label>
-  </div>
-  <div class="layer-item">
-    <input type="checkbox" id="walkwaysLayer" class="layer-checkbox">
-    <div class="layer-icon">🚶</div>
-    <label for="walkwaysLayer">Walkways</label>
-  </div>
-</div>
-
 <div class="toggle-layers" onclick="toggleLayerControl()">🗺️ Show Layers</div>
 
 <div class="bottom-toolbar" id="functionToolbar">
@@ -629,6 +624,18 @@
       <button class="toolbar-button" onclick="enableEditMode()">✏️ Edit</button>
       <button class="toolbar-button" onclick="enableAddMode()">➕ Add New</button>
       <button class="toolbar-button" onclick="enableDeleteMode()">🗑️ Delete</button>
+    </div>
+
+    <div class="button-group">
+      <button id="gulliesLayerBtn" class="toolbar-button layer-button active" onclick="toggleLayerFromToolbar('gullies')">
+        🔵 Gullies
+      </button>
+      <button id="playgroundsLayerBtn" class="toolbar-button layer-button" onclick="toggleLayerFromToolbar('playgrounds')">
+        🎮 Playgrounds
+      </button>
+      <button id="walkwaysLayerBtn" class="toolbar-button layer-button" onclick="toggleLayerFromToolbar('walkways')">
+        🚶 Walkways
+      </button>
     </div>
 
     <div class="button-group">
@@ -1003,6 +1010,7 @@ function initMap() {
       if (tooltip) tooltip.style.display = 'none';
     }
   });
+  initializeLayerVisibility();
 }
 
 function toggleToolbar() {
@@ -2518,6 +2526,52 @@ function toggleLayerControl() {
   const control = document.getElementById('layerControl');
   control.classList.toggle('hidden');
 }
+
+// Remove the old layer control div
+document.querySelector('.layer-control')?.remove();
+
+// Update the layer management code
+function toggleLayerFromToolbar(layerName) {
+  const button = document.getElementById(layerName + 'LayerBtn');
+  const isActive = button.classList.toggle('active');
+  
+  if (window.dataLayers && window.dataLayers[layerName]) {
+    if (isActive) {
+      window.dataLayers[layerName].addTo(window.map);
+      currentActiveLayer = layerName;
+    } else {
+      window.dataLayers[layerName].removeFrom(window.map);
+      // If this was the current active layer, switch to another visible layer
+      if (currentActiveLayer === layerName) {
+        const activeButtons = document.querySelectorAll('.layer-button.active');
+        if (activeButtons.length > 0) {
+          currentActiveLayer = activeButtons[0].id.replace('LayerBtn', '');
+        }
+      }
+    }
+  }
+}
+
+// Initialize layer visibility on startup
+function initializeLayerVisibility() {
+  // Start with only gullies visible
+  document.getElementById('gulliesLayerBtn').classList.add('active');
+  ['playgrounds', 'walkways'].forEach(layer => {
+    const button = document.getElementById(layer + 'LayerBtn');
+    button.classList.remove('active');
+    if (window.dataLayers && window.dataLayers[layer]) {
+      window.dataLayers[layer].removeFrom(window.map);
+    }
+  });
+  currentActiveLayer = 'gullies';
+}
+
+// Add to the existing initMap function
+const originalInitMap = window.initMap;
+window.initMap = function() {
+  originalInitMap.call(this);
+  initializeLayerVisibility();
+};
 </script>
 </body>
 </html>
