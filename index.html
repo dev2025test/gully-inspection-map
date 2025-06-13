@@ -548,6 +548,43 @@
     .layer-button:hover {
       background-color: #f0f0f0;
     }
+
+    .bottom-panel {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .layer-button {
+      padding: 8px 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+    }
+
+    .layer-button:hover {
+      background: #f0f0f0;
+    }
+
+    .layer-button.active {
+      background: #e3f2fd;
+      border-color: #2196F3;
+      color: #1976D2;
+    }
   </style>
 </head>
 <body>
@@ -631,6 +668,13 @@
       <button class="toolbar-button" onclick="logout()">🚪 Logout</button>
     </div>
   </div>
+</div>
+
+<!-- Layer buttons in the bottom panel -->
+<div class="bottom-panel">
+  <button class="layer-button active" onclick="toggleLayer('gullies')">🔵 Gullies</button>
+  <button class="layer-button" onclick="toggleLayer('playgrounds')">🎮 Playgrounds</button>
+  <button class="layer-button" onclick="toggleLayer('walkways')">🚶 Walkways</button>
 </div>
 
 <script>
@@ -921,15 +965,19 @@ function setupUIForRole(role, adminPrivileges = null) {
   }
 }
 
+// Initialize layer groups
+window.dataLayers = {
+  gullies: L.layerGroup(),
+  playgrounds: L.layerGroup(),
+  walkways: L.layerGroup()
+};
+
+// Add layer buttons to the bottom panel
 function initMap() {
   console.log('Initializing map...');
   
-  // Make sure the map div is visible
   const mapDiv = document.getElementById('map');
   mapDiv.style.display = 'block';
-  
-  // Force a reflow
-  void mapDiv.offsetHeight;
   
   // Create map instance
   window.map = L.map('map', {
@@ -939,9 +987,7 @@ function initMap() {
     attributionControl: false
   });
   
-  console.log('Map created, adding base layer...');
-  
-  // Add the base layer immediately
+  // Add the base layer
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '🇮🇪 Cork City Council GIS | © OpenStreetMap contributors',
     maxZoom: 19
@@ -957,37 +1003,24 @@ function initMap() {
     position: 'bottomright',
     prefix: false
   }).addTo(window.map);
-  
-  console.log('Base layer added');
-  
+
   // Initialize layer groups
   window.dataLayers = {
-    gullies: L.layerGroup().addTo(window.map),
-    playgrounds: L.layerGroup(),  // Don't add to map by default
-    walkways: L.layerGroup()      // Don't add to map by default
+    gullies: L.layerGroup(),
+    playgrounds: L.layerGroup(),
+    walkways: L.layerGroup()
   };
-  
-  // Set initial layer visibility based on checkboxes
-  document.querySelectorAll('.layer-checkbox').forEach(checkbox => {
-    const layerName = checkbox.id.replace('Layer', '');
-    if (window.dataLayers[layerName]) {
-      if (checkbox.checked) {
-        window.dataLayers[layerName].addTo(window.map);
-      } else {
-        window.dataLayers[layerName].removeFrom(window.map);
-      }
-    }
-  });
-  
+
+  // Add gullies layer by default
+  window.dataLayers.gullies.addTo(window.map);
+  currentActiveLayer = 'gullies';
+
   // Force a map update
   window.map.invalidateSize();
-  
-  console.log('Map initialization complete');
   
   // Initialize click handler for add mode
   window.map.on('mousemove', (e) => {
     if (addMode) {
-      // Show coordinates in a tooltip
       const tooltip = document.getElementById('add-tooltip') || createTooltip();
       tooltip.style.display = 'block';
       tooltip.style.left = (e.originalEvent.pageX + 10) + 'px';
@@ -998,7 +1031,77 @@ function initMap() {
       if (tooltip) tooltip.style.display = 'none';
     }
   });
-  initializeLayerVisibility();
+
+  // Load existing data
+  loadGullyData();
+}
+
+// Update the layer toggle function
+function toggleLayer(layerName) {
+  console.log('Toggling layer:', layerName);
+  
+  if (window.dataLayers && window.dataLayers[layerName]) {
+    const layer = window.dataLayers[layerName];
+    const isVisible = window.map.hasLayer(layer);
+    
+    console.log('Layer visibility before toggle:', isVisible);
+    
+    if (!isVisible) {
+      layer.addTo(window.map);
+      currentActiveLayer = layerName;
+      console.log('Added layer to map:', layerName);
+    } else {
+      layer.removeFrom(window.map);
+      if (currentActiveLayer === layerName) {
+        currentActiveLayer = null;
+      }
+      console.log('Removed layer from map:', layerName);
+    }
+    
+    // Update button states
+    updateLayerButtonStates();
+  }
+}
+
+// Function to update button states
+function updateLayerButtonStates() {
+  ['gullies', 'playgrounds', 'walkways'].forEach(layerName => {
+    const button = document.querySelector(`[onclick="toggleLayer('${layerName}')"]`);
+    if (button) {
+      const isVisible = window.map.hasLayer(window.dataLayers[layerName]);
+      button.classList.toggle('active', isVisible);
+    }
+  });
+}
+
+// Update loadGullyData function
+function loadGullyData() {
+  console.log('Loading gully data...');
+  
+  // Clear existing data
+  gullyData.length = 0;
+  Object.values(window.dataLayers).forEach(layer => layer.clearLayers());
+  
+  // Load data for each layer type
+  Object.keys(window.dataLayers).forEach(layerType => {
+    console.log('Loading data for layer:', layerType);
+    db.ref(layerType).on('value', snapshot => {
+      const data = snapshot.val() || {};
+      
+      Object.entries(data).forEach(([id, item]) => {
+        if (item.location) {
+          const marker = addGullyToMap(item.location, id, layerType);
+          if (item.status) {
+            updateMarkerStatus(marker, item.status, layerType);
+          }
+        }
+      });
+      
+      // Update summary after loading data
+      updateSummary();
+      console.log(`Loaded ${Object.keys(data).length} items for ${layerType}`);
+    });
+  });
 }
 
 function toggleToolbar() {
@@ -1625,35 +1728,6 @@ async function viewGullyHistory(gullyId) {
     console.error('Error loading history:', error);
     alert('Error loading history: ' + error.message);
   }
-}
-
-function loadGullyData() {
-  // Clear existing data
-  gullyData.length = 0;
-  Object.values(layers).forEach(layer => layer.clearLayers());
-  
-  Object.keys(layers).forEach(layerType => {
-    db.ref(layerType).on('value', snapshot => {
-      const data = snapshot.val() || {};
-      
-      Object.entries(data).forEach(([id, item]) => {
-        if (item.location) {
-          const marker = addGullyToMap(item.location, id, layerType);
-          if (item.status) {
-            updateMarkerStatus(marker, item.status, layerType);
-            // Store the status in gullyData
-            const gullyIndex = gullyData.findIndex(g => g.id === id);
-            if (gullyIndex !== -1) {
-              gullyData[gullyIndex].status = item.status;
-            }
-          }
-        }
-      });
-      
-      // Update summary after loading data
-      updateSummary();
-    });
-  });
 }
 
 // Initialize auth state listener
@@ -2424,35 +2498,41 @@ let mapLayers = {
 };
 
 function toggleLayer(layerName) {
-  const checkbox = document.getElementById(layerName + 'Layer');
-  const isVisible = checkbox.checked;
+  console.log('Toggling layer:', layerName);
   
   if (window.dataLayers && window.dataLayers[layerName]) {
-    if (isVisible) {
-      window.dataLayers[layerName].addTo(window.map);
+    const layer = window.dataLayers[layerName];
+    const isVisible = window.map.hasLayer(layer);
+    
+    console.log('Layer visibility before toggle:', isVisible);
+    
+    if (!isVisible) {
+      layer.addTo(window.map);
+      currentActiveLayer = layerName;
+      console.log('Added layer to map:', layerName);
     } else {
-      window.dataLayers[layerName].removeFrom(window.map);
+      layer.removeFrom(window.map);
+      if (currentActiveLayer === layerName) {
+        currentActiveLayer = null;
+      }
+      console.log('Removed layer from map:', layerName);
     }
-  }
-  
-  // Update the active layer for adding new items
-  if (isVisible) {
-    currentActiveLayer = layerName;
+    
+    // Update button states
+    updateLayerButtonStates();
   }
 }
 
-// Update event listeners for layer toggles
-document.getElementById('gulliesLayer').addEventListener('change', function() {
-  toggleLayer('gullies');
-});
-
-document.getElementById('playgroundsLayer').addEventListener('change', function() {
-  toggleLayer('playgrounds');
-});
-
-document.getElementById('walkwaysLayer').addEventListener('change', function() {
-  toggleLayer('walkways');
-});
+// Function to update button states
+function updateLayerButtonStates() {
+  ['gullies', 'playgrounds', 'walkways'].forEach(layerName => {
+    const button = document.querySelector(`[onclick="toggleLayer('${layerName}')"]`);
+    if (button) {
+      const isVisible = window.map.hasLayer(window.dataLayers[layerName]);
+      button.classList.toggle('active', isVisible);
+    }
+  });
+}
 
 // Modify the import function to handle different layer types
 function handleFileImport(event) {
