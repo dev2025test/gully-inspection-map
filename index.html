@@ -605,6 +605,15 @@
       <button class="toolbar-button" onclick="enableAddMode()">➕ Add New</button>
       <button class="toolbar-button" onclick="showLayerControl()">🗺️ Layers</button>
     </div>
+    <div class="button-group">
+      <button class="toolbar-button" onclick="printMap()">🖨️ Print</button>
+      <button class="toolbar-button" onclick="resetMap()">🔄 Reset</button>
+      <button class="toolbar-button" onclick="showSummaryPopup()">📊 Summary</button>
+      <label for="importFile" class="toolbar-button">📂 Import</label>
+      <input type="file" id="importFile" accept=".kmz" style="display:none;" onchange="handleKMZImport(event)">
+      <button class="toolbar-button" onclick="exportData()">💾 Export CSV</button>
+      <button class="toolbar-button" onclick="saveGullyData()">💾 Backup</button>
+    </div>
   </div>
 </div>
 
