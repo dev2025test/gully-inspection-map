@@ -552,7 +552,7 @@
   </style>
 </head>
 <body>
-<div id="map"></div>
+<div id="map" style="width:100vw; height:100vh; min-height:400px;"></div>
 
 <div id="loginScreen" class="login-background">
   <div id="loginBox">
@@ -1083,6 +1083,11 @@ function handleLoginSuccess(userData) {
   setTimeout(() => {
     loadGullyData();
   }, 100);
+
+  // After hiding the login screen and showing the map, add:
+  setTimeout(() => {
+    if (window.map) window.map.invalidateSize();
+  }, 200);
 }
 
 function getStatusColor(status) {
