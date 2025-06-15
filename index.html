@@ -1078,6 +1078,10 @@ function handleLoginSuccess(userData) {
   mapDiv.style.display = 'block';
   console.log('handleLoginSuccess: Map div display set to block.');
 
+  // Force browser reflow to ensure map div has correct dimensions before initMap
+  void mapDiv.offsetWidth; // Accessing offsetWidth forces reflow
+  console.log('handleLoginSuccess: Forced map div reflow.');
+
   // Update user info
   updateUserInfo(userData);
   setupUIForRole(userData.role, userData.adminPrivileges);
