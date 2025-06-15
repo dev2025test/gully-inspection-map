@@ -12,6 +12,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
   <script src="https://unpkg.com/togeojson@0.16.0/togeojson.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     html, body {
       height: 100%;
@@ -613,7 +614,7 @@
       <button class="toolbar-button" onclick="resetMap()">🔄 Reset</button>
       <button class="toolbar-button" onclick="showSummaryPopup()">📊 Summary</button>
       <label for="importFile" class="toolbar-button">📂 Import</label>
-      <input type="file" id="importFile" accept=".kml" style="display:none;" onchange="handleKMLImport(event)">
+      <input type="file" id="importFile" accept=".kml,.kmz" style="display:none;" onchange="handleImportFile(event)">
       <button class="toolbar-button" onclick="exportData()">💾 Export CSV</button>
       <button class="toolbar-button" onclick="saveGullyData()">💾 Backup</button>
     </div>
@@ -1236,9 +1237,9 @@ function isDuplicatePosition(lat, lng, tolerance = 0.0001) { // tolerance is rou
 }
 
 // Update the handleKMLImport function
-async function handleKMLImport(event) {
+async function handleImportFile(event) {
     if (!auth.currentUser || currentRole !== 'admin') {
-        alert('Only administrators can import KML files');
+        alert('Only administrators can import files');
         return;
     }
 
@@ -1253,35 +1254,66 @@ async function handleKMLImport(event) {
     }
     
     try {
-        console.log('handleKMLImport: Starting KML import...');
-        const text = await file.text();
-        const kml = new DOMParser().parseFromString(text, 'text/xml');
-        const geojson = toGeoJSON.kml(kml);
+        console.log('handleImportFile: Starting file import...');
+        let geojson;
+        const extension = file.name.split('.').pop().toLowerCase();
+
+        const progressDiv = document.createElement('div');
+        progressDiv.className = 'loading-spinner';
+        progressDiv.innerHTML = `
+            <div class="spinner"></div>
+            <div>Importing features...</div>
+            <div id="import-progress">0/Unknown</div>
+        `;
+        document.body.appendChild(progressDiv);
+
+        if (extension === 'kml') {
+            const text = await file.text();
+            const kml = new DOMParser().parseFromString(text, 'text/xml');
+            geojson = toGeoJSON.kml(kml);
+        } else if (extension === 'kmz') {
+            console.log('handleImportFile: Detected KMZ file, decompressing...');
+            const zip = await JSZip.loadAsync(file);
+            let kmlFile = null;
+            
+            // Find the KML file inside the KMZ (usually doc.kml or a .kml in the root)
+            zip.forEach((relativePath, zipEntry) => {
+                if (relativePath.toLowerCase().endsWith('.kml')) {
+                    kmlFile = zipEntry;
+                    return false; // Stop iteration
+                }
+            });
+
+            if (!kmlFile) {
+                throw new Error('No KML file found inside the KMZ archive.');
+            }
+
+            const kmlText = await kmlFile.async('text');
+            const kml = new DOMParser().parseFromString(kmlText, 'text/xml');
+            geojson = toGeoJSON.kml(kml);
+            console.log('handleImportFile: KMZ decompressed and KML parsed.');
+        } else {
+            throw new Error('Unsupported file format. Please import .kml or .kmz files.');
+        }
         
-        console.log('handleKMLImport: Parsed KML:', geojson);
+        console.log('handleImportFile: Parsed GeoJSON:', geojson);
         
         if (!geojson || !geojson.features || !geojson.features.length) {
-            alert('No valid features found in KML file');
+            alert('No valid features found in the imported file');
             return;
         }
         
+        // Update total for progress bar
+        const totalFeatures = geojson.features.length;
+        document.getElementById('import-progress').textContent = `0/${totalFeatures}`;
+
         // Process and add features
         let importCount = 0;
         let duplicateCount = 0;
         const timestamp = Date.now();
         const currentLayer = currentActiveLayer || 'gullies'; // Use global currentActiveLayer or default
         
-        console.log('handleKMLImport: Importing to layer:', currentLayer);
-        
-        // Show progress indicator
-        const progressDiv = document.createElement('div');
-        progressDiv.className = 'loading-spinner';
-        progressDiv.innerHTML = `
-            <div class="spinner"></div>
-            <div>Importing features...</div>
-            <div id="import-progress">0/${geojson.features.length}</div>
-        `;
-        document.body.appendChild(progressDiv);
+        console.log('handleImportFile: Importing to layer:', currentLayer);
         
         for (const feature of geojson.features) {
             if (feature.geometry && feature.geometry.coordinates) {
@@ -1290,13 +1322,13 @@ async function handleKMLImport(event) {
                 if (isValidCoordinate(lng, lat)) {
                     // Check for duplicate position
                     if (isDuplicatePosition(lat, lng)) {
-                        console.log(`handleKMLImport: Skipping duplicate position: ${lat}, ${lng}`);
+                        console.log(`handleImportFile: Skipping duplicate position: ${lat}, ${lng}`);
                         duplicateCount++;
                         continue;
                     }
                     
                     const id = `${currentLayer}_${timestamp}_${importCount}`;
-                    console.log('handleKMLImport: Adding feature:', id, lat, lng);
+                    console.log('handleImportFile: Adding feature:', id, lat, lng);
                     
                     // Add marker to map
                     const marker = addGullyToMap({ lat, lng }, id, currentLayer);
@@ -1318,7 +1350,7 @@ async function handleKMLImport(event) {
                     // Update progress
                     const progressElement = document.getElementById('import-progress');
                     if (progressElement) {
-                        progressElement.textContent = `${importCount}/${geojson.features.length}`;
+                        progressElement.textContent = `${importCount}/${totalFeatures}`;
                     }
                 }
             }
@@ -1330,7 +1362,7 @@ async function handleKMLImport(event) {
         // Add file name to imported set
         importedFiles.add(file.name);
         
-        console.log('handleKMLImport: Import complete:', importCount, 'features imported,', duplicateCount, 'duplicates skipped');
+        console.log('handleImportFile: Import complete:', importCount, 'features imported,', duplicateCount, 'duplicates skipped');
         
         if (importCount > 0) {
             // Fit map to imported features
@@ -1350,8 +1382,8 @@ async function handleKMLImport(event) {
         }
         
     } catch (error) {
-        console.error('handleKMLImport: Import error:', error);
-        alert('Error importing KML file: ' + error.message);
+        console.error('handleImportFile: Import error:', error);
+        alert('Error importing file: ' + error.message);
     } finally {
         // Clear the file input
         event.target.value = '';
@@ -2510,7 +2542,38 @@ function handleFileImport(event) {
         geoJsonData = toGeoJSON.kml(kml);
       } else if (extension === 'geojson') {
         geoJsonData = JSON.parse(e.target.result);
-      } else {
+      } else if (extension === 'kmz') { // KMZ handling
+          JSZip.loadAsync(file).then(function(zip) {
+              let kmlFile = null;
+              zip.forEach(function (relativePath, zipEntry) {
+                  if (relativePath.toLowerCase().endsWith('.kml')) {
+                      kmlFile = zipEntry;
+                      return false;
+                  }
+              });
+
+              if (kmlFile) {
+                  return kmlFile.async('text');
+              } else {
+                  throw new Error('No KML file found inside the KMZ archive.');
+              }
+          }).then(function(kmlText) {
+              const kml = new DOMParser().parseFromString(kmlText, 'text/xml');
+              geoJsonData = toGeoJSON.kml(kml);
+              // Process geoJsonData here similar to KML branch
+              // This is a duplicated logic block, consider refactoring
+              if (window.dataLayers[selectedLayer].data) {
+                window.dataLayers[selectedLayer].data.remove();
+              }
+              window.dataLayers[selectedLayer].data = L.geoJSON(geoJsonData).addTo(window.map);
+              window.dataLayers[selectedLayer].visible = true;
+          }).catch(function(error) {
+              console.error('handleFileImport: Error processing KMZ:', error);
+              alert('Error processing KMZ file: ' + error.message);
+          });
+          return; // Exit after KMZ async handling
+      }
+      else {
         throw new Error('Unsupported file format');
       }
 
@@ -2531,12 +2594,12 @@ function handleFileImport(event) {
     }
   };
 
-  if (file.name.endsWith('.kml')) {
-    reader.readAsText(file);
+  if (file.name.endsWith('.kml') || file.name.endsWith('.kmz')) {
+    reader.readAsArrayBuffer(file); // Read as ArrayBuffer for KMZ
   } else if (file.name.endsWith('.geojson')) {
     reader.readAsText(file);
   } else {
-    alert('Please select a KML or GeoJSON file');
+    alert('Please select a KML, KMZ, or GeoJSON file');
   }
 }
 
