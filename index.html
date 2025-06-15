@@ -1887,6 +1887,9 @@ function resetMap() {
   if (!confirmReset) {
     return;
   }
+
+  try {
+    // Check if window.map is a valid Leaflet map object
     if (!(window.map instanceof L.Map)) {
         console.error('resetMap: window.map is not a valid Leaflet map object. This should not happen during a normal reset. If the map is truly invalid, it might indicate a deeper issue.');
         // initMap(); // Re-initialization removed to prevent full map reload on reset.
