@@ -1023,6 +1023,12 @@ function updateLayerButtonStates() {
     const layerName = button.id.replace('Button', ''); // Get layer name from button ID
     const isVisible = window.dataLayers[layerName] && window.map.hasLayer(window.dataLayers[layerName]);
     button.classList.toggle('active', isVisible);
+
+    // Update the checkbox state
+    const checkbox = button.querySelector('input[type="checkbox"]');
+    if (checkbox) {
+      checkbox.checked = isVisible;
+    }
   });
 }
 
@@ -2508,16 +2514,6 @@ function toggleLayer(layerName) {
   }
 }
 
-// Update button states in bottom panel
-function updateLayerButtonStates() {
-  const buttons = document.querySelectorAll('.layer-button');
-  buttons.forEach(button => {
-    const layerName = button.id.replace('Button', ''); // Get layer name from button ID
-    const isVisible = window.dataLayers[layerName] && window.map.hasLayer(window.dataLayers[layerName]);
-    button.classList.toggle('active', isVisible);
-  });
-}
-
 // Modify the import function to handle different layer types
 function handleFileImport(event) {
   const file = event.target.files[0];
@@ -2630,30 +2626,35 @@ function createLayerControlContainer() {
     <div class="layer-content expanded">
       <div class="layer-item">
         <label for="gulliesLayer" class="layer-button" id="gulliesButton" onclick="toggleLayer('gullies')">
+          <input type="checkbox" id="gulliesLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''}>
           <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png" style="width:20px;height:20px;">
           Gullies
         </label>
       </div>
       <div class="layer-item">
         <label for="playgroundsLayer" class="layer-button" id="playgroundsButton" onclick="toggleLayer('playgrounds')">
+          <input type="checkbox" id="playgroundsLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''}>
           <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png" style="width:20px;height:20px;">
           Playgrounds
         </label>
       </div>
       <div class="layer-item">
         <label for="walkwaysLayer" class="layer-button" id="walkwaysButton" onclick="toggleLayer('walkways')">
+          <input type="checkbox" id="walkwaysLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''}>
           <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png" style="width:20px;height:20px;">
           Walkways
         </label>
       </div>
       <div class="layer-item">
         <label for="signageLayer" class="layer-button" id="signageButton" onclick="toggleLayer('signage')">
+          <input type="checkbox" id="signageLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''}>
           <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png" style="width:20px;height:20px;">
           Signage
         </label>
       </div>
       <div class="layer-item">
         <label for="liningLayer" class="layer-button" id="liningButton" onclick="toggleLayer('lining')">
+          <input type="checkbox" id="liningLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''}>
           <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-black.png" style="width:20px;height:20px;">
           Road Lining
         </label>
@@ -2662,7 +2663,7 @@ function createLayerControlContainer() {
   `;
   document.body.appendChild(container);
   console.log('createLayerControlContainer: Layer control container created and appended.');
-  // initializeLayerVisibility(); // Removed from here
+  updateLayerButtonStates(); // Call this to set initial checkbox states
 }
 
 function toggleLayerControl() {
