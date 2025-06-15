@@ -1387,6 +1387,16 @@ async function handleImportFile(event) {
                 window.map.fitBounds(bounds);
             }
             
+            // Ensure the imported layer is visible on the map
+            if (currentLayer && window.dataLayers[currentLayer] && !window.map.hasLayer(window.dataLayers[currentLayer])) {
+                window.dataLayers[currentLayer].addTo(window.map);
+                updateLayerButtonStates(); // Update the checkbox for the newly visible layer
+            }
+            
+            // Force map to re-render to show new markers
+            window.map.invalidateSize();
+            console.log('handleImportFile: Map invalidated size after import.');
+
             const message = `Successfully imported ${importCount} features.\n${duplicateCount} duplicate positions were skipped.`;
             alert(message);
         } else {
@@ -2520,91 +2530,6 @@ function toggleLayer(layerName) {
   }
 }
 
-// Modify the import function to handle different layer types
-function handleFileImport(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  // Determine which layer is currently selected
-  // This part needs to be updated to use the active layer from the toolbar
-  let selectedLayer = currentActiveLayer; // Use currentActiveLayer
-  if (!selectedLayer) {
-    alert('Please select a layer before importing data');
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const extension = file.name.split('.').pop().toLowerCase();
-      let geoJsonData;
-
-      if (extension === 'kml') {
-        const kml = new DOMParser().parseFromString(e.target.result, 'text/xml');
-        geoJsonData = toGeoJSON.kml(kml);
-      } else if (extension === 'geojson') {
-        geoJsonData = JSON.parse(e.target.result);
-      } else if (extension === 'kmz') { // KMZ handling
-          JSZip.loadAsync(file).then(function(zip) {
-              let kmlFile = null;
-              zip.forEach(function (relativePath, zipEntry) {
-                  if (relativePath.toLowerCase().endsWith('.kml')) {
-                      kmlFile = zipEntry;
-                      return false;
-                  }
-              });
-
-              if (kmlFile) {
-                  return kmlFile.async('text');
-              } else {
-                  throw new Error('No KML file found inside the KMZ archive.');
-              }
-          }).then(function(kmlText) {
-              const kml = new DOMParser().parseFromString(kmlText, 'text/xml');
-              geoJsonData = toGeoJSON.kml(kml);
-              // Process geoJsonData here similar to KML branch
-              // This is a duplicated logic block, consider refactoring
-              if (window.dataLayers[selectedLayer].data) {
-                window.dataLayers[selectedLayer].data.remove();
-              }
-              window.dataLayers[selectedLayer].data = L.geoJSON(geoJsonData).addTo(window.map);
-              window.dataLayers[selectedLayer].visible = true;
-          }).catch(function(error) {
-              console.error('handleFileImport: Error processing KMZ:', error);
-              alert('Error processing KMZ file: ' + error.message);
-          });
-          return; // Exit after KMZ async handling
-      }
-      else {
-        throw new Error('Unsupported file format');
-      }
-
-      // Remove existing layer if it exists
-      if (window.dataLayers[selectedLayer].data) { // Use window.dataLayers
-        window.dataLayers[selectedLayer].data.remove();
-      }
-
-      // Create and add the new layer
-      window.dataLayers[selectedLayer].data = L.geoJSON(geoJsonData).addTo(window.map); // Use window.map
-      window.dataLayers[selectedLayer].visible = true;
-      // No need to set checked state, as we're using toolbar buttons now
-      // document.getElementById(selectedLayer + 'Layer').checked = true;
-
-    } catch (error) {
-      console.error('handleFileImport: Error importing file:', error);
-      alert('Error importing file. Please check the file format and try again.');
-    }
-  };
-
-  if (file.name.endsWith('.kml') || file.name.endsWith('.kmz')) {
-    reader.readAsArrayBuffer(file); // Read as ArrayBuffer for KMZ
-  } else if (file.name.endsWith('.geojson')) {
-    reader.readAsText(file);
-  } else {
-    alert('Please select a KML, KMZ, or GeoJSON file');
-  }
-}
-
 function showLayerControl() {
   console.log('showLayerControl: Attempting to show layer control.');
   const layerControl = document.getElementById('layerControlContainer');
@@ -2686,28 +2611,39 @@ function toggleLayerControl() {
 // Initialize layer visibility on startup
 function initializeLayerVisibility() {
   console.log('initializeLayerVisibility: Initializing layer visibility.');
-  // Start with only gullies visible and active
-  Object.keys(window.dataLayers).forEach(layerName => {
-    const button = document.getElementById(layerName + 'Button');
-    if (layerName === 'gullies') {
-      if (window.map && window.dataLayers[layerName]) {
-        window.dataLayers[layerName].addTo(window.map);
-        currentActiveLayer = 'gullies';
-        if (button) button.classList.add('active');
-        console.log(`initializeLayerVisibility: Added ${layerName} to map and set active.`);
-      } else {
-        console.warn(`initializeLayerVisibility: Cannot add ${layerName} layer. window.map or dataLayers[${layerName}] is not defined.`);
-      }
-    } else {
-      if (window.map && window.dataLayers[layerName]) {
-        window.dataLayers[layerName].removeFrom(window.map);
-        if (button) button.classList.remove('active');
-        console.log(`initializeLayerVisibility: Removed ${layerName} from map.`);
-      } else {
-        console.warn(`initializeLayerVisibility: Cannot remove ${layerName} layer. window.map or dataLayers[${layerName}] is not defined.`);
-      }
+
+  // Clear all layers from the map first to prevent duplicates during re-initialization
+  Object.values(window.dataLayers).forEach(layer => {
+    if (window.map.hasLayer(layer)) {
+      window.map.removeLayer(layer);
     }
   });
+
+  // Add layers to the map if they contain any features
+  Object.keys(window.dataLayers).forEach(layerName => {
+    if (window.dataLayers[layerName] && window.dataLayers[layerName].getLayers().length > 0) {
+      window.dataLayers[layerName].addTo(window.map);
+      console.log(`initializeLayerVisibility: Added ${layerName} to map because it contains data.`);
+    } else if (layerName === 'gullies') {
+      // Ensure gullies layer is always on the map, even if empty, as it's the default active layer.
+      window.dataLayers[layerName].addTo(window.map);
+      console.log(`initializeLayerVisibility: Added empty ${layerName} to map as default.`);
+    }
+  });
+
+  // Set the currentActiveLayer based on what's visible, or default to 'gullies'
+  let foundActive = false;
+  for (const layerName in window.dataLayers) {
+    if (window.map.hasLayer(window.dataLayers[layerName])) {
+      currentActiveLayer = layerName;
+      foundActive = true;
+      break;
+    }
+  }
+  if (!foundActive) {
+    currentActiveLayer = 'gullies'; // Fallback if no layers have data or are visible
+  }
+
   updateLayerButtonStates(); // Ensure visual state is accurate
   console.log('initializeLayerVisibility: Layer button states updated.');
 }
