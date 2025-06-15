@@ -911,17 +911,18 @@ window.dataLayers = {
 
 // Add layer buttons to the bottom panel
 function initMap() {
-  console.log('initMap: Starting map initialization...');
+  console.log('initMap: --- Starting map initialization process ---');
   
   const mapDiv = document.getElementById('map');
-  console.log('initMap: Map div element:', mapDiv);
-  mapDiv.style.display = 'block';
-  console.log('initMap: Map div display set to block.');
+  console.log('initMap: Map div element:', mapDiv); // Should show the actual DOM element
+  // REMOVED: mapDiv.style.display = 'block'; // This is now handled in handleLoginSuccess
+  console.log('initMap: Map div display is managed by handleLoginSuccess.');
   
   // Check if map instance already exists to prevent re-initialization issues
   if (window.map instanceof L.Map) {
-    console.log('initMap: Map instance already exists. Removing existing map.');
+    console.log('initMap: Map instance already exists. Removing existing map and recreating.');
     window.map.remove();
+    window.map = null; // Clear reference
   }
 
   // Create map instance
@@ -932,7 +933,8 @@ function initMap() {
     attributionControl: false
   });
   
-  console.log('initMap: Map instance created:', window.map); 
+  console.log('initMap: Map instance created:', window.map); // Should be a Leaflet Map object
+  
   // Add the base layer
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -951,23 +953,18 @@ function initMap() {
     prefix: false
   }).addTo(window.map);
 
-  // Initialize layer groups
-  // Removed: window.dataLayers = {
-  //   gullies: L.layerGroup(),
-  //   playgrounds: L.layerGroup(),
-  //   walkways: L.layerGroup(),
-  //   signage: L.layerGroup(),
-  //   lining: L.layerGroup()
-  // };
-
   // Add gullies layer by default
   window.dataLayers.gullies.addTo(window.map);
   currentActiveLayer = 'gullies';
 
-  // Force a map update
+  // Force a map update after setup is complete
   window.map.invalidateSize();
-  console.log('initMap: Map invalidated size.');
+  console.log('initMap: Map invalidated size at end of initMap.');
   
+  // Explicitly set view to ensure full rendering
+  window.map.setView([51.9, -8.5], 13); // Use the default center and zoom
+  console.log('initMap: Map view explicitly set after invalidateSize.');
+
   // Initialize click handler for add mode
   window.map.on('mousemove', (e) => {
     if (addMode) {
@@ -981,10 +978,7 @@ function initMap() {
       if (tooltip) tooltip.style.display = 'none';
     }
   });
-
-  // Load existing data
-  loadGullyData();
-  console.log('initMap: loadGullyData called.');
+  console.log('initMap: Click handler for add mode initialized.');
 }
 
 // Update the layer toggle function
@@ -1079,29 +1073,24 @@ function handleLoginSuccess(userData) {
   // Show toolbar
   document.getElementById('functionToolbar').style.display = 'block';
   
+  // Make map container visible immediately
+  const mapDiv = document.getElementById('map');
+  mapDiv.style.display = 'block';
+  console.log('handleLoginSuccess: Map div display set to block.');
+
   // Update user info
   updateUserInfo(userData);
   setupUIForRole(userData.role, userData.adminPrivileges);
   
-  // Initialize map after a short delay to ensure the map container is rendered
+  // Initialize map and load data after a short delay to ensure the map container is rendered
   setTimeout(() => {
-    console.log('handleLoginSuccess: Inside setTimeout. window.map before initMap:', window.map);
-    initMap();
-    console.log('handleLoginSuccess: window.map after initMap call:', window.map);
+    console.log('handleLoginSuccess: Inside setTimeout. Calling initMap...');
+    initMap(); // initMap now includes its own invalidateSize
+    console.log('handleLoginSuccess: initMap call completed. Loading gully data and initializing layer visibility...');
     loadGullyData();
     initializeLayerVisibility(); // Call after map and layers are initialized
-    console.log('handleLoginSuccess: Map initialized and data loaded after delay.'); 
-  }, 100);
-
-  // After hiding the login screen and showing the map, add:
-  setTimeout(() => {
-    if (window.map) {
-      window.map.invalidateSize();
-      console.log('handleLoginSuccess: Map invalidated size after delay.'); 
-    } else {
-      console.warn('handleLoginSuccess: window.map is not defined when trying to invalidate size.');
-    }
-  }, 200);
+    console.log('handleLoginSuccess: Data loaded and layer visibility initialized.');
+  }, 100); // Short delay to allow browser to render the map div
 }
 
 function getStatusColor(status) {
@@ -1898,12 +1887,9 @@ function resetMap() {
   if (!confirmReset) {
     return;
   }
-
-  try {
-    // Check if window.map is a valid Leaflet map object
     if (!(window.map instanceof L.Map)) {
-        console.error('resetMap: window.map is not a valid Leaflet map object. Re-initializing map.');
-        initMap(); // Re-initialize if not valid
+        console.error('resetMap: window.map is not a valid Leaflet map object. This should not happen during a normal reset. If the map is truly invalid, it might indicate a deeper issue.');
+        // initMap(); // Re-initialization removed to prevent full map reload on reset.
     }
 
     console.log('resetMap: window.map state before reset:', window.map);
