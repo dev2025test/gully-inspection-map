@@ -1089,12 +1089,17 @@ function handleLoginSuccess(userData) {
   // Initialize map and load data after a short delay to ensure the map container is rendered
   setTimeout(() => {
     console.log('handleLoginSuccess: Inside setTimeout. Calling initMap...');
+
+    // Diagnostic: Log map container dimensions just before initMap
+    const currentMapDiv = document.getElementById('map');
+    console.log(`handleLoginSuccess: Map div dimensions before initMap: Width=${currentMapDiv.offsetWidth}, Height=${currentMapDiv.offsetHeight}`);
+
     initMap(); // initMap now includes its own invalidateSize
     console.log('handleLoginSuccess: initMap call completed. Loading gully data and initializing layer visibility...');
     loadGullyData();
     initializeLayerVisibility(); // Call after map and layers are initialized
     console.log('handleLoginSuccess: Data loaded and layer visibility initialized.');
-  }, 100); // Short delay to allow browser to render the map div
+  }, 500); // Increased delay to allow browser to render the map div
 }
 
 function getStatusColor(status) {
