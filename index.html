@@ -589,6 +589,16 @@
 <div class="toggle-layers" onclick="toggleLayerControl()">🗺️ Show Layers</div>
 
 <div class="bottom-toolbar" id="functionToolbar">
+  <div class="toolbar-header" onclick="toggleToolbar()">
+    <h3>
+      <span>Gully Inspection System</span>
+      <span class="user-info">
+        <span id="userInitials" style="font-weight:bold; color:#0056b3;"></span>
+        <span id="userName"></span>
+      </span>
+    </h3>
+    <span id="toolbarToggleIcon">▼</span>
+  </div>
   <div class="toolbar-content">
     <div class="button-group admin-only">
       <button class="toolbar-button" onclick="showUserManagement()">👥 Users</button>
@@ -1086,6 +1096,8 @@ function handleLoginSuccess(userData) {
   updateUserInfo(userData);
   setupUIForRole(userData.role, userData.adminPrivileges);
   
+  console.log('handleLoginSuccess: Reached point before setTimeout.'); // New diagnostic log
+
   // Initialize map and load data after a short delay to ensure the map container is rendered
   setTimeout(() => {
     console.log('handleLoginSuccess: Inside setTimeout. Calling initMap...');
