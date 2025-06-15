@@ -1243,11 +1243,15 @@ function isDuplicatePosition(lat, lng, tolerance = 0.0001) { // tolerance is rou
 }
 
 // Update the handleKMLImport function
-async function handleImportFile(event) {
-    if (!auth.currentUser || currentRole !== 'admin') {
-        alert('Only administrators can import files');
-        return;
-    }
+            // Ensure the imported layer is visible on the map
+            if (currentLayer && window.dataLayers[currentLayer] && !window.map.hasLayer(window.dataLayers[currentLayer])) {
+                window.dataLayers[currentLayer].addTo(window.map);
+                updateLayerButtonStates(); // Update the checkbox for the newly visible layer
+            }
+            
+            // Force map to re-render to show new markers
+            window.map.invalidateSize();
+            console.log('handleImportFile: Map invalidated size after import.');
 
     const file = event.target.files[0];
     if (!file) return;
