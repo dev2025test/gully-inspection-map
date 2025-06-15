@@ -1252,6 +1252,12 @@ async function handleImportFile(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    let selectedLayer = currentActiveLayer; // Use currentActiveLayer
+    if (!selectedLayer) {
+      alert('Please select a layer (e.g., Gullies, Playgrounds) before importing data.');
+      return;
+    }
+
     // Check for duplicate file name
     if (importedFiles.has(file.name)) {
         alert('This file has already been imported. Please choose a different file or reset the map first.');
@@ -1317,7 +1323,7 @@ async function handleImportFile(event) {
         let importCount = 0;
         let duplicateCount = 0;
         const timestamp = Date.now();
-        const currentLayer = currentActiveLayer || 'gullies'; // Use global currentActiveLayer or default
+        const currentLayer = selectedLayer; // Use the selectedLayer after validation
         
         console.log('handleImportFile: Importing to layer:', currentLayer);
         
