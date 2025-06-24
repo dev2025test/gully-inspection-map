@@ -614,7 +614,7 @@
       <button class="toolbar-button" onclick="resetMap()">🔄 Reset</button>
       <button class="toolbar-button" onclick="showSummaryPopup()">📊 Summary</button>
       <label for="importFile" class="toolbar-button">📂 Import</label>
-      <input type="file" id="importFile" accept=".kml,.kmz" style="display:none;" onchange="handleImportFile(event)">
+      <input type="file" id="importFile" onchange="handleImportFile(event)" style="display: none;">
       <button class="toolbar-button" onclick="exportData()">💾 Export CSV</button>
       <button class="toolbar-button" onclick="saveGullyData()">💾 Backup</button>
     </div>
@@ -729,9 +729,9 @@ function validateAndNormalizeEmail(email) {
     email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
     return {
       isValid: true,
-      normalizedEmail: USER_CONFIG.users[1].email,
+      normalizedEmail: USER_CONFIG.users[2].email, // FIXED: use users[2] for operator
       isAdmin: false,
-      userData: USER_CONFIG.users[1],
+      userData: USER_CONFIG.users[2],
       message: 'Operator email validated'
     };
   }
@@ -814,12 +814,14 @@ function login(isAutoLogin = false) {
   
   if (!email || !password) {
     document.getElementById("loginError").textContent = "❌ Please enter both email and password";
+    document.getElementById("loginScreen").style.opacity = "1"; // Ensure opacity reset
     return;
   }
 
   const validation = validateAndNormalizeEmail(email);
   if (!validation.isValid) {
     document.getElementById("loginError").textContent = `❌ ${validation.message}`;
+    document.getElementById("loginScreen").style.opacity = "1"; // Ensure opacity reset
     return;
   }
 
@@ -870,7 +872,7 @@ function login(isAutoLogin = false) {
         });
       } else {
         document.getElementById("loginError").textContent = "❌ " + error.message;
-        document.getElementById("loginScreen").style.opacity = "1";
+        document.getElementById("loginScreen").style.opacity = "1"; // Ensure opacity reset
       }
     });
 }
@@ -1243,15 +1245,11 @@ function isDuplicatePosition(lat, lng, tolerance = 0.0001) { // tolerance is rou
 }
 
 // Update the handleKMLImport function
-            // Ensure the imported layer is visible on the map
-            if (currentLayer && window.dataLayers[currentLayer] && !window.map.hasLayer(window.dataLayers[currentLayer])) {
-                window.dataLayers[currentLayer].addTo(window.map);
-                updateLayerButtonStates(); // Update the checkbox for the newly visible layer
-            }
-            
-            // Force map to re-render to show new markers
-            window.map.invalidateSize();
-            console.log('handleImportFile: Map invalidated size after import.');
+async function handleImportFile(event) {
+    if (!auth.currentUser || currentRole !== 'admin') {
+        alert('Only administrators can import files');
+        return;
+    }
 
     const file = event.target.files[0];
     if (!file) return;
@@ -1268,7 +1266,7 @@ function isDuplicatePosition(lat, lng, tolerance = 0.0001) { // tolerance is rou
         event.target.value = '';
         return;
     }
-    
+
     try {
         console.log('handleImportFile: Starting file import...');
         let geojson;
@@ -1291,7 +1289,7 @@ function isDuplicatePosition(lat, lng, tolerance = 0.0001) { // tolerance is rou
             console.log('handleImportFile: Detected KMZ file, decompressing...');
             const zip = await JSZip.loadAsync(file);
             let kmlFile = null;
-            
+
             // Find the KML file inside the KMZ (usually doc.kml or a .kml in the root)
             zip.forEach((relativePath, zipEntry) => {
                 if (relativePath.toLowerCase().endsWith('.kml')) {
@@ -1303,7 +1301,6 @@ function isDuplicatePosition(lat, lng, tolerance = 0.0001) { // tolerance is rou
             if (!kmlFile) {
                 throw new Error('No KML file found inside the KMZ archive.');
             }
-
             const kmlText = await kmlFile.async('text');
             const kml = new DOMParser().parseFromString(kmlText, 'text/xml');
             geojson = toGeoJSON.kml(kml);
@@ -1311,14 +1308,14 @@ function isDuplicatePosition(lat, lng, tolerance = 0.0001) { // tolerance is rou
         } else {
             throw new Error('Unsupported file format. Please import .kml or .kmz files.');
         }
-        
+
         console.log('handleImportFile: Parsed GeoJSON:', geojson);
-        
+
         if (!geojson || !geojson.features || !geojson.features.length) {
             alert('No valid features found in the imported file');
             return;
         }
-        
+
         // Update total for progress bar
         const totalFeatures = geojson.features.length;
         document.getElementById('import-progress').textContent = `0/${totalFeatures}`;
@@ -1328,13 +1325,13 @@ function isDuplicatePosition(lat, lng, tolerance = 0.0001) { // tolerance is rou
         let duplicateCount = 0;
         const timestamp = Date.now();
         const currentLayer = selectedLayer; // Use the selectedLayer after validation
-        
+
         console.log('handleImportFile: Importing to layer:', currentLayer);
-        
+
         for (const feature of geojson.features) {
             if (feature.geometry && feature.geometry.coordinates) {
                 const [lng, lat] = feature.geometry.coordinates;
-                
+
                 if (isValidCoordinate(lng, lat)) {
                     // Check for duplicate position
                     if (isDuplicatePosition(lat, lng)) {
@@ -1342,7 +1339,7 @@ function isDuplicatePosition(lat, lng, tolerance = 0.0001) { // tolerance is rou
                         duplicateCount++;
                         continue;
                     }
-                    
+
                     const id = `${currentLayer}_${timestamp}_${importCount}`;
                     console.log('handleImportFile: Adding feature:', id, lat, lng);
                     
@@ -1420,201 +1417,6 @@ function isValidCoordinate(lng, lat) {
   return !isNaN(lng) && !isNaN(lat) && 
          lng >= -180 && lng <= 180 && 
          lat >= -90 && lat <= 90;
-}
-
-function showInspectionPopup(marker, gullyId, latlng, layerType) {
-  // Close any existing popup first
-  if (currentInspectionPopup) {
-    window.map.closePopup(currentInspectionPopup);
-  }
-
-  const popupContent = document.createElement('div');
-  popupContent.className = 'popup-form';
-  popupContent.style.padding = '10px';
-
-  // Create form HTML with proper event handling
-  popupContent.innerHTML = `
-    <div style="margin-bottom: 10px;">
-      <label>
-        <input type="checkbox" id="inspection-complete" style="margin-right: 5px;">
-        Inspection Complete
-      </label>
-    </div>
-    
-    <div style="margin-bottom: 10px;">
-      <label>Date:</label>
-      <input type="date" id="inspection-date" 
-        value="${new Date().toISOString().split('T')[0]}" 
-        max="${new Date().toISOString().split('T')[0]}"
-        style="width: 100%;">
-    </div>
-    
-    <div style="margin-bottom: 10px;">
-      <label>Status:</label>
-      <select id="inspection-status" style="width: 100%;">
-        ${getStatusOptionsForLayer(layerType)}
-      </select>
-    </div>
-
-    <div style="margin-bottom: 10px;">
-      <label>Comments:</label>
-      <textarea id="inspection-comment" placeholder="Add inspection comments..." style="width: 100%; height: 60px;"></textarea>
-    </div>
-    
-    <div style="margin-bottom: 10px;">
-      <label>Photo:</label>
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <input type="file" id="inspection-photo" accept="image/*" style="width: 100%;">
-        <button onclick="capturePhoto()" style="background: #2196F3; color: white; border: none; padding: 8px; border-radius: 4px; width: 100%;">
-          📸 Take Picture
-        </button>
-      </div>
-    </div>
-    
-    <div style="margin-top: 15px; display: flex; justify-content: space-between;">
-      <button id="save-inspection-btn" style="flex: 1; margin-right: 10px; background: #4CAF50; color: white; border: none; padding: 8px; border-radius: 4px;">
-        💾 Save Inspection
-      </button>
-      <button onclick="viewGullyHistory('${gullyId}')" style="flex: 1; background: #2196F3; color: white; border: none; padding: 8px; border-radius: 4px;">
-        📋 View History
-      </button>
-    </div>
-  `;
-
-  // Create popup
-  const popup = L.popup({
-    maxWidth: 300,
-    className: 'inspection-popup',
-    closeButton: true,
-    autoClose: false,
-    closeOnClick: false
-  })
-  .setLatLng(latlng)
-  .setContent(popupContent);
-
-  currentInspectionPopup = popup;
-  marker.bindPopup(popup).openPopup();
-
-  // Add event listener after the popup is added to DOM
-  setTimeout(() => {
-    const saveButton = document.getElementById('save-inspection-btn');
-    if (saveButton) {
-      saveButton.addEventListener('click', () => {
-        saveInspection(gullyId, marker, layerType);
-      });
-    }
-  }, 100);
-}
-
-function getStatusOptionsForLayer(layerType) {
-  const options = {
-    gullies: ['Clear', 'Blocked', 'Broken', 'Remediation', 'Replacement'],
-    signage: ['Good', 'Damaged', 'Missing'],
-    playgrounds: ['Operational', 'Needs Repair', 'Out of Service'],
-    parks: ['Open', 'Under Maintenance', 'Closed'],
-    walkways: ['Clear', 'Obstructed', 'Under Repair'],
-    lining: ['Good', 'Faded', 'Needs Repainting']
-  };
-
-  return (options[layerType] || []).map(status => 
-    `<option value="${status}">${status}</option>`
-  ).join('');
-}
-
-// Update saveInspection to properly handle the status update
-async function saveInspection(gullyId, marker, layerType) {
-  if (!auth.currentUser) {
-    alert('You must be logged in to save inspections');
-    return;
-  }
-
-  const formData = {
-    complete: document.getElementById('inspection-complete').checked,
-    date: document.getElementById('inspection-date').value,
-    status: document.getElementById('inspection-status').value,
-    comment: document.getElementById('inspection-comment').value,
-    location: marker.getLatLng()
-  };
-
-  if (!formData.complete) {
-    alert('Please mark inspection as complete');
-    return;
-  }
-
-  try {
-    // Get current user data
-    const userData = window.currentUserData;
-    if (!userData) {
-      throw new Error('User data not found. Please log out and log in again.');
-    }
-
-    // Create inspection data
-    const timestamp = Date.now();
-    const inspectionData = {
-      date: formData.date,
-      status: formData.status,
-      comment: formData.comment,
-      complete: formData.complete,
-      timestamp: timestamp,
-      inspector: {
-        name: userData.name || auth.currentUser.email.split('@')[0].replace(/[._]/g, ' '),
-        email: auth.currentUser.email,
-        uid: auth.currentUser.uid,
-        role: userData.role,
-        initials: userData.initials || auth.currentUser.email.substring(0, 2).toUpperCase()
-      }
-    };
-
-    // Handle photo upload if present
-    const photoFile = document.getElementById('inspection-photo').files[0];
-    if (photoFile) {
-      try {
-        const photoRef = storage.ref(`photos/${gullyId}/${timestamp}_${photoFile.name}`);
-        await photoRef.put(photoFile);
-        inspectionData.photoURL = await photoRef.getDownloadURL();
-      } catch (error) {
-        console.error('Photo upload failed:', error);
-        alert('Warning: Photo upload failed, but inspection will still be saved.');
-      }
-    }
-
-    // Update gully data in memory
-    const gullyIndex = gullyData.findIndex(g => g.id === gullyId);
-    if (gullyIndex !== -1) {
-      gullyData[gullyIndex].status = formData.status;
-    }
-
-    // Save to Firebase
-    const updates = {};
-    updates[`gullies/${gullyId}/inspections/${timestamp}`] = inspectionData;
-    updates[`gullies/${gullyId}/status`] = formData.status;
-    updates[`gullies/${gullyId}/lastInspection`] = timestamp;
-    updates[`gullies/${gullyId}/lastInspector`] = inspectionData.inspector;
-    updates[`gully_history/${gullyId}/${timestamp}`] = inspectionData;
-
-    await db.ref().update(updates);
-
-    // Update marker appearance
-    updateMarkerStatus(marker, formData.status, layerType);
-    
-    // Force summary update
-    updateSummary();
-    
-    // Show success message
-    alert('Inspection saved successfully');
-    
-    // Clear form
-    document.getElementById('inspection-complete').checked = false;
-    document.getElementById('inspection-comment').value = '';
-    document.getElementById('inspection-photo').value = '';
-    
-    // Keep popup open for another inspection
-    showInspectionPopup(marker, gullyId, formData.location, layerType);
-
-  } catch (error) {
-    console.error('Save inspection error:', error);
-    alert('Error saving inspection: ' + error.message);
-  }
 }
 
 function capturePhoto() {
@@ -2654,6 +2456,18 @@ function initializeLayerVisibility() {
 
 // Remove the old layer control div if it still exists from previous versions
 document.querySelector('.layer-control')?.remove();
+
+// Add a form submit handler to always call login()
+document.addEventListener('DOMContentLoaded', function() {
+  var loginForm = document.getElementById('loginForm');
+  if (loginForm) {
+    loginForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      login();
+      return false;
+    });
+  }
+});
 
 </script>
 </body>
