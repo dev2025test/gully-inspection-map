@@ -2461,6 +2461,126 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+// Add after updateMarkerStatus or near other popup/inspection functions
+function showInspectionPopup(marker, gullyId, latlng, layerType) {
+  // Close any existing popup
+  if (currentInspectionPopup) {
+    window.map.closePopup(currentInspectionPopup);
+    currentInspectionPopup = null;
+  }
+
+  // Fetch gully data and inspection history
+  db.ref(`${layerType}/${gullyId}`).once('value').then(snapshot => {
+    const gully = snapshot.val() || {};
+    const status = gully.status || 'Unmarked';
+    const lastInspection = gully.inspections ?
+      Object.values(gully.inspections).sort((a, b) => b.timestamp - a.timestamp)[0] : null;
+    const comment = lastInspection ? lastInspection.comment : '';
+    const photoURL = lastInspection ? lastInspection.photoURL : '';
+    const inspector = lastInspection && lastInspection.inspector ? lastInspection.inspector.name : '';
+    const timestamp = lastInspection ? lastInspection.timestamp : null;
+    const canEdit = (window.currentUserData && window.currentUserData.role === 'admin') || editMode;
+
+    // Build popup HTML
+    let html = `<div class='inspection-popup popup-form'>`;
+    html += `<h3 style='margin-top:0;'>Gully Inspection</h3>`;
+    html += `<div><b>ID:</b> ${gullyId}</div>`;
+    html += `<div><b>Status:</b> `;
+    if (canEdit) {
+      html += `<select id='inspection-status'>`;
+      [
+        'Clear',
+        'Blocked',
+        'Broken',
+        'Remediation',
+        'Replacement',
+        'Unmarked'
+      ].forEach(opt => {
+        html += `<option value='${opt}'${status === opt ? ' selected' : ''}>${opt}</option>`;
+      });
+      html += `</select>`;
+    } else {
+      html += `<span style='color:${getStatusColor(status)};'>${status}</span>`;
+    }
+    html += `</div>`;
+    html += `<div><b>Inspector:</b> ${inspector || '-'}</div>`;
+    html += `<div><b>Last Inspected:</b> ${timestamp ? new Date(timestamp).toLocaleString() : '-'}</div>`;
+    html += `<div><b>Comment:</b><br/>`;
+    if (canEdit) {
+      html += `<textarea id='inspection-comment' rows='3' style='width:100%'>${comment || ''}</textarea>`;
+    } else {
+      html += `<div style='min-height:2em;'>${comment || '-'}</div>`;
+    }
+    html += `</div>`;
+    html += `<div><b>Photo:</b><br/>`;
+    if (photoURL) {
+      html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+    }
+    if (canEdit) {
+      html += `<input type='file' id='inspection-photo' accept='image/*' style='margin-top:5px;'/><br/>`;
+    }
+    html += `</div>`;
+    if (canEdit) {
+      html += `<button id='save-inspection' style='margin-top:8px;'>Save Inspection</button>`;
+    }
+    html += `<button id='view-history' style='margin-top:8px;'>View History</button>`;
+    html += `</div>`;
+
+    // Create and show Leaflet popup
+    currentInspectionPopup = L.popup({
+      maxWidth: 350,
+      closeButton: true,
+      className: 'inspection-popup'
+    })
+      .setLatLng([latlng.lat, latlng.lng])
+      .setContent(html)
+      .openOn(window.map);
+
+    // Save handler
+    setTimeout(() => {
+      if (canEdit) {
+        document.getElementById('save-inspection').onclick = async function() {
+          const newStatus = document.getElementById('inspection-status').value;
+          const newComment = document.getElementById('inspection-comment').value;
+          const photoInput = document.getElementById('inspection-photo');
+          let newPhotoURL = photoURL;
+          let uploading = false;
+
+          if (photoInput && photoInput.files && photoInput.files[0]) {
+            uploading = true;
+            const file = photoInput.files[0];
+            const storageRef = storage.ref(`inspections/${gullyId}/${Date.now()}_${file.name}`);
+            await storageRef.put(file);
+            newPhotoURL = await storageRef.getDownloadURL();
+          }
+
+          // Save inspection to Firebase
+          const inspectionId = db.ref().push().key;
+          const inspectionData = {
+            status: newStatus,
+            comment: newComment,
+            photoURL: newPhotoURL,
+            timestamp: Date.now(),
+            inspector: {
+              name: window.currentUserData ? window.currentUserData.name : '',
+              initials: window.currentUserData ? window.currentUserData.initials : ''
+            }
+          };
+          await db.ref(`${layerType}/${gullyId}/inspections/${inspectionId}`).set(inspectionData);
+          await db.ref(`${layerType}/${gullyId}`).update({ status: newStatus });
+          updateMarkerStatus(marker, newStatus, layerType);
+          alert('Inspection saved!');
+          window.map.closePopup(currentInspectionPopup);
+        };
+      }
+      // History handler
+      document.getElementById('view-history').onclick = function() {
+        viewGullyHistory(gullyId);
+      };
+    }, 100);
+  });
+}
+
 </script>
 </body>
 </html>
