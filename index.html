@@ -52,13 +52,6 @@
       min-width: 300px;
     }
 
-    #controlPanel {
-      top: 10px;
-      left: 10px;
-      display: none;
-      z-index: 1000;
-    }
-
     #summary { top: 10px; right: 10px; font-size: 0.9em; display: none; }
     .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #000; }
     .popup-form input, .popup-form select, .popup-form textarea { width: 100%; margin-bottom: 6px; }
@@ -844,7 +837,6 @@ function login(isAutoLogin = false) {
       // Update UI
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('map').style.display = 'block';
-      document.getElementById('controlPanel').style.display = 'block';
       document.getElementById('summary').style.display = 'block';
       
       // Setup UI with proper privileges
