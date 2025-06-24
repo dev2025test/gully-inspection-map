@@ -610,6 +610,7 @@
       <input type="file" id="importFile" onchange="handleImportFile(event)" style="display: none;">
       <button class="toolbar-button" onclick="exportData()">💾 Export CSV</button>
       <button class="toolbar-button" onclick="saveGullyData()">💾 Backup</button>
+      <button class="toolbar-button" onclick="loadFromBackup()">📂 Load Backup</button>
     </div>
   </div>
 </div>
@@ -1102,17 +1103,11 @@ function handleLoginSuccess(userData) {
   // Initialize map and load data after a short delay to ensure the map container is rendered
   setTimeout(() => {
     console.log('handleLoginSuccess: Inside setTimeout. Calling initMap...');
-
-    // Diagnostic: Log map container dimensions just before initMap
     const currentMapDiv = document.getElementById('map');
     console.log(`handleLoginSuccess: Map div dimensions before initMap: Width=${currentMapDiv.offsetWidth}, Height=${currentMapDiv.offsetHeight}`);
-
-    initMap(); // initMap now includes its own invalidateSize
-    console.log('handleLoginSuccess: initMap call completed. Loading gully data and initializing layer visibility...');
-    loadGullyData();
-    initializeLayerVisibility(); // Call after map and layers are initialized
-    console.log('handleLoginSuccess: Data loaded and layer visibility initialized.');
-  }, 500); // Increased delay to allow browser to render the map div
+    initMap();
+    console.log('handleLoginSuccess: Map initialized. Waiting for user to load data.');
+  }, 500);
 }
 
 function getStatusColor(status) {
@@ -2043,14 +2038,10 @@ function enableDeleteMode() {
         alert('Only administrators can delete gullies');
         return;
     }
-    
     deleteMode = !deleteMode;
     editMode = false;
-    
-    // Update cursor and button style
     const mapElement = document.getElementById('map');
     const deleteButton = document.querySelector('button[onclick="enableDeleteMode()"]');
-    
     if (deleteMode) {
         mapElement.style.cursor = 'pointer';
         deleteButton.style.backgroundColor = '#ff4444';
@@ -2061,14 +2052,12 @@ function enableDeleteMode() {
         deleteButton.style.backgroundColor = '';
         deleteButton.style.color = '';
     }
-    
-    // Update all markers to show they're clickable in delete mode
     gullyData.forEach(gully => {
         if (gully.marker) {
             if (deleteMode) {
-                gully.marker.setStyle({ radius: 8 }); // Make markers slightly bigger in delete mode
+                gully.marker.setStyle({ radius: 8 });
             } else {
-                gully.marker.setStyle({ radius: 6 }); // Reset to normal size
+                gully.marker.setStyle({ radius: 6 });
             }
         }
     });
@@ -2098,49 +2087,30 @@ function enableEditMode() {
 
 async function handleGullyDelete(gullyId, marker, layerType) {
     if (!deleteMode || !auth.currentUser || currentRole !== 'admin') return;
-    
     try {
         const confirmDelete = confirm('Are you sure you want to delete this gully?');
         if (!confirmDelete) return;
-        
-        console.log('handleGullyDelete: Deleting gully:', gullyId);
-        
-        // Show loading state
-        marker.setStyle({
-            fillColor: '#ff0000',
-            radius: 8
-        });
-        
+        marker.setStyle({ fillColor: '#ff0000', radius: 8 });
         // Remove from Firebase
         await db.ref(`${layerType}/${gullyId}`).remove();
-        console.log('handleGullyDelete: Removed from Firebase');
-        
         // Remove from map layer
         if (window.dataLayers && window.dataLayers[layerType]) {
             window.dataLayers[layerType].removeLayer(marker);
-            console.log('handleGullyDelete: Removed from map layer');
         }
-        
         // Remove from gullyData array
         const index = gullyData.findIndex(g => g.id === gullyId);
         if (index !== -1) {
             gullyData.splice(index, 1);
-            console.log('handleGullyDelete: Removed from gullyData array');
         }
-        
-        // Update summary
         updateSummary();
-        
-        console.log('handleGullyDelete: Gully deleted successfully');
-        
-        // Disable delete mode after successful deletion
-        enableDeleteMode();
-        
+        // Remove marker from map if still present
+        if (window.map.hasLayer(marker)) {
+            window.map.removeLayer(marker);
+        }
+        enableDeleteMode(); // Disable delete mode after successful deletion
     } catch (error) {
         console.error('handleGullyDelete: Error deleting gully:', error);
         alert('Error deleting gully: ' + error.message);
-        
-        // Reset marker style on error
         if (marker) {
             marker.setStyle(getMarkerOptions('Unmarked'));
         }
@@ -2288,9 +2258,10 @@ function showUserManagement() {
       html += `<tr><td>${user.name || ''}</td><td>${user.email || ''}</td><td>${user.role || ''}</td></tr>`;
     });
     html += '</table>';
-    html += `<div style='text-align:right;margin-top:10px;'><button onclick='this.parentElement.parentElement.remove()' style='padding:6px 12px;border-radius:4px;'>Close</button></div></div>`;
+    html += `<div style='text-align:right;margin-top:10px;'><button onclick='this.closest(".user-management-modal").remove()' style='padding:6px 12px;border-radius:4px;'>Close</button></div></div>`;
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.2);z-index:2001;';
+    modal.className = 'user-management-modal';
     modal.innerHTML = html;
     document.body.appendChild(modal);
   });
@@ -2619,6 +2590,42 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
       };
     }, 100);
   });
+}
+
+// Add the loadFromBackup function
+function loadFromBackup() {
+  if (!auth.currentUser) {
+    alert('Please log in to load backup data');
+    return;
+  }
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const backup = JSON.parse(text);
+      // Clear all layers and gullyData
+      Object.values(window.dataLayers).forEach(layer => layer.clearLayers());
+      gullyData.length = 0;
+      // Add features from backup
+      Object.keys(backup).forEach(layerType => {
+        const items = backup[layerType] || {};
+        Object.entries(items).forEach(([id, item]) => {
+          if (item.location) {
+            addGullyToMap(item.location, id, layerType);
+          }
+        });
+      });
+      initializeLayerVisibility();
+      alert('Backup loaded successfully!');
+    } catch (err) {
+      alert('Error loading backup: ' + err.message);
+    }
+  };
+  input.click();
 }
 
 </script>
