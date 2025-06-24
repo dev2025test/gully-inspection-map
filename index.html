@@ -2448,6 +2448,10 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     const inspector = lastInspection && lastInspection.inspector ? lastInspection.inspector.name : '';
     const timestamp = lastInspection ? lastInspection.timestamp : null;
     const canEdit = (window.currentUserData && window.currentUserData.role === 'admin') || editMode;
+    // Date picker setup
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    let lastDate = timestamp ? new Date(timestamp).toISOString().split('T')[0] : todayStr;
     let html = `<div class='inspection-popup popup-form'>`;
     html += `<h3 style='margin-top:0;'>Gully Inspection</h3>`;
     html += `<div><b>ID:</b> ${gullyId}</div>`;
@@ -2471,6 +2475,10 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     html += `</div>`;
     html += `<div><b>Inspector:</b> ${inspector || '-'}</div>`;
     html += `<div><b>Last Inspected:</b> ${timestamp ? new Date(timestamp).toLocaleString() : '-'}</div>`;
+    // Date picker
+    if (canEdit) {
+      html += `<div><b>Inspection Date:</b><br/><input type='date' id='inspection-date' max='${todayStr}' value='${lastDate}' style='width:100%;margin-bottom:5px;'></div>`;
+    }
     html += `<div><b>Comment:</b><br/>`;
     if (canEdit) {
       html += `<input type='text' id='inspection-comment-custom' placeholder='Enter comment' style='width:100%;margin-bottom:5px;' value="${comment || ''}">`;
@@ -2546,6 +2554,12 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
           const newStatus = document.getElementById('inspection-status').value;
           const commentCustom = document.getElementById('inspection-comment-custom');
           const newComment = commentCustom.value;
+          const dateInput = document.getElementById('inspection-date');
+          let inspectionTimestamp = Date.now();
+          if (dateInput && dateInput.value) {
+            // Set time to noon to avoid timezone issues
+            inspectionTimestamp = new Date(dateInput.value + 'T12:00:00').getTime();
+          }
           let newPhotoURL = photoURL;
           if (photoInput && photoInput.files && photoInput.files[0]) {
             const file = photoInput.files[0];
@@ -2558,7 +2572,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
             status: newStatus,
             comment: newComment,
             photoURL: newPhotoURL,
-            timestamp: Date.now(),
+            timestamp: inspectionTimestamp,
             inspector: {
               name: window.currentUserData ? window.currentUserData.name : '',
               initials: window.currentUserData ? window.currentUserData.initials : ''
