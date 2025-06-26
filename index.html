@@ -2527,46 +2527,61 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
         // Confirm Save Inspection checkbox
         const confirmSave = document.getElementById('confirm-save-inspection');
         const saveBtn = document.getElementById('save-inspection');
-        if (confirmSave && saveBtn) {
+        if (!saveBtn) {
+          console.error('Save Inspection button not found in popup!');
+          return;
+        }
+        if (confirmSave) {
           confirmSave.onchange = function() {
             saveBtn.disabled = !confirmSave.checked;
           };
           saveBtn.disabled = !confirmSave.checked;
+        } else {
+          // Fallback: always enable for admin if checkbox missing
+          saveBtn.disabled = false;
         }
         saveBtn.onclick = async function() {
           if (saveBtn.disabled) return;
-          const newStatus = document.getElementById('inspection-status').value;
-          const commentCustom = document.getElementById('inspection-comment-custom');
-          const newComment = commentCustom.value;
-          const dateInput = document.getElementById('inspection-date');
-          let inspectionTimestamp = Date.now();
-          if (dateInput && dateInput.value) {
-            // Set time to noon to avoid timezone issues
-            inspectionTimestamp = new Date(dateInput.value + 'T12:00:00').getTime();
-          }
-          let newPhotoURL = photoURL;
-          if (photoInput && photoInput.files && photoInput.files[0]) {
-            const file = photoInput.files[0];
-            const storageRef = storage.ref(`inspections/${gullyId}/${Date.now()}_${file.name}`);
-            await storageRef.put(file);
-            newPhotoURL = await storageRef.getDownloadURL();
-          }
-          const inspectionId = db.ref().push().key;
-          const inspectionData = {
-            status: newStatus,
-            comment: newComment,
-            photoURL: newPhotoURL,
-            timestamp: inspectionTimestamp,
-            inspector: {
-              name: window.currentUserData ? window.currentUserData.name : '',
-              initials: window.currentUserData ? window.currentUserData.initials : ''
+          try {
+            saveBtn.textContent = 'Saving...';
+            saveBtn.disabled = true;
+            const newStatus = document.getElementById('inspection-status').value;
+            const commentCustom = document.getElementById('inspection-comment-custom');
+            const newComment = commentCustom.value;
+            const dateInput = document.getElementById('inspection-date');
+            let inspectionTimestamp = Date.now();
+            if (dateInput && dateInput.value) {
+              inspectionTimestamp = new Date(dateInput.value + 'T12:00:00').getTime();
             }
-          };
-          await db.ref(`${layerType}/${gullyId}/inspections/${inspectionId}`).set(inspectionData);
-          await db.ref(`${layerType}/${gullyId}`).update({ status: newStatus });
-          updateMarkerStatus(marker, newStatus, layerType);
-          alert('Inspection saved!');
-          window.map.closePopup(currentInspectionPopup);
+            let newPhotoURL = photoURL;
+            if (photoInput && photoInput.files && photoInput.files[0]) {
+              const file = photoInput.files[0];
+              const storageRef = storage.ref(`inspections/${gullyId}/${Date.now()}_${file.name}`);
+              await storageRef.put(file);
+              newPhotoURL = await storageRef.getDownloadURL();
+            }
+            const inspectionId = db.ref().push().key;
+            const inspectionData = {
+              status: newStatus,
+              comment: newComment,
+              photoURL: newPhotoURL,
+              timestamp: inspectionTimestamp,
+              inspector: {
+                name: window.currentUserData ? window.currentUserData.name : '',
+                initials: window.currentUserData ? window.currentUserData.initials : ''
+              }
+            };
+            await db.ref(`${layerType}/${gullyId}/inspections/${inspectionId}`).set(inspectionData);
+            await db.ref(`${layerType}/${gullyId}`).update({ status: newStatus });
+            updateMarkerStatus(marker, newStatus, layerType);
+            alert('Inspection saved!');
+            window.map.closePopup(currentInspectionPopup);
+          } catch (err) {
+            console.error('Error saving inspection:', err);
+            alert('Error saving inspection: ' + err.message);
+            saveBtn.textContent = 'Save Inspection';
+            saveBtn.disabled = false;
+          }
         };
       }
       document.getElementById('view-history').onclick = function() {
