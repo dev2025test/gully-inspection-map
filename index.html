@@ -1043,7 +1043,7 @@ function loadGullyData() {
       
       Object.entries(data).forEach(([id, item]) => {
         if (item.location) {
-          const marker = addGullyToMap(item.location, id, layerType);
+          const marker = addGullyToMap(item.location, id, layerType, item.status || 'Unmarked');
           if (item.status) {
             updateMarkerStatus(marker, item.status, layerType);
           }
@@ -1142,9 +1142,8 @@ function getMarkerOptions(status) {
   };
 }
 
-function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
-    const marker = L.circleMarker([latlng.lat, latlng.lng], getMarkerOptions('Unmarked'));
-    
+function addGullyToMap(latlng, gullyId, layerType = 'gullies', status = 'Unmarked') {
+    const marker = L.circleMarker([latlng.lat, latlng.lng], getMarkerOptions(status));
     // Add to the correct layer group
     if (window.dataLayers && window.dataLayers[layerType]) {
         window.dataLayers[layerType].addLayer(marker);
@@ -1152,8 +1151,6 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
         console.warn('Layer not found:', layerType);
         marker.addTo(window.map);
     }
-    
-    // Add click handler
     marker.on('click', function(e) {
         if (deleteMode) {
             handleGullyDelete(gullyId, marker, layerType);
@@ -1162,30 +1159,24 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies') {
             showInspectionPopup(marker, gullyId, latlng, layerType);
         }
     });
-    
-    // Add hover effect
     marker.on('mouseover', function() {
         if (deleteMode) {
-            marker.setStyle({ radius: 10 }); // Bigger on hover in delete mode
+            marker.setStyle({ radius: 10 });
         }
     });
-    
     marker.on('mouseout', function() {
         if (deleteMode) {
-            marker.setStyle({ radius: 8 }); // Return to delete mode size
+            marker.setStyle({ radius: 8 });
         } else {
-            marker.setStyle({ radius: 6 }); // Return to normal size
+            marker.setStyle({ radius: 6 });
         }
     });
-    
-    // Add to gullyData with initial status
     gullyData.push({ 
         marker, 
         id: gullyId, 
         layer: layerType,
-        status: 'Unmarked'
+        status: status
     });
-    
     return marker;
 }
 
@@ -1310,15 +1301,15 @@ async function handleImportFile(event) {
         // Process and add features
         let importCount = 0;
         let duplicateCount = 0;
+        let skippedCount = 0;
         const timestamp = Date.now();
         const currentLayer = selectedLayer; // Use the selectedLayer after validation
 
         console.log('handleImportFile: Importing to layer:', currentLayer);
 
         for (const feature of geojson.features) {
-            if (feature.geometry && feature.geometry.coordinates) {
+            if (feature.geometry && feature.geometry.type === 'Point' && feature.geometry.coordinates) {
                 const [lng, lat] = feature.geometry.coordinates;
-
                 if (isValidCoordinate(lng, lat)) {
                     // Check for duplicate position
                     if (isDuplicatePosition(lat, lng)) {
@@ -1326,16 +1317,12 @@ async function handleImportFile(event) {
                         duplicateCount++;
                         continue;
                     }
-
                     const id = `${currentLayer}_${timestamp}_${importCount}`;
                     console.log('handleImportFile: Adding feature:', id, lat, lng);
-                    
                     // Add marker to map
                     const marker = addGullyToMap({ lat, lng }, id, currentLayer);
-                    
                     // Save position to Set
                     importedPositions.add(`${lat.toFixed(5)},${lng.toFixed(5)}`);
-                    
                     // Save to Firebase
                     await db.ref(`${currentLayer}/${id}`).set({
                         location: { lat, lng },
@@ -1344,51 +1331,44 @@ async function handleImportFile(event) {
                         createdBy: auth.currentUser.uid,
                         sourceFile: file.name
                     });
-                    
                     importCount++;
-                    
                     // Update progress
                     const progressElement = document.getElementById('import-progress');
                     if (progressElement) {
                         progressElement.textContent = `${importCount}/${totalFeatures}`;
                     }
                 }
+            } else {
+                skippedCount++;
+                console.warn('handleImportFile: Skipping non-Point geometry:', feature.geometry ? feature.geometry.type : 'undefined');
             }
         }
-        
         // Remove progress indicator
         progressDiv.remove();
-        
         // Add file name to imported set
         importedFiles.add(file.name);
-        
-        console.log('handleImportFile: Import complete:', importCount, 'features imported,', duplicateCount, 'duplicates skipped');
-        
+        console.log('handleImportFile: Import complete:', importCount, 'features imported,', duplicateCount, 'duplicates skipped,', skippedCount, 'non-Point features skipped');
         if (importCount > 0) {
             // Fit map to imported features
             const bounds = L.latLngBounds(Array.from(importedPositions).map(pos => {
                 const [lat, lng] = pos.split(',').map(Number);
                 return [lat, lng];
             }));
-            
             if (bounds.isValid()) {
                 window.map.fitBounds(bounds);
             }
-            
             // Ensure the imported layer is visible on the map
             if (currentLayer && window.dataLayers[currentLayer] && !window.map.hasLayer(window.dataLayers[currentLayer])) {
                 window.dataLayers[currentLayer].addTo(window.map);
                 updateLayerButtonStates(); // Update the checkbox for the newly visible layer
             }
-            
             // Force map to re-render to show new markers
             window.map.invalidateSize();
             console.log('handleImportFile: Map invalidated size after import.');
-
-            const message = `Successfully imported ${importCount} features.\n${duplicateCount} duplicate positions were skipped.`;
+            const message = `Successfully imported ${importCount} features.\n${duplicateCount} duplicate positions were skipped.\n${skippedCount} non-point features were skipped.`;
             alert(message);
         } else {
-            alert('No valid features were imported. All positions were duplicates or invalid.');
+            alert('No valid Point features were imported. All positions were duplicates, invalid, or not Point geometry.');
         }
         
     } catch (error) {
@@ -2615,7 +2595,7 @@ function loadFromBackup() {
         const items = backup[layerType] || {};
         Object.entries(items).forEach(([id, item]) => {
           if (item.location) {
-            addGullyToMap(item.location, id, layerType);
+            addGullyToMap(item.location, id, layerType, item.status || 'Unmarked');
           }
         });
       });
