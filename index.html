@@ -669,12 +669,13 @@
       <button class="toolbar-button" onclick="enableEditMode()">✏️ Edit</button>
       <button class="toolbar-button" onclick="enableDeleteMode()">🗑️ Delete</button>
       <button class="toolbar-button" onclick="enableAddMode()">➕ Add New</button>
-      <button class="toolbar-button" onclick="showLayerControl()">🗺️ Layers</button>
+      <!-- <button class="toolbar-button" onclick="showLayerControl()">🗺️ Layers</button> -->
     </div>
     <div class="button-group">
       <button class="toolbar-button" onclick="printMap()">🖨️ Print</button>
       <button class="toolbar-button" onclick="resetMap()">🔄 Reset</button>
       <button class="toolbar-button" onclick="showSummaryPopup()">📊 Summary</button>
+      <button class="toolbar-button" onclick="showLayerControl()">🗺️ Layers</button>
       <label for="importFile" class="toolbar-button">📂 Import</label>
       <input type="file" id="importFile" onchange="handleImportFile(event)" style="display: none;">
       <button class="toolbar-button" onclick="exportData()">💾 Export CSV</button>
@@ -2581,7 +2582,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     const photoURL = lastInspection ? lastInspection.photoURL : '';
     const inspector = lastInspection && lastInspection.inspector ? lastInspection.inspector.name : '';
     const timestamp = lastInspection ? lastInspection.timestamp : null;
-    const canEdit = (window.currentUserData && window.currentUserData.role === 'admin') || editMode;
+    const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
     console.log('showInspectionPopup: canEdit:', canEdit, 'window.currentUserData:', window.currentUserData, 'editMode:', editMode);
     if (!canEdit) {
       console.warn('showInspectionPopup: Save button will not show because canEdit is false.');
