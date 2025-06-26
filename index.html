@@ -2599,6 +2599,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
         saveBtn.onclick = async function() {
           if (saveBtn.disabled) return;
           try {
+            console.log('[SaveInspection] Save button clicked');
             saveBtn.textContent = 'Saving...';
             saveBtn.disabled = true;
             const newStatus = document.getElementById('inspection-status').value;
@@ -2613,8 +2614,13 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
             if (photoInput && photoInput.files && photoInput.files[0]) {
               const file = photoInput.files[0];
               const storageRef = storage.ref(`inspections/${gullyId}/${Date.now()}_${file.name}`);
-              await storageRef.put(file);
+              console.log('[SaveInspection] Uploading photo to Firebase Storage...');
+              // Add a timeout for the upload
+              const uploadPromise = storageRef.put(file);
+              const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Photo upload timed out after 30 seconds')), 30000));
+              await Promise.race([uploadPromise, timeoutPromise]);
               newPhotoURL = await storageRef.getDownloadURL();
+              console.log('[SaveInspection] Photo uploaded, URL:', newPhotoURL);
             }
             // Inspector fallback logic
             let inspectorName = '';
@@ -2629,6 +2635,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
               inspectorName = 'Unknown';
               inspectorInitials = 'UN';
             }
+            console.log('[SaveInspection] Inspector:', inspectorName, inspectorInitials);
             const inspectionId = db.ref().push().key;
             const inspectionData = {
               status: newStatus,
@@ -2640,13 +2647,15 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
                 initials: inspectorInitials
               }
             };
+            console.log('[SaveInspection] Writing inspection data to database:', inspectionData);
             await db.ref(`${layerType}/${gullyId}/inspections/${inspectionId}`).set(inspectionData);
             await db.ref(`${layerType}/${gullyId}`).update({ status: newStatus });
             updateMarkerStatus(marker, newStatus, layerType);
             alert('Inspection saved!');
             window.map.closePopup(currentInspectionPopup);
+            console.log('[SaveInspection] Inspection saved and popup closed.');
           } catch (err) {
-            console.error('Error saving inspection:', err);
+            console.error('[SaveInspection] Error saving inspection:', err);
             alert('Error saving inspection: ' + err.message);
             saveBtn.textContent = 'Save Inspection';
             saveBtn.disabled = false;
