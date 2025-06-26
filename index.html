@@ -642,6 +642,9 @@
       </div>
       <button type="submit" class="login-button" onclick="login(); return false;">Login</button>
     </form>
+    <div style="margin-top:10px;text-align:center;">
+      <a href="#" id="forgotPasswordLink" style="color:#1976D2;text-decoration:underline;cursor:pointer;font-size:14px;">Forgot password?</a>
+    </div>
     <p id="loginError" style="color:red;"></p>
   </div>
 </div>
@@ -2732,6 +2735,35 @@ function loadFromBackup() {
   };
   input.click();
 }
+
+// Forgot password handler
+document.addEventListener('DOMContentLoaded', function() {
+  const forgotLink = document.getElementById('forgotPasswordLink');
+  if (forgotLink) {
+    forgotLink.onclick = function(e) {
+      e.preventDefault();
+      let email = document.getElementById('email').value.trim();
+      if (!email) {
+        email = prompt('Please enter your email address to reset your password:');
+        if (!email) return;
+      }
+      // Validate email format
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        document.getElementById('loginError').textContent = '❌ Please enter a valid email address.';
+        return;
+      }
+      firebase.auth().sendPasswordResetEmail(email)
+        .then(() => {
+          document.getElementById('loginError').style.color = 'green';
+          document.getElementById('loginError').textContent = '✔️ Password reset email sent. Please check your inbox.';
+        })
+        .catch(error => {
+          document.getElementById('loginError').style.color = 'red';
+          document.getElementById('loginError').textContent = '❌ ' + (error.message || 'Error sending password reset email.');
+        });
+    };
+  }
+});
 
 </script>
 </body>
