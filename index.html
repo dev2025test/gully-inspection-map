@@ -736,6 +736,21 @@ const USER_CONFIG = {
       tempPassword: 'TempAman2024!'
     },
     {
+      email: 'richard_daly@corkcity.ie',
+      role: 'admin',
+      name: 'Richard Daly',
+      initials: 'RD',
+      isAdmin: true,
+      adminPrivileges: {
+        canDelete: true,
+        canEdit: true,
+        canImport: true,
+        canExport: true,
+        canReset: true,
+        canManageUsers: true
+      }
+    },
+    {
       email: 'ronan_oconnor@corkcity.ie',
       role: 'operator',
       name: "Ronan O'Connor",
@@ -763,7 +778,10 @@ function validateAndNormalizeEmail(email) {
     'aman_kushawaha@corkcity.ie',
     'aman.kushawaha@corkcity.ie',
     'amankushwaha@corkcity.ie',
-    'nankushwaha@corkcity.ie'
+    'nankushwaha@corkcity.ie',
+    'richard_daly@corkcity.ie',
+    'richard.daly@corkcity.ie',
+    'richarddaly@corkcity.ie'
   ];
   
   // Operator email variations
@@ -778,11 +796,18 @@ function validateAndNormalizeEmail(email) {
   // Check admin variations
   if (adminVariations.some(variant => 
     email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+    // Determine which admin user
+    let adminUser = USER_CONFIG.users[0];
+    if (['aman_kushwaha@corkcity.ie','aman.kushwaha@corkcity.ie','nan_kushwaha@corkcity.ie','nan.kushwaha@corkcity.ie','aman_kushawaha@corkcity.ie','aman.kushawaha@corkcity.ie','amankushwaha@corkcity.ie','nankushwaha@corkcity.ie'].some(variant => email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+      adminUser = USER_CONFIG.users[1];
+    } else if (['richard_daly@corkcity.ie','richard.daly@corkcity.ie','richarddaly@corkcity.ie'].some(variant => email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+      adminUser = USER_CONFIG.users[2];
+    }
     return {
       isValid: true,
-      normalizedEmail: USER_CONFIG.users[0].email,
+      normalizedEmail: adminUser.email,
       isAdmin: true,
-      userData: USER_CONFIG.users[0],
+      userData: adminUser,
       message: 'Admin email validated'
     };
   }
@@ -792,9 +817,9 @@ function validateAndNormalizeEmail(email) {
     email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
     return {
       isValid: true,
-      normalizedEmail: USER_CONFIG.users[2].email, // FIXED: use users[2] for operator
+      normalizedEmail: USER_CONFIG.users[3].email, // Now index 3 for operator
       isAdmin: false,
-      userData: USER_CONFIG.users[2],
+      userData: USER_CONFIG.users[3],
       message: 'Operator email validated'
     };
   }
