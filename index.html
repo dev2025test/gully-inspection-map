@@ -938,7 +938,20 @@ function login(isAutoLogin = false) {
 
 // Placeholder for setupInactivityTracking if not defined elsewhere
 function setupInactivityTracking() {
-  console.log('setupInactivityTracking function called (placeholder).');
+  let inactivityTimeout;
+  const TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+  function resetTimer() {
+    if (inactivityTimeout) clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(() => {
+      alert('You have been logged out due to inactivity. Please log in again.');
+      logout();
+    }, TIMEOUT_MS);
+  }
+  // Listen for user activity
+  ['mousemove', 'keydown', 'mousedown', 'touchstart'].forEach(evt => {
+    window.addEventListener(evt, resetTimer, true);
+  });
+  resetTimer();
 }
 
 function logout() {
@@ -1172,8 +1185,13 @@ function handleLoginSuccess(userData) {
     const currentMapDiv = document.getElementById('map');
     console.log(`handleLoginSuccess: Map div dimensions before initMap: Width=${currentMapDiv.offsetWidth}, Height=${currentMapDiv.offsetHeight}`);
     initMap();
+    // Load latest gully data from Firebase after map is ready
+    loadGullyData();
+    console.log('handleLoginSuccess: Map initialized and gully data loaded.');
     console.log('handleLoginSuccess: Map initialized. Waiting for user to load data.');
   }, 500);
+  // Start inactivity tracking
+  setupInactivityTracking();
 }
 
 function getStatusColor(status) {
