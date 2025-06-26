@@ -2428,6 +2428,10 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     const inspector = lastInspection && lastInspection.inspector ? lastInspection.inspector.name : '';
     const timestamp = lastInspection ? lastInspection.timestamp : null;
     const canEdit = (window.currentUserData && window.currentUserData.role === 'admin') || editMode;
+    console.log('showInspectionPopup: canEdit:', canEdit, 'window.currentUserData:', window.currentUserData, 'editMode:', editMode);
+    if (!canEdit) {
+      console.warn('showInspectionPopup: Save button will not show because canEdit is false.');
+    }
     // Date picker setup
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
