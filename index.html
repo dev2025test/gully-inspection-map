@@ -537,6 +537,62 @@
       background-color: #f0f0f0;
     }
   </style>
+  <style>
+    .inspection-popup .leaflet-popup-content {
+      padding: 18px 14px 10px 14px !important;
+      border-radius: 12px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
+      font-size: 15px !important;
+      background: #fff !important;
+      min-width: 260px;
+      max-width: 340px;
+    }
+    .inspection-popup h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+    .inspection-popup .popup-form > div {
+      margin-bottom: 8px;
+    }
+    .inspection-popup input[type="text"],
+    .inspection-popup input[type="date"],
+    .inspection-popup select {
+      padding: 5px 8px;
+      border-radius: 5px;
+      border: 1px solid #bbb;
+      font-size: 1em;
+      margin-top: 2px;
+    }
+    .inspection-popup button {
+      border-radius: 5px;
+      border: 1px solid #bbb;
+      background: #f8f8f8;
+      padding: 5px 12px;
+      font-size: 1em;
+      margin-right: 6px;
+      margin-top: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .inspection-popup button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .inspection-popup button:hover:not(:disabled) {
+      background: #e0e0e0;
+    }
+    .inspection-popup label {
+      margin-bottom: 0;
+      font-size: 1em;
+    }
+    .inspection-popup img {
+      border-radius: 6px;
+      margin-top: 4px;
+      border: 1px solid #eee;
+    }
+  </style>
 </head>
 <body>
 <div id="map" style="width:100vw; height:100vh; min-height:400px;"></div>
@@ -2560,6 +2616,19 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
               await storageRef.put(file);
               newPhotoURL = await storageRef.getDownloadURL();
             }
+            // Inspector fallback logic
+            let inspectorName = '';
+            let inspectorInitials = '';
+            if (window.currentUserData) {
+              inspectorName = window.currentUserData.name || window.currentUserData.email || auth.currentUser.email || auth.currentUser.uid;
+              inspectorInitials = window.currentUserData.initials || (window.currentUserData.name ? window.currentUserData.name.split(' ').map(n=>n[0]).join('').toUpperCase() : '') || (auth.currentUser.email ? auth.currentUser.email[0].toUpperCase() : 'U');
+            } else if (auth.currentUser) {
+              inspectorName = auth.currentUser.email || auth.currentUser.uid;
+              inspectorInitials = auth.currentUser.email ? auth.currentUser.email[0].toUpperCase() : 'U';
+            } else {
+              inspectorName = 'Unknown';
+              inspectorInitials = 'UN';
+            }
             const inspectionId = db.ref().push().key;
             const inspectionData = {
               status: newStatus,
@@ -2567,8 +2636,8 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
               photoURL: newPhotoURL,
               timestamp: inspectionTimestamp,
               inspector: {
-                name: window.currentUserData ? window.currentUserData.name : '',
-                initials: window.currentUserData ? window.currentUserData.initials : ''
+                name: inspectorName,
+                initials: inspectorInitials
               }
             };
             await db.ref(`${layerType}/${gullyId}/inspections/${inspectionId}`).set(inspectionData);
