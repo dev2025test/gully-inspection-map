@@ -999,6 +999,48 @@ function setupUIForRole(role, adminPrivileges = null) {
     element.style.display = isAdmin ? 'block' : 'none';
   });
   
+  // Toolbar button group (non-admin)
+  const toolbarContent = document.querySelector('.toolbar-content');
+  if (toolbarContent) {
+    const buttonGroups = toolbarContent.querySelectorAll('.button-group');
+    if (buttonGroups.length > 1) {
+      const mainGroup = buttonGroups[1];
+      // Remove any previous operator-only logout button
+      const oldLogout = mainGroup.querySelector('.toolbar-button.operator-logout');
+      if (oldLogout) oldLogout.remove();
+      // Remove Reset button for operators
+      const resetBtn = mainGroup.querySelector('button[onclick="resetMap()"]');
+      if (resetBtn && !isAdmin) resetBtn.remove();
+      // Add Logout button for operators if not present
+      if (!isAdmin && !mainGroup.querySelector('.toolbar-button.operator-logout')) {
+        const logoutBtn = document.createElement('button');
+        logoutBtn.className = 'toolbar-button operator-logout';
+        logoutBtn.innerHTML = '🚪 Logout';
+        logoutBtn.onclick = logout;
+        mainGroup.appendChild(logoutBtn);
+      }
+      // If admin, ensure Reset is present and Logout is not duplicated
+      if (isAdmin && !mainGroup.querySelector('button[onclick="resetMap()"]')) {
+        const resetBtn = document.createElement('button');
+        resetBtn.className = 'toolbar-button';
+        resetBtn.setAttribute('onclick', 'resetMap()');
+        resetBtn.innerHTML = '🔄 Reset';
+        // Insert after Print button (first in group)
+        const printBtn = mainGroup.querySelector('button[onclick="printMap()"]');
+        if (printBtn && printBtn.nextSibling) {
+          mainGroup.insertBefore(resetBtn, printBtn.nextSibling);
+        } else {
+          mainGroup.appendChild(resetBtn);
+        }
+      }
+      // Remove operator logout for admin
+      if (isAdmin) {
+        const opLogout = mainGroup.querySelector('.toolbar-button.operator-logout');
+        if (opLogout) opLogout.remove();
+      }
+    }
+  }
+
   // Enable/disable functionality based on role
   if (isAdmin) {
     // Enable all functionality for admin
