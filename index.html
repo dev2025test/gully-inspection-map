@@ -2972,6 +2972,130 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
       };
     }, 100);
   });
+
+  // Custom popup for signage
+  if (layerType === 'signage') {
+    db.ref(`${layerType}/${gullyId}`).once('value').then(snapshot => {
+      const asset = snapshot.val() || {};
+      const description = asset.description || 'No description';
+      const status = asset.status || '';
+      const comment = asset.comment || '';
+      const photoURL = asset.photoURL || '';
+      const date = asset.date ? new Date(asset.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
+      let html = `<div class='inspection-popup popup-form'>`;
+      html += `<h3 style='margin-top:0;'>Signage Asset</h3>`;
+      html += `<div><b>Description:</b> ${description}</div>`;
+      html += `<div><b>Status:</b> <select id='signage-status'>`;
+      html += `<option value='Replacement'${status === 'Replacement' ? ' selected' : ''}>Replacement</option>`;
+      html += `<option value='New'${status === 'New' ? ' selected' : ''}>New</option>`;
+      html += `<option value='Retired'${status === 'Retired' ? ' selected' : ''}>Retired</option>`;
+      html += `<option value='Changed'${status === 'Changed' ? ' selected' : ''}>Changed</option>`;
+      html += `</select></div>`;
+      html += `<div><b>Date:</b><br/><input type='date' id='signage-date' value='${date}' style='width:100%;margin-bottom:5px;'></div>`;
+      html += `<div><b>Comment:</b><br/>`;
+      html += `<input type='text' id='signage-comment' placeholder='Enter comment' style='width:100%;margin-bottom:5px;' value="${comment || ''}">`;
+      html += `</div>`;
+      html += `<div><b>Photo:</b><br/>`;
+      if (photoURL) {
+        html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+        html += `<img src='${photoURL}' alt='Signage Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+      }
+      if (canEdit) {
+        html += `<input type='file' id='signage-photo' accept='image/*' style='margin-top:5px;display:none;'/><br/>`;
+        html += `<button id='take-photo-btn' type='button' style='margin:5px 0;'>📸 Take Photo</button>`;
+        html += `<img id='signage-photo-preview' style='max-width:100%;max-height:100px;display:none;margin:5px 0;'>`;
+      }
+      html += `</div>`;
+      if (canEdit) {
+        html += `<div style='margin-top:8px;display:flex;align-items:center;gap:8px;'>`;
+        html += `<input type='checkbox' id='confirm-save-signage' style='margin-right:4px;'>`;
+        html += `<label for='confirm-save-signage' style='margin:0;'>Confirm Save</label>`;
+        html += `<button id='save-signage' style='margin-left:8px;' disabled>Save</button>`;
+        html += `</div>`;
+      }
+      html += `</div>`;
+      currentInspectionPopup = L.popup({
+        maxWidth: 350,
+        closeButton: true,
+        className: 'inspection-popup'
+      })
+        .setLatLng([latlng.lat, latlng.lng])
+        .setContent(html)
+        .openOn(window.map);
+      setTimeout(() => {
+        if (canEdit) {
+          // Photo preview logic
+          const photoInput = document.getElementById('signage-photo');
+          const photoPreview = document.getElementById('signage-photo-preview');
+          if (photoInput && photoPreview) {
+            photoInput.onchange = function() {
+              if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                  photoPreview.src = e.target.result;
+                  photoPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+              } else {
+                photoPreview.style.display = 'none';
+              }
+            };
+          }
+          // Take Photo button
+          const takePhotoBtn = document.getElementById('take-photo-btn');
+          if (takePhotoBtn && photoInput) {
+            takePhotoBtn.onclick = function() {
+              photoInput.setAttribute('capture', 'environment');
+              photoInput.click();
+            };
+          }
+          // Confirm Save checkbox
+          const confirmSave = document.getElementById('confirm-save-signage');
+          const saveBtn = document.getElementById('save-signage');
+          if (confirmSave && saveBtn) {
+            confirmSave.onchange = function() {
+              saveBtn.disabled = !confirmSave.checked;
+            };
+            saveBtn.disabled = !confirmSave.checked;
+          }
+          // Save logic
+          if (saveBtn) {
+            saveBtn.onclick = async function() {
+              if (saveBtn.disabled) return;
+              try {
+                saveBtn.textContent = 'Saving...';
+                saveBtn.disabled = true;
+                const newStatus = document.getElementById('signage-status').value;
+                const newComment = document.getElementById('signage-comment').value;
+                const newDate = document.getElementById('signage-date').value;
+                let newPhotoURL = photoURL;
+                if (photoInput && photoInput.files && photoInput.files[0]) {
+                  const file = photoInput.files[0];
+                  const storageRef = storage.ref(`${layerType}/${gullyId}/${Date.now()}_${file.name}`);
+                  await storageRef.put(file);
+                  newPhotoURL = await storageRef.getDownloadURL();
+                }
+                await db.ref(`${layerType}/${gullyId}`).update({
+                  status: newStatus,
+                  comment: newComment,
+                  date: newDate,
+                  photoURL: newPhotoURL
+                });
+                alert('Signage asset updated!');
+                window.map.closePopup(currentInspectionPopup);
+              } catch (err) {
+                alert('Error saving signage asset: ' + err.message);
+                saveBtn.textContent = 'Save';
+                saveBtn.disabled = false;
+              }
+            };
+          }
+        }
+      }, 100);
+    });
+    return; // Prevent running the gully popup code
+  }
 }
 
 // Add the loadFromBackup function
