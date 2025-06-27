@@ -757,6 +757,22 @@ const USER_CONFIG = {
       name: "Ronan O'Connor",
       initials: 'RO',
       isAdmin: false
+    },
+    // Added John O'Callaghan
+    {
+      email: 'john_ocallaghan@corkcity.ie',
+      role: 'operator',
+      name: "John O'Callaghan",
+      initials: 'JO',
+      isAdmin: false
+    },
+    // Added Viewer
+    {
+      email: 'viewer@corkcity.ie',
+      role: 'viewer',
+      name: 'Viewer',
+      initials: 'VW',
+      isAdmin: false
     }
   ]
 };
@@ -791,7 +807,18 @@ function validateAndNormalizeEmail(email) {
     'ronan.oconnor@corkcity.ie',
     'ronan_o_connor@corkcity.ie',
     'ronan.o.connor@corkcity.ie',
-    'ronanoconnor@corkcity.ie'
+    'ronanoconnor@corkcity.ie',
+    // Add John O'Callaghan variations
+    'john_ocallaghan@corkcity.ie',
+    'john.ocallaghan@corkcity.ie',
+    'john_o_callaghan@corkcity.ie',
+    'john.o.callaghan@corkcity.ie',
+    'johnocallaghan@corkcity.ie'
+  ];
+  
+  // Viewer email variations
+  const viewerVariations = [
+    'viewer@corkcity.ie'
   ];
   
   // Check admin variations
@@ -816,12 +843,30 @@ function validateAndNormalizeEmail(email) {
   // Check operator variations
   if (operatorVariations.some(variant => 
     email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+    // Determine which operator user
+    let operatorUser = USER_CONFIG.users.find(u =>
+      u.email.replace(/[._]/g, '').toLowerCase() === email.replace(/[._]/g, '').toLowerCase()
+    );
+    if (!operatorUser) operatorUser = USER_CONFIG.users.find(u => u.role === 'operator');
     return {
       isValid: true,
-      normalizedEmail: USER_CONFIG.users[3].email, // Now index 3 for operator
+      normalizedEmail: operatorUser.email,
       isAdmin: false,
-      userData: USER_CONFIG.users[3],
+      userData: operatorUser,
       message: 'Operator email validated'
+    };
+  }
+  
+  // Check viewer variations
+  if (viewerVariations.some(variant => 
+    email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+    const viewerUser = USER_CONFIG.users.find(u => u.role === 'viewer');
+    return {
+      isValid: true,
+      normalizedEmail: viewerUser.email,
+      isAdmin: false,
+      userData: viewerUser,
+      message: 'Viewer email validated'
     };
   }
   
