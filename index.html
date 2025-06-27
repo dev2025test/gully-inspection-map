@@ -703,7 +703,7 @@ const storage = firebase.storage();
 
 // User management configuration
 const USER_CONFIG = {
-  defaultPassword: 'DefaultPass123!',
+  // defaultPassword: 'DefaultPass123!', // Removed for security
   users: [
     {
       email: 'shane_dorgan@corkcity.ie',
@@ -887,8 +887,9 @@ function handleAutoLogin() {
     const validation = validateAndNormalizeEmail(email);
     if (validation.isValid) {
       document.getElementById('email').value = validation.normalizedEmail;
-      document.getElementById('password').value = USER_CONFIG.defaultPassword;
-      login(true); // Pass true to indicate auto-login
+      // Do not autofill password
+      // document.getElementById('password').value = USER_CONFIG.defaultPassword;
+      // Prompt user to enter their password
     } else {
       document.getElementById('loginError').textContent = `❌ ${validation.message}`;
     }
@@ -898,20 +899,20 @@ function handleAutoLogin() {
 // Function to ensure all users exist
 async function ensureAllUsers() {
   console.log('Ensuring all users exist...');
-  
   for (const user of USER_CONFIG.users) {
     try {
       // Check if user exists
       const methods = await auth.fetchSignInMethodsForEmail(user.email);
-      
       if (methods.length === 0) {
-        // Create new user
-        console.log(`Creating user: ${user.email}`);
+        // Create new user with a random temporary password
+        // (Admins: Prefer to create users in Firebase Console and send password reset email)
+        const tempPassword = Math.random().toString(36) + 'Aa!';
         const userCredential = await auth.createUserWithEmailAndPassword(
           user.email,
-          USER_CONFIG.defaultPassword
+          tempPassword
         );
-        
+        // Send password reset email immediately
+        await auth.sendPasswordResetEmail(user.email);
         // Set up user data
         await db.ref(`users/${userCredential.user.uid}`).set({
           ...user,
@@ -920,17 +921,15 @@ async function ensureAllUsers() {
         });
       } else {
         // Update existing user
-        console.log(`Updating user: ${user.email}`);
         const userCredential = await auth.signInWithEmailAndPassword(
           user.email,
-          USER_CONFIG.defaultPassword
+          // No default password used
+          Math.random().toString(36) + 'Aa!'
         );
-        
         await db.ref(`users/${userCredential.user.uid}`).update({
           ...user,
           lastUpdated: firebase.database.ServerValue.TIMESTAMP
         });
-        
         // Sign out after update
         await auth.signOut();
       }
@@ -998,15 +997,9 @@ function login(isAutoLogin = false) {
     })
     .catch(error => {
       console.error('Login error:', error);
-      if (error.code === 'auth/wrong-password' && password === USER_CONFIG.defaultPassword) {
-        // Try to reset user with default password
-        ensureAllUsers().then(() => {
-          login(isAutoLogin); // Retry login
-        });
-      } else {
-        document.getElementById("loginError").textContent = "❌ " + error.message;
-        document.getElementById("loginScreen").style.opacity = "1"; // Ensure opacity reset
-      }
+      // Do not retry with default password
+      document.getElementById("loginError").textContent = "❌ " + error.message;
+      document.getElementById("loginScreen").style.opacity = "1"; // Ensure opacity reset
     });
 }
 
