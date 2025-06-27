@@ -1345,37 +1345,33 @@ function getMarkerOptions(status) {
 // Define custom icons for each layer
 const layerIcons = {
   gullies: null, // Use circleMarker for gullies to show status color
-  playgrounds: L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    shadowSize: [41, 41]
+  playgrounds: L.divIcon({
+    className: 'custom-marker-icon',
+    html: `<svg width="32" height="32" viewBox="0 0 20 20"><polygon points="10,3 3,17 17,17" fill="#43a047" stroke="#222" stroke-width="2"/></svg>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 28],
+    popupAnchor: [0, -28]
   }),
-  walkways: L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    shadowSize: [41, 41]
+  walkways: L.divIcon({
+    className: 'custom-marker-icon',
+    html: `<svg width="32" height="32" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" fill="#e53935" stroke="#222" stroke-width="2"/></svg>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 28],
+    popupAnchor: [0, -28]
   }),
-  signage: L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    shadowSize: [41, 41]
+  signage: L.divIcon({
+    className: 'custom-marker-icon',
+    html: `<svg width="32" height="32" viewBox="0 0 20 20"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" fill="#fbc02d" stroke="#222" stroke-width="2"/></svg>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 28],
+    popupAnchor: [0, -28]
   }),
-  lining: L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-black.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    shadowSize: [41, 41]
+  lining: L.divIcon({
+    className: 'custom-marker-icon',
+    html: `<svg width="32" height="32" viewBox="0 0 20 20"><path d="M15 10a6 6 0 1 1-6-6a4 4 0 1 0 6 6z" fill="#333" stroke="#222" stroke-width="2"/></svg>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 28],
+    popupAnchor: [0, -28]
   })
 };
 
@@ -2550,42 +2546,41 @@ function createLayerControlContainer() {
       <div class="layer-item">
         <label for="gulliesLayer" class="layer-button" id="gulliesButton" onclick="toggleLayer('gullies')">
           <input type="checkbox" id="gulliesLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''}>
-          <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png" style="width:20px;height:20px;">
+          <span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:#2196F3;border:2px solid #000;margin-right:2px;"></span>
           Gullies
         </label>
       </div>
       <div class="layer-item">
         <label for="playgroundsLayer" class="layer-button" id="playgroundsButton" onclick="toggleLayer('playgrounds')">
           <input type="checkbox" id="playgroundsLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''}>
-          <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png" style="width:20px;height:20px;">
+          <span style="display:inline-block;vertical-align:middle;"> <svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,3 3,17 17,17" fill="#43a047" stroke="#222" stroke-width="2"/></svg> </span>
           Playgrounds
         </label>
       </div>
       <div class="layer-item">
         <label for="walkwaysLayer" class="layer-button" id="walkwaysButton" onclick="toggleLayer('walkways')">
           <input type="checkbox" id="walkwaysLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''}>
-          <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png" style="width:20px;height:20px;">
+          <span style="display:inline-block;vertical-align:middle;"> <svg width="20" height="20" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" fill="#e53935" stroke="#222" stroke-width="2"/></svg> </span>
           Walkways
         </label>
       </div>
       <div class="layer-item">
         <label for="signageLayer" class="layer-button" id="signageButton" onclick="toggleLayer('signage')">
           <input type="checkbox" id="signageLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''}>
-          <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png" style="width:20px;height:20px;">
+          <span style="display:inline-block;vertical-align:middle;"> <svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" fill="#fbc02d" stroke="#222" stroke-width="2"/></svg> </span>
           Signage
         </label>
       </div>
       <div class="layer-item">
         <label for="liningLayer" class="layer-button" id="liningButton" onclick="toggleLayer('lining')">
           <input type="checkbox" id="liningLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''}>
-          <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-black.png" style="width:20px;height:20px;">
+          <span style="display:inline-block;vertical-align:middle;"> <svg width="20" height="20" viewBox="0 0 20 20"><path d="M15 10a6 6 0 1 1-6-6a4 4 0 1 0 6 6z" fill="#333" stroke="#222" stroke-width="2"/></svg> </span>
           Road Lining
         </label>
       </div>
     </div>
   `;
   document.body.appendChild(container);
-  console.log('createLayerControlContainer: Layer control container created and appended.');
   updateLayerButtonStates(); // Call this to set initial checkbox states
 }
 
@@ -3086,6 +3081,127 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
                 window.map.closePopup(currentInspectionPopup);
               } catch (err) {
                 alert('Error saving signage asset: ' + err.message);
+                saveBtn.textContent = 'Save';
+                saveBtn.disabled = false;
+              }
+            };
+          }
+        }
+      }, 100);
+    });
+    return; // Prevent running the gully popup code
+  }
+  // Custom popup for road lining
+  if (layerType === 'lining') {
+    db.ref(`${layerType}/${gullyId}`).once('value').then(snapshot => {
+      const asset = snapshot.val() || {};
+      const description = asset.description || 'No description';
+      const status = asset.status || '';
+      const comment = asset.comment || '';
+      const photoURL = asset.photoURL || '';
+      const date = asset.date ? new Date(asset.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
+      let html = `<div class='inspection-popup popup-form'>`;
+      html += `<h3 style='margin-top:0;'>Road Lining Asset</h3>`;
+      html += `<div><b>Description of Type of Lining:</b> ${description}</div>`;
+      html += `<div><b>Status:</b> <select id='lining-status'>`;
+      html += `<option value='New'${status === 'New' ? ' selected' : ''}>New</option>`;
+      html += `<option value='Renewed'${status === 'Renewed' ? ' selected' : ''}>Renewed</option>`;
+      html += `</select></div>`;
+      html += `<div><b>Date:</b><br/><input type='date' id='lining-date' value='${date}' style='width:100%;margin-bottom:5px;'></div>`;
+      html += `<div><b>Comment:</b><br/>`;
+      html += `<input type='text' id='lining-comment' placeholder='Enter comment' style='width:100%;margin-bottom:5px;' value="${comment || ''}">`;
+      html += `</div>`;
+      html += `<div><b>Photo:</b><br/>`;
+      if (photoURL) {
+        html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+        html += `<img src='${photoURL}' alt='Lining Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+      }
+      if (canEdit) {
+        html += `<input type='file' id='lining-photo' accept='image/*' style='margin-top:5px;display:none;'/><br/>`;
+        html += `<button id='take-photo-btn' type='button' style='margin:5px 0;'>📸 Take Photo</button>`;
+        html += `<img id='lining-photo-preview' style='max-width:100%;max-height:100px;display:none;margin:5px 0;'>`;
+      }
+      html += `</div>`;
+      if (canEdit) {
+        html += `<div style='margin-top:8px;display:flex;align-items:center;gap:8px;'>`;
+        html += `<input type='checkbox' id='confirm-save-lining' style='margin-right:4px;'>`;
+        html += `<label for='confirm-save-lining' style='margin:0;'>Confirm Save</label>`;
+        html += `<button id='save-lining' style='margin-left:8px;' disabled>Save</button>`;
+        html += `</div>`;
+      }
+      html += `</div>`;
+      currentInspectionPopup = L.popup({
+        maxWidth: 350,
+        closeButton: true,
+        className: 'inspection-popup'
+      })
+        .setLatLng([latlng.lat, latlng.lng])
+        .setContent(html)
+        .openOn(window.map);
+      setTimeout(() => {
+        if (canEdit) {
+          // Photo preview logic
+          const photoInput = document.getElementById('lining-photo');
+          const photoPreview = document.getElementById('lining-photo-preview');
+          if (photoInput && photoPreview) {
+            photoInput.onchange = function() {
+              if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                  photoPreview.src = e.target.result;
+                  photoPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+              } else {
+                photoPreview.style.display = 'none';
+              }
+            };
+          }
+          // Take Photo button
+          const takePhotoBtn = document.getElementById('take-photo-btn');
+          if (takePhotoBtn && photoInput) {
+            takePhotoBtn.onclick = function() {
+              photoInput.setAttribute('capture', 'environment');
+              photoInput.click();
+            };
+          }
+          // Confirm Save checkbox
+          const confirmSave = document.getElementById('confirm-save-lining');
+          const saveBtn = document.getElementById('save-lining');
+          if (confirmSave && saveBtn) {
+            confirmSave.onchange = function() {
+              saveBtn.disabled = !confirmSave.checked;
+            };
+            saveBtn.disabled = !confirmSave.checked;
+          }
+          // Save logic
+          if (saveBtn) {
+            saveBtn.onclick = async function() {
+              if (saveBtn.disabled) return;
+              try {
+                saveBtn.textContent = 'Saving...';
+                saveBtn.disabled = true;
+                const newStatus = document.getElementById('lining-status').value;
+                const newComment = document.getElementById('lining-comment').value;
+                const newDate = document.getElementById('lining-date').value;
+                let newPhotoURL = photoURL;
+                if (photoInput && photoInput.files && photoInput.files[0]) {
+                  const file = photoInput.files[0];
+                  const storageRef = storage.ref(`${layerType}/${gullyId}/${Date.now()}_${file.name}`);
+                  await storageRef.put(file);
+                  newPhotoURL = await storageRef.getDownloadURL();
+                }
+                await db.ref(`${layerType}/${gullyId}`).update({
+                  status: newStatus,
+                  comment: newComment,
+                  date: newDate,
+                  photoURL: newPhotoURL
+                });
+                alert('Road lining asset updated!');
+                window.map.closePopup(currentInspectionPopup);
+              } catch (err) {
+                alert('Error saving road lining asset: ' + err.message);
                 saveBtn.textContent = 'Save';
                 saveBtn.disabled = false;
               }
