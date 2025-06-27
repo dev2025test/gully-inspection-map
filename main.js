@@ -196,3 +196,97 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies', status = 'Unmarke
 
 // When initializing the map, add all cluster groups to the map if they have data
 // (This is handled in your existing map/layer logic) 
+
+// --- Firebase Config and Initialization ---
+const firebaseConfig = {
+  apiKey: "AIzaSyBsteq-tHQdiDcRk5UBg52AwAxpVcq67cw",
+  authDomain: "gullytest3.firebaseapp.com",
+  databaseURL: "https://gullytest3-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "gullytest3",
+  storageBucket: "gullytest3.appspot.com",
+  messagingSenderId: "876083677912",
+  appId: "1:876083677912:web:065de0c7cca446b78f65ad"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+const storage = firebase.storage();
+
+// --- User Management and Login Logic ---
+let currentRole = null;
+window.currentUserData = null;
+
+function login(isAutoLogin = false) {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const rememberMe = document.getElementById("rememberMe").checked;
+  if (!email || !password) {
+    document.getElementById("loginError").textContent = "❌ Please enter both email and password";
+    document.getElementById("loginScreen").style.opacity = "1";
+    return;
+  }
+  document.getElementById("loginError").textContent = "Logging in...";
+  document.getElementById("loginScreen").style.opacity = "0.5";
+  auth.signInWithEmailAndPassword(email, password)
+    .then(userCredential => {
+      return db.ref(`users/${userCredential.user.uid}`).once('value');
+    })
+    .then(snapshot => {
+      if (!snapshot.exists()) {
+        throw new Error('No user data found');
+      }
+      const userData = snapshot.val();
+      window.currentUserData = userData;
+      currentRole = userData.role;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('map').style.display = 'block';
+      document.getElementById('summary').style.display = 'block';
+      // Optionally call setupUIForRole(userData.role, userData.adminPrivileges);
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
+      if (isAutoLogin) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    })
+    .catch(error => {
+      console.error('Login error:', error);
+      document.getElementById("loginError").textContent = "❌ " + error.message;
+      document.getElementById("loginScreen").style.opacity = "1";
+    });
+}
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    db.ref('users/' + user.uid).once('value').then(snapshot => {
+      const userData = snapshot.val();
+      if (!userData) {
+        console.error('No user data found');
+        return;
+      }
+      window.currentUserData = userData;
+      currentRole = userData.role;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('map').style.display = 'block';
+      document.getElementById('summary').style.display = 'block';
+      // Optionally call setupUIForRole(userData.role, userData.adminPrivileges);
+    });
+  } else {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('map').style.display = 'none';
+    document.getElementById('functionToolbar').style.display = 'none';
+  }
+});
+
+function logout() {
+  auth.signOut().then(() => {
+    window.location.reload();
+  }).catch(error => {
+    console.error('Logout error:', error);
+    alert('Error during logout: ' + error.message);
+  });
+}
+
+// ... rest of your code ... 
