@@ -694,6 +694,25 @@
       }
     }
   </style>
+  <style>
+    /* Responsive improvements for summary popup on desktop/laptop */
+    @media (min-width: 900px) {
+      .summary-popup {
+        max-width: 900px !important;
+      }
+      .summary-content {
+        display: flex !important;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 24px;
+      }
+      .status-card {
+        min-width: 220px;
+        max-width: 260px;
+        flex: 1 1 220px;
+      }
+    }
+  </style>
 </head>
 <body>
 <div id="map" style="width:100vw; height:100vh; min-height:400px;"></div>
@@ -2178,8 +2197,8 @@ function showSummaryPopup() {
       <h2 class="m-0">Gully Inspection Summary</h2>
       <button class="btn btn-secondary" onclick="closeModal()">✖ Close</button>
     </div>
-    <div class="summary-content row g-3">
-      <div class="col-12 col-md-6 col-lg-4">
+    <div class="summary-content">
+      <div>
         <div class="status-card card p-3 mb-2 text-center">
           <h3 class="mb-2">Total Gullies</h3>
           <div class="status-count">${summary.total}</div>
@@ -2189,7 +2208,7 @@ function showSummaryPopup() {
       ${Object.entries(summary)
         .filter(([status]) => status !== 'total')
         .map(([status, count]) => `
-          <div class="col-12 col-md-6 col-lg-4">
+          <div>
             <div class="status-card card p-3 mb-2 text-center" style="border-left: 4px solid ${getStatusColor(status)}">
               <h3 class="mb-2">${status}</h3>
               <div class="status-count">${count}</div>
