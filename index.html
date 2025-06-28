@@ -2936,56 +2936,45 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     let lastDate = timestamp ? new Date(timestamp).toISOString().split('T')[0] : todayStr;
     // Build the modal content
     let html = `<form id='gully-inspection-form' class='needs-validation' novalidate>`;
-    html += `<div class='mb-2'><label class='form-label'><b>ID:</b></label> <span>${gullyId}</span></div>`;
-    html += `<div class='mb-2'><label class='form-label'><b>Status:</b></label> `;
-    if (canEdit) {
-      html += `<select id='inspection-status' class='form-select mb-2'>`;
-      [
-        'Clear',
-        'Blocked',
-        'Broken',
-        'Remediation',
-        'Replacement',
-        'Unmarked'
-      ].forEach(opt => {
-        html += `<option value='${opt}'${status === opt ? ' selected' : ''}>${opt}</option>`;
-      });
-      html += `</select>`;
+    // Editable ID for admin only
+    if (canEdit && window.currentUserData && window.currentUserData.role === 'admin') {
+      html += `<div class='mb-2'><label class='form-label'><b>ID:</b></label> <input type='text' id='gully-id-edit' class='form-control' value='${gullyId}'></div>`;
     } else {
-      html += `<span style='color:${getStatusColor(status)};'>${status}</span>`;
+      html += `<div class='mb-2'><label class='form-label'><b>ID:</b></label> <span>${gullyId}</span></div>`;
     }
-    html += `</div>`;
-    html += `<div class='mb-2'><label class='form-label'><b>Inspector:</b></label> <span>${inspector || '-'}</span></div>`;
-    html += `<div class='mb-2'><label class='form-label'><b>Last Inspected:</b></label> <span>${timestamp ? new Date(timestamp).toLocaleString() : '-'}</span></div>`;
+    // Date picker
     if (canEdit) {
       html += `<div class='mb-2'><label class='form-label'><b>Inspection Date:</b></label><input type='date' id='inspection-date' class='form-control' max='${todayStr}' value='${lastDate}' required></div>`;
+    } else {
+      html += `<div class='mb-2'><label class='form-label'><b>Inspection Date:</b></label> <span>${lastDate}</span></div>`;
     }
-    html += `<div class='mb-2'><label class='form-label'><b>Comment:</b></label>`;
+    // Dropdown for common comments
     if (canEdit) {
-      html += `<textarea id='inspection-comment-custom' class='form-control' placeholder='Enter comment'>${comment || ''}</textarea></div>`;
-      html += `<div class='mb-2'><label class='form-label'><b>Photo:</b></label><br/>`;
-      html += `<input type='file' id='inspection-photo' accept='image/*' class='form-control mb-2' style='display:none;'/>`;
-      html += `<button id='take-photo-btn' type='button' class='btn btn-outline-primary mb-2 w-100'>📸 Take Photo / Upload Picture</button>`;
-      html += `<img id='inspection-photo-preview' class='img-fluid rounded mb-2' style='max-width:100%;max-height:100px;display:none;'>`;
-      html += `</div>`;
+      html += `<div class='mb-2'><label class='form-label'><b>Quick Comment:</b></label><select id='quick-comment' class='form-select mb-2'>
+        <option value=''>-- Select --</option>
+        <option value='Routine'>Routine</option>
+        <option value='Blocked'>Blocked</option>
+        <option value='Requires follow-up'>Requires follow-up</option>
+        <option value='No issues'>No issues</option>
+      </select></div>`;
+    }
+    // Comment textarea
+    if (canEdit) {
+      html += `<div class='mb-2'><label class='form-label'><b>Comment:</b></label><textarea id='inspection-comment-custom' class='form-control' placeholder='Enter comment'>${comment || ''}</textarea></div>`;
+    } else {
+      html += `<div class='mb-2'><label class='form-label'><b>Comment:</b></label> <div class='form-control-plaintext' style='min-height:2em;'>${comment || '-'}</div></div>`;
+    }
+    // Confirm inspection checkbox and Save button
+    if (canEdit) {
       html += `<div class='form-check mb-2'>`;
       html += `<input type='checkbox' class='form-check-input' id='confirm-save-inspection'>`;
-      html += `<label class='form-check-label' for='confirm-save-inspection'>Confirm Save Inspection</label>`;
+      html += `<label class='form-check-label' for='confirm-save-inspection'>Confirm Inspection</label>`;
       html += `</div>`;
       html += `<div class='d-flex gap-2 justify-content-end mt-3'>`;
       html += `<button id='save-inspection' class='btn btn-success flex-fill' type='button' disabled>Save Inspection</button>`;
       html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
       html += `</div>`;
     } else {
-      html += `<div class='mb-2'><label class='form-label'><b>Inspection Date:</b></label> <span>${lastDate}</span></div>`;
-      html += `<div class='mb-2'><label class='form-label'><b>Status:</b></label> <span style='color:${getStatusColor(status)};'>${status}</span></div>`;
-      html += `<div class='mb-2'><label class='form-label'><b>Comment:</b></label> <div class='form-control-plaintext' style='min-height:2em;'>${comment || '-'}</div></div>`;
-      if (photoURL) {
-        html += `<div class='mb-2'><label class='form-label'><b>Photo:</b></label><br/>`;
-        html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
-        html += `<img src='${photoURL}' alt='Gully Photo' class='img-fluid rounded mb-2' style='max-width:100%;max-height:100px;'>`;
-        html += `</div>`;
-      }
       html += `<div class='d-flex gap-2 justify-content-end mt-3'>`;
       html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
       html += `</div>`;
@@ -3003,7 +2992,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     modal.style.overflowY = 'auto';
     modal.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="m-0">Gully Inspection</h3>
+        <h3 class="m-0">${layerType === 'gullies' ? 'Gully Inspection' : layerType.charAt(0).toUpperCase() + layerType.slice(1) + ' Asset'}</h3>
         <button class="btn btn-secondary" onclick="this.closest('.card').parentElement.remove()">✖ Close</button>
       </div>
       <div>${html}</div>
@@ -3013,7 +3002,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     // Re-attach event handlers as before (photo preview, save, etc.)
     setTimeout(() => {
       if (canEdit) {
-        // Photo preview
+        // Photo preview logic
         const photoInput = document.getElementById('inspection-photo');
         const photoPreview = document.getElementById('inspection-photo-preview');
         const takePhotoBtn = document.getElementById('take-photo-btn');
@@ -3461,6 +3450,19 @@ if (forgotLink) {
       });
   };
 }
+
+// Add JS: When quick-comment dropdown changes, set textarea value
+setTimeout(() => {
+  if (canEdit) {
+    const quickComment = document.getElementById('quick-comment');
+    const commentBox = document.getElementById('inspection-comment-custom');
+    if (quickComment && commentBox) {
+      quickComment.onchange = function() {
+        if (quickComment.value) commentBox.value = quickComment.value;
+      };
+    }
+  }
+}, 100);
 
 </script>
 </body>
