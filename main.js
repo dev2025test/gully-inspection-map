@@ -20,17 +20,32 @@ const storage = firebase.storage();
 let currentRole = null;
 window.currentUserData = null;
 
+function showUserManagement() {
+  alert("User management feature coming soon!");
+}
+
 function login(isAutoLogin = false) {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  const rememberMe = document.getElementById("rememberMe").checked;
-  if (!email || !password) {
-    document.getElementById("loginError").textContent = "❌ Please enter both email and password";
-    document.getElementById("loginScreen").style.opacity = "1";
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const rememberMeInput = document.getElementById("rememberMe");
+  const loginErrorDiv = document.getElementById("loginError");
+  const loginScreenDiv = document.getElementById("loginScreen");
+
+  if (!emailInput || !passwordInput || !rememberMeInput || !loginErrorDiv || !loginScreenDiv) {
+    console.error("Login form elements are missing from the HTML.");
     return;
   }
-  document.getElementById("loginError").textContent = "Logging in...";
-  document.getElementById("loginScreen").style.opacity = "0.5";
+
+  const email = emailInput.value;
+  const password = passwordInput.value;
+  const rememberMe = rememberMeInput.checked;
+  if (!email || !password) {
+    loginErrorDiv.textContent = "❌ Please enter both email and password";
+    loginScreenDiv.style.opacity = "1";
+    return;
+  }
+  loginErrorDiv.textContent = "Logging in...";
+  loginScreenDiv.style.opacity = "0.5";
   auth.signInWithEmailAndPassword(email, password)
     .then(userCredential => {
       return db.ref(`users/${userCredential.user.uid}`).once('value');
@@ -42,7 +57,7 @@ function login(isAutoLogin = false) {
       const userData = snapshot.val();
       window.currentUserData = userData;
       currentRole = userData.role;
-      document.getElementById('loginScreen').style.display = 'none';
+      loginScreenDiv.style.display = 'none';
       document.getElementById('map').style.display = 'block';
       document.getElementById('summary').style.display = 'block';
       // Optionally call setupUIForRole(userData.role, userData.adminPrivileges);
@@ -57,8 +72,8 @@ function login(isAutoLogin = false) {
     })
     .catch(error => {
       console.error('Login error:', error);
-      document.getElementById("loginError").textContent = "❌ " + error.message;
-      document.getElementById("loginScreen").style.opacity = "1";
+      loginErrorDiv.textContent = "❌ " + error.message;
+      loginScreenDiv.style.opacity = "1";
     });
 }
 
