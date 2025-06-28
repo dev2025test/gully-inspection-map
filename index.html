@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <title>Gully Inspection System</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='8' fill='%232196F3' stroke='black' stroke-width='2'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -14,8 +13,6 @@
   <script src="https://unpkg.com/togeojson@0.16.0/togeojson.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <style>
     html, body {
       height: 100%;
@@ -549,23 +546,6 @@
     .layer-button:hover {
       background-color: #f0f0f0;
     }
-    .skip-link {
-      position: absolute;
-      left: -999px;
-      top: 10px;
-      background: #2196F3;
-      color: #fff;
-      padding: 8px 16px;
-      z-index: 2000;
-      border-radius: 4px;
-      font-size: 16px;
-      text-decoration: none;
-      transition: left 0.2s;
-    }
-    .skip-link:focus {
-      left: 10px;
-      outline: 2px solid #fff;
-    }
   </style>
   <style>
     .inspection-popup .leaflet-popup-content {
@@ -625,13 +605,12 @@
   </style>
 </head>
 <body>
-<a href="#map" class="skip-link">Skip to map</a>
-<div id="map" style="width:100vw; height:100vh; min-height:400px;" role="region" aria-label="Map" tabindex="-1"></div>
+<div id="map" style="width:100vw; height:100vh; min-height:400px;"></div>
 
 <div id="loginScreen" class="login-background">
   <div id="loginBox">
     <h2>Welcome to Gully Inspection System</h2>
-    <form id="loginForm" autocomplete="on" aria-label="Login form">
+    <form id="loginForm" autocomplete="on">
       <div class="input-group">
         <input type="email" 
                id="email" 
@@ -670,21 +649,9 @@
   </div>
 </div>
 
-<div id="assetSearchContainer" style="position:absolute;top:10px;right:230px;z-index:1100;background:white;padding:8px 12px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;gap:8px;align-items:center;" aria-label="Asset search and filter">
-  <input id="assetSearchInput" type="text" placeholder="Search assets..." aria-label="Search assets" style="padding:4px 8px;border-radius:4px;border:1px solid #ccc;">
-  <select id="assetSearchLayer" aria-label="Filter by layer" style="padding:4px 8px;border-radius:4px;border:1px solid #ccc;">
-    <option value="all">All Layers</option>
-    <option value="gullies">Gullies</option>
-    <option value="playgrounds">Playgrounds</option>
-    <option value="walkways">Walkways</option>
-    <option value="signage">Signage</option>
-    <option value="lining">Road Lining</option>
-  </select>
-</div>
-
 <div class="toggle-layers" onclick="toggleLayerControl()">🗺️ Show Layers</div>
 
-<div class="bottom-toolbar" id="functionToolbar" role="toolbar" aria-label="Main toolbar">
+<div class="bottom-toolbar" id="functionToolbar">
   <div class="toolbar-header" onclick="toggleToolbar()">
     <h3>
       <span>Gully Inspection System</span>
@@ -697,28 +664,2614 @@
   </div>
   <div class="toolbar-content">
     <div class="button-group admin-only">
-      <button class="toolbar-button" onclick="showUserManagement()" title="Manage Users" aria-label="Manage Users">👥 Users</button>
-      <button class="toolbar-button" onclick="logout()" title="Logout" aria-label="Logout">🚪 Logout</button>
-      <button class="toolbar-button" onclick="enableEditMode()" title="Edit Mode" aria-label="Edit Mode">✏️ Edit</button>
-      <button class="toolbar-button" onclick="enableDeleteMode()" title="Delete Mode" aria-label="Delete Mode">🗑️ Delete</button>
-      <button class="toolbar-button" onclick="enableAddMode()" title="Add New Asset" aria-label="Add New Asset">➕ Add New</button>
+      <button class="toolbar-button" onclick="showUserManagement()">👥 Users</button>
+      <button class="toolbar-button" onclick="logout()">🚪 Logout</button>
+      <button class="toolbar-button" onclick="enableEditMode()">✏️ Edit</button>
+      <button class="toolbar-button" onclick="enableDeleteMode()">🗑️ Delete</button>
+      <button class="toolbar-button" onclick="enableAddMode()">➕ Add New</button>
       <!-- <button class="toolbar-button" onclick="showLayerControl()">🗺️ Layers</button> -->
     </div>
     <div class="button-group">
-      <button class="toolbar-button" onclick="printMap()" title="Print Map" aria-label="Print Map">🖨️ Print</button>
-      <button class="toolbar-button" onclick="resetMap()" title="Reset Map" aria-label="Reset Map">🔄 Reset</button>
-      <button class="toolbar-button" onclick="showSummaryPopup()" title="Show Summary" aria-label="Show Summary">📊 Summary</button>
-      <button class="toolbar-button" onclick="showLayerControl()" title="Show Layers" aria-label="Show Layers">🗺️ Layers</button>
-      <label for="importFile" class="toolbar-button" title="Import Data" aria-label="Import Data">📂 Import</label>
+      <button class="toolbar-button" onclick="printMap()">🖨️ Print</button>
+      <button class="toolbar-button" onclick="resetMap()">🔄 Reset</button>
+      <button class="toolbar-button" onclick="showSummaryPopup()">📊 Summary</button>
+      <button class="toolbar-button" onclick="showLayerControl()">🗺️ Layers</button>
+      <label for="importFile" class="toolbar-button">📂 Import</label>
       <input type="file" id="importFile" onchange="handleImportFile(event)" style="display: none;">
-      <button class="toolbar-button" onclick="exportData()" title="Export CSV" aria-label="Export CSV">💾 Export CSV</button>
-      <button class="toolbar-button" onclick="saveGullyData()" title="Backup Data" aria-label="Backup Data">💾 Backup</button>
-      <button class="toolbar-button" onclick="loadFromBackup()" title="Load Backup" aria-label="Load Backup">📂 Load Backup</button>
+      <button class="toolbar-button" onclick="exportData()">💾 Export CSV</button>
+      <button class="toolbar-button" onclick="saveGullyData()">💾 Backup</button>
+      <button class="toolbar-button" onclick="loadFromBackup()">📂 Load Backup</button>
     </div>
   </div>
 </div>
 
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script src="main.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBsteq-tHQdiDcRk5UBg52AwAxpVcq67cw",
+  authDomain: "gullytest3.firebaseapp.com",
+  databaseURL: "https://gullytest3-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "gullytest3",
+  storageBucket: "gullytest3.appspot.com",
+  messagingSenderId: "876083677912",
+  appId: "1:876083677912:web:065de0c7cca446b78f65ad"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+const storage = firebase.storage();
+
+// User management configuration
+const USER_CONFIG = {
+  // defaultPassword: 'DefaultPass123!', // Removed for security
+  users: [
+    {
+      email: 'shane_dorgan@corkcity.ie',
+      role: 'admin',
+      name: 'Shane Dorgan',
+      initials: 'SD',
+      isAdmin: true,
+      adminPrivileges: {
+        canDelete: true,
+        canEdit: true,
+        canImport: true,
+        canExport: true,
+        canReset: true,
+        canManageUsers: true
+      }
+    },
+    {
+      email: 'aman_kushwaha@corkcity.ie',
+      role: 'admin',
+      name: 'Aman Kushwaha',
+      initials: 'AK',
+      isAdmin: true,
+      adminPrivileges: {
+        canDelete: true,
+        canEdit: true,
+        canImport: true,
+        canExport: true,
+        canReset: true,
+        canManageUsers: true
+      },
+      tempPassword: 'TempAman2024!'
+    },
+    {
+      email: 'richard_daly@corkcity.ie',
+      role: 'admin',
+      name: 'Richard Daly',
+      initials: 'RD',
+      isAdmin: true,
+      adminPrivileges: {
+        canDelete: true,
+        canEdit: true,
+        canImport: true,
+        canExport: true,
+        canReset: true,
+        canManageUsers: true
+      }
+    },
+    {
+      email: 'ronan_oconnor@corkcity.ie',
+      role: 'operator',
+      name: "Ronan O'Connor",
+      initials: 'RO',
+      isAdmin: false
+    },
+    // Added John O'Callaghan
+    {
+      email: 'john_ocallaghan@corkcity.ie',
+      role: 'operator',
+      name: "John O'Callaghan",
+      initials: 'JO',
+      isAdmin: false
+    },
+    // Added Viewer
+    {
+      email: 'viewer@corkcity.ie',
+      role: 'viewer',
+      name: 'Viewer',
+      initials: 'VW',
+      isAdmin: false
+    }
+  ]
+};
+
+// Function to validate and normalize email variations
+function validateAndNormalizeEmail(email) {
+  if (!email) return { isValid: false, normalizedEmail: '', message: 'Email is required' };
+  
+  email = email.toLowerCase().trim();
+  
+  // Admin email variations
+  const adminVariations = [
+    'shane_dorgan@corkcity.ie',
+    'shane.dorgan@corkcity.ie',
+    'shanedorgan@corkcity.ie',
+    'aman_kushwaha@corkcity.ie',
+    'aman.kushwaha@corkcity.ie',
+    'nan_kushwaha@corkcity.ie',
+    'nan.kushwaha@corkcity.ie',
+    'aman_kushawaha@corkcity.ie',
+    'aman.kushawaha@corkcity.ie',
+    'amankushwaha@corkcity.ie',
+    'nankushwaha@corkcity.ie',
+    'richard_daly@corkcity.ie',
+    'richard.daly@corkcity.ie',
+    'richarddaly@corkcity.ie'
+  ];
+  
+  // Operator email variations
+  const operatorVariations = [
+    'ronan_oconnor@corkcity.ie',
+    'ronan.oconnor@corkcity.ie',
+    'ronan_o_connor@corkcity.ie',
+    'ronan.o.connor@corkcity.ie',
+    'ronanoconnor@corkcity.ie',
+    // Add John O'Callaghan variations
+    'john_ocallaghan@corkcity.ie',
+    'john.ocallaghan@corkcity.ie',
+    'john_o_callaghan@corkcity.ie',
+    'john.o.callaghan@corkcity.ie',
+    'johnocallaghan@corkcity.ie'
+  ];
+  
+  // Viewer email variations
+  const viewerVariations = [
+    'viewer@corkcity.ie'
+  ];
+  
+  // Check admin variations
+  if (adminVariations.some(variant => 
+    email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+    // Determine which admin user
+    let adminUser = USER_CONFIG.users[0];
+    if (['aman_kushwaha@corkcity.ie','aman.kushwaha@corkcity.ie','nan_kushwaha@corkcity.ie','nan.kushwaha@corkcity.ie','aman_kushawaha@corkcity.ie','aman.kushawaha@corkcity.ie','amankushwaha@corkcity.ie','nankushwaha@corkcity.ie'].some(variant => email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+      adminUser = USER_CONFIG.users[1];
+    } else if (['richard_daly@corkcity.ie','richard.daly@corkcity.ie','richarddaly@corkcity.ie'].some(variant => email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+      adminUser = USER_CONFIG.users[2];
+    }
+    return {
+      isValid: true,
+      normalizedEmail: adminUser.email,
+      isAdmin: true,
+      userData: adminUser,
+      message: 'Admin email validated'
+    };
+  }
+  
+  // Check operator variations
+  if (operatorVariations.some(variant => 
+    email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+    // Determine which operator user
+    let operatorUser = USER_CONFIG.users.find(u =>
+      u.email.replace(/[._]/g, '').toLowerCase() === email.replace(/[._]/g, '').toLowerCase()
+    );
+    if (!operatorUser) operatorUser = USER_CONFIG.users.find(u => u.role === 'operator');
+    return {
+      isValid: true,
+      normalizedEmail: operatorUser.email,
+      isAdmin: false,
+      userData: operatorUser,
+      message: 'Operator email validated'
+    };
+  }
+  
+  // Check viewer variations
+  if (viewerVariations.some(variant => 
+    email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+    const viewerUser = USER_CONFIG.users.find(u => u.role === 'viewer');
+    return {
+      isValid: true,
+      normalizedEmail: viewerUser.email,
+      isAdmin: false,
+      userData: viewerUser,
+      message: 'Viewer email validated'
+    };
+  }
+  
+  return {
+    isValid: false,
+    normalizedEmail: '',
+    message: 'Invalid email. Must be an authorized @corkcity.ie address'
+  };
+}
+
+// Function to handle automatic login from URL
+function handleAutoLogin() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const email = urlParams.get('email');
+  const autoLogin = urlParams.get('autologin');
+  
+  if (email && autoLogin === 'true') {
+    const validation = validateAndNormalizeEmail(email);
+    if (validation.isValid) {
+      document.getElementById('email').value = validation.normalizedEmail;
+      // Do not autofill password
+      // document.getElementById('password').value = USER_CONFIG.defaultPassword;
+      // Prompt user to enter their password
+    } else {
+      document.getElementById('loginError').textContent = `❌ ${validation.message}`;
+    }
+  }
+}
+
+// Function to ensure all users exist
+async function ensureAllUsers() {
+  console.log('Ensuring all users exist...');
+  for (const user of USER_CONFIG.users) {
+    try {
+      // Check if user exists
+      const methods = await auth.fetchSignInMethodsForEmail(user.email);
+      if (methods.length === 0) {
+        // Create new user with a random temporary password
+        // (Admins: Prefer to create users in Firebase Console and send password reset email)
+        const tempPassword = Math.random().toString(36) + 'Aa!';
+        const userCredential = await auth.createUserWithEmailAndPassword(
+          user.email,
+          tempPassword
+        );
+        // Send password reset email immediately
+        await auth.sendPasswordResetEmail(user.email);
+        // Set up user data
+        await db.ref(`users/${userCredential.user.uid}`).set({
+          ...user,
+          created: firebase.database.ServerValue.TIMESTAMP,
+          lastUpdated: firebase.database.ServerValue.TIMESTAMP
+        });
+      } else {
+        // Update existing user
+        const userCredential = await auth.signInWithEmailAndPassword(
+          user.email,
+          // No default password used
+          Math.random().toString(36) + 'Aa!'
+        );
+        await db.ref(`users/${userCredential.user.uid}`).update({
+          ...user,
+          lastUpdated: firebase.database.ServerValue.TIMESTAMP
+        });
+        // Sign out after update
+        await auth.signOut();
+      }
+    } catch (error) {
+      console.error(`Error setting up user ${user.email}:`, error);
+    }
+  }
+}
+
+// Update login function
+function login(isAutoLogin = false) {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const rememberMe = document.getElementById("rememberMe").checked;
+  
+  if (!email || !password) {
+    document.getElementById("loginError").textContent = "❌ Please enter both email and password";
+    document.getElementById("loginScreen").style.opacity = "1"; // Ensure opacity reset
+    return;
+  }
+
+  const validation = validateAndNormalizeEmail(email);
+  if (!validation.isValid) {
+    document.getElementById("loginError").textContent = `❌ ${validation.message}`;
+    document.getElementById("loginScreen").style.opacity = "1"; // Ensure opacity reset
+    return;
+  }
+
+  document.getElementById("loginError").textContent = "Logging in...";
+  document.getElementById("loginScreen").style.opacity = "0.5";
+
+  auth.signInWithEmailAndPassword(validation.normalizedEmail, password)
+    .then(userCredential => {
+      return db.ref(`users/${userCredential.user.uid}`).once('value');
+    })
+    .then(snapshot => {
+      if (!snapshot.exists()) {
+        throw new Error('No user data found');
+      }
+      
+      const userData = snapshot.val();
+      window.currentUserData = userData;
+      currentRole = userData.role;
+      
+      // Update UI
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('map').style.display = 'block';
+      document.getElementById('summary').style.display = 'block';
+      
+      // Setup UI with proper privileges
+      setupUIForRole(userData.role, userData.adminPrivileges);
+      
+      // Save credentials if remember me is checked
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+        // Note: We don't store the password for security reasons
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
+      
+      // Clear URL parameters after auto-login
+      if (isAutoLogin) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    })
+    .catch(error => {
+      console.error('Login error:', error);
+      // Do not retry with default password
+      document.getElementById("loginError").textContent = "❌ " + error.message;
+      document.getElementById("loginScreen").style.opacity = "1"; // Ensure opacity reset
+    });
+}
+
+// Placeholder for setupInactivityTracking if not defined elsewhere
+function setupInactivityTracking() {
+  let inactivityTimeout;
+  const TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+  function resetTimer() {
+    if (inactivityTimeout) clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(() => {
+      alert('You have been logged out due to inactivity. Please log in again.');
+      logout();
+    }, TIMEOUT_MS);
+  }
+  // Listen for user activity
+  ['mousemove', 'keydown', 'mousedown', 'touchstart'].forEach(evt => {
+    window.addEventListener(evt, resetTimer, true);
+  });
+  resetTimer();
+}
+
+function logout() {
+  auth.signOut().then(() => {
+    window.location.reload();
+  }).catch(error => {
+    console.error('Logout error:', error);
+    alert('Error during logout: ' + error.message);
+  });
+}
+
+function setupUIForRole(role, adminPrivileges = null) {
+  const isAdmin = role === 'admin';
+  
+  // Show/hide admin-only elements
+  document.querySelectorAll('.admin-only').forEach(element => {
+    element.style.display = isAdmin ? 'block' : 'none';
+  });
+  
+  // Toolbar button group (non-admin)
+  const toolbarContent = document.querySelector('.toolbar-content');
+  if (toolbarContent) {
+    const buttonGroups = toolbarContent.querySelectorAll('.button-group');
+    if (buttonGroups.length > 1) {
+      const mainGroup = buttonGroups[1];
+      // Remove any previous operator-only logout button
+      const oldLogout = mainGroup.querySelector('.toolbar-button.operator-logout');
+      if (oldLogout) oldLogout.remove();
+      // Remove Reset button for operators
+      const resetBtn = mainGroup.querySelector('button[onclick="resetMap()"]');
+      if (resetBtn && !isAdmin) resetBtn.remove();
+      // Add Logout button for operators if not present
+      if (!isAdmin && !mainGroup.querySelector('.toolbar-button.operator-logout')) {
+        const logoutBtn = document.createElement('button');
+        logoutBtn.className = 'toolbar-button operator-logout';
+        logoutBtn.innerHTML = '🚪 Logout';
+        logoutBtn.onclick = logout;
+        mainGroup.appendChild(logoutBtn);
+      }
+      // If admin, ensure Reset is present and Logout is not duplicated
+      if (isAdmin && !mainGroup.querySelector('button[onclick="resetMap()"]')) {
+        const resetBtn = document.createElement('button');
+        resetBtn.className = 'toolbar-button';
+        resetBtn.setAttribute('onclick', 'resetMap()');
+        resetBtn.innerHTML = '🔄 Reset';
+        // Insert after Print button (first in group)
+        const printBtn = mainGroup.querySelector('button[onclick="printMap()"]');
+        if (printBtn && printBtn.nextSibling) {
+          mainGroup.insertBefore(resetBtn, printBtn.nextSibling);
+        } else {
+          mainGroup.appendChild(resetBtn);
+        }
+      }
+      // Remove operator logout for admin
+      if (isAdmin) {
+        const opLogout = mainGroup.querySelector('.toolbar-button.operator-logout');
+        if (opLogout) opLogout.remove();
+      }
+    }
+  }
+
+  // Enable/disable functionality based on role
+  if (isAdmin) {
+    // Enable all functionality for admin
+    document.querySelectorAll('button, select, input').forEach(element => {
+      element.disabled = false;
+    });
+  } else {
+    // Disable admin-only functionality
+    document.querySelectorAll('.admin-only').forEach(element => {
+      element.disabled = true;
+    });
+  }
+}
+
+// Initialize layer groups
+window.dataLayers = {
+  gullies: L.layerGroup(),
+  playgrounds: L.layerGroup(),
+  walkways: L.layerGroup(),
+  signage: L.layerGroup(),
+  lining: L.layerGroup()
+};
+
+// Add layer buttons to the bottom panel
+function initMap() {
+  console.log('initMap: --- Starting map initialization process ---');
+  
+  const mapDiv = document.getElementById('map');
+  console.log('initMap: Map div element:', mapDiv); // Should show the actual DOM element
+  // REMOVED: mapDiv.style.display = 'block'; // This is now handled in handleLoginSuccess
+  console.log('initMap: Map div display is managed by handleLoginSuccess.');
+  
+  // Check if map instance already exists to prevent re-initialization issues
+  if (window.map instanceof L.Map) {
+    console.log('initMap: Map instance already exists. Removing existing map and recreating.');
+    window.map.remove();
+    window.map = null; // Clear reference
+  }
+
+  // Create map instance
+  window.map = L.map('map', {
+    center: [51.9, -8.5],
+    zoom: 13,
+    zoomControl: false,
+    attributionControl: false
+  });
+  
+  console.log('initMap: Map instance created:', window.map); // Should be a Leaflet Map object
+  
+  // Add the base layer
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  }).addTo(window.map);
+  
+  console.log('initMap: Basemap layer added.'); 
+  // Add zoom control
+  L.control.zoom({
+    position: 'topright'
+  }).addTo(window.map);
+  
+  // Add attribution
+  L.control.attribution({
+    position: 'bottomright',
+    prefix: false
+  }).addTo(window.map);
+
+  // Add gullies layer by default
+  window.dataLayers.gullies.addTo(window.map);
+  currentActiveLayer = 'gullies';
+
+  // Force a map update after setup is complete
+  window.map.invalidateSize();
+  console.log('initMap: Map invalidated size at end of initMap.');
+  
+  // Explicitly set view to ensure full rendering
+  window.map.setView([51.9, -8.5], 13); // Use the default center and zoom
+  console.log('initMap: Map view explicitly set after invalidateSize.');
+
+  // Initialize click handler for add mode
+  window.map.on('mousemove', (e) => {
+    if (addMode) {
+      const tooltip = document.getElementById('add-tooltip') || createTooltip();
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.originalEvent.pageX + 10) + 'px';
+      tooltip.style.top = (e.originalEvent.pageY + 10) + 'px';
+      tooltip.textContent = `Lat: ${e.latlng.lat.toFixed(6)}, Lng: ${e.latlng.lng.toFixed(6)}`;
+    } else {
+      const tooltip = document.getElementById('add-tooltip');
+      if (tooltip) tooltip.style.display = 'none';
+    }
+  });
+  console.log('initMap: Click handler for add mode initialized.');
+}
+
+// Update the layer toggle function
+function toggleLayer(layerName) {
+  console.log('toggleLayer: Toggling layer:', layerName);
+  
+  if (window.dataLayers && window.dataLayers[layerName]) {
+    const layer = window.dataLayers[layerName];
+    const isVisible = window.map.hasLayer(layer);
+    
+    // Toggle the clicked layer
+    if (!isVisible) {
+      layer.addTo(window.map);
+      currentActiveLayer = layerName;
+    } else {
+      layer.removeFrom(window.map);
+      if (currentActiveLayer === layerName) {
+        currentActiveLayer = null;
+      }
+    }
+    
+    // Update visual state of buttons
+    updateLayerButtonStates();
+  }
+}
+
+// Update button states in bottom panel
+function updateLayerButtonStates() {
+  const buttons = document.querySelectorAll('.layer-button');
+  buttons.forEach(button => {
+    const layerName = button.id.replace('Button', ''); // Get layer name from button ID
+    const isVisible = window.dataLayers[layerName] && window.map.hasLayer(window.dataLayers[layerName]);
+    button.classList.toggle('active', isVisible);
+
+    // Update the checkbox state
+    const checkbox = button.querySelector('input[type="checkbox"]');
+    if (checkbox) {
+      checkbox.checked = isVisible;
+    }
+  });
+}
+
+// Update loadGullyData function
+function loadGullyData() {
+  console.log('loadGullyData: Loading gully data...');
+  
+  // Clear existing data
+  gullyData.length = 0;
+  Object.values(window.dataLayers).forEach(layer => layer.clearLayers());
+  
+  // Load data for each layer type
+  Object.keys(window.dataLayers).forEach(layerType => {
+    console.log('loadGullyData: Loading data for layer:', layerType);
+    db.ref(layerType).on('value', snapshot => {
+      const data = snapshot.val() || {};
+      
+      Object.entries(data).forEach(([id, item]) => {
+        if (item.location) {
+          const marker = addGullyToMap(item.location, id, layerType, item.status || 'Unmarked');
+          if (item.status) {
+            updateMarkerStatus(marker, item.status, layerType);
+          }
+        }
+      });
+      
+      // Update summary after loading data
+      updateSummary();
+      console.log(`loadGullyData: Loaded ${Object.keys(data).length} items for ${layerType}`);
+    });
+  });
+}
+
+function toggleToolbar() {
+  const toolbar = document.getElementById('functionToolbar');
+  const icon = document.getElementById('toolbarToggleIcon');
+  toolbar.classList.toggle('minimized');
+  icon.textContent = toolbar.classList.contains('minimized') ? '▲' : '▼';
+}
+
+function updateUserInfo(userData) {
+  const userInitials = document.getElementById('userInitials');
+  const userName = document.getElementById('userName');
+  
+  if (userData) {
+    userInitials.textContent = userData.initials || userData.email.substring(0, 2).toUpperCase();
+    userName.textContent = `${userData.name || userData.email.split('@')[0]} (${userData.role})`;
+  }
+}
+
+// Update the login success handler
+function handleLoginSuccess(userData) {
+  console.log('handleLoginSuccess: Login successful, preparing map initialization...');
+  console.log('handleLoginSuccess: Current window.map state before setTimeout:', window.map);
+
+  // Hide login screen
+  document.getElementById('loginScreen').style.display = 'none';
+  
+  // Show toolbar
+  document.getElementById('functionToolbar').style.display = 'block';
+  
+  // Make map container visible immediately
+  const mapDiv = document.getElementById('map');
+  mapDiv.style.display = 'block';
+  console.log('handleLoginSuccess: Map div display set to block.');
+
+  // Force browser reflow to ensure map div has correct dimensions before initMap
+  void mapDiv.offsetWidth; // Accessing offsetWidth forces reflow
+  console.log('handleLoginSuccess: Forced map div reflow.');
+
+  // Update user info
+  updateUserInfo(userData);
+  setupUIForRole(userData.role, userData.adminPrivileges);
+  
+  console.log('handleLoginSuccess: Reached point before setTimeout.'); // New diagnostic log
+
+  // Initialize map and load data after a short delay to ensure the map container is rendered
+  setTimeout(() => {
+    console.log('handleLoginSuccess: Inside setTimeout. Calling initMap...');
+    const currentMapDiv = document.getElementById('map');
+    console.log(`handleLoginSuccess: Map div dimensions before initMap: Width=${currentMapDiv.offsetWidth}, Height=${currentMapDiv.offsetHeight}`);
+    initMap();
+    // Load latest gully data from Firebase after map is ready
+    loadGullyData();
+    console.log('handleLoginSuccess: Map initialized and gully data loaded.');
+    console.log('handleLoginSuccess: Map initialized. Waiting for user to load data.');
+  }, 500);
+  // Start inactivity tracking
+  setupInactivityTracking();
+}
+
+function getStatusColor(status) {
+  const colors = {
+    Clear: '#4CAF50',      // Green
+    Blocked: '#FF9800',    // Orange
+    Broken: '#f44336',     // Red
+    Remediation: '#9C27B0', // Purple
+    Replacement: '#795548', // Brown
+    Unmarked: '#9E9E9E'    // Grey
+  };
+  return colors[status] || '#9E9E9E';
+}
+
+function getMarkerOptions(status) {
+  const colors = {
+    Clear: '#4CAF50',      // Green
+    Blocked: '#FF9800',    // Orange
+    Broken: '#f44336',     // Red
+    Remediation: '#9C27B0', // Purple
+    Replacement: '#795548', // Brown
+    Unmarked: '#9E9E9E'    // Grey
+  };
+  
+  return {
+    radius: 6,
+    fillColor: colors[status] || '#9E9E9E',
+    color: colors[status] || '#9E9E9E', // Same as fill color to remove visible border
+    weight: 0,             // No border
+    opacity: 1,
+    fillOpacity: 1        // Fully opaque
+  };
+}
+
+// Define custom icons for each layer
+const layerIcons = {
+  gullies: null, // Use circleMarker for gullies to show status color
+  playgrounds: L.divIcon({
+    className: 'custom-marker-icon',
+    html: `<svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,3 3,17 17,17" fill="#43a047" stroke="#222" stroke-width="2"/></svg>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+    popupAnchor: [0, -10]
+  }),
+  walkways: L.divIcon({
+    className: 'custom-marker-icon',
+    html: `<svg width="20" height="20" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" fill="#e53935" stroke="#222" stroke-width="2"/></svg>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+    popupAnchor: [0, -10]
+  }),
+  signage: L.divIcon({
+    className: 'custom-marker-icon',
+    html: `<svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" fill="#fbc02d" stroke="#222" stroke-width="2"/></svg>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+    popupAnchor: [0, -10]
+  }),
+  lining: L.divIcon({
+    className: 'custom-marker-icon',
+    html: `<svg width="20" height="20" viewBox="0 0 20 20"><path d="M15 10a6 6 0 1 1-6-6a4 4 0 1 0 6 6z" fill="#333" stroke="#222" stroke-width="2"/></svg>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+    popupAnchor: [0, -10]
+  })
+};
+
+function addGullyToMap(latlng, gullyId, layerType = 'gullies', status = 'Unmarked') {
+    let marker;
+    if (layerType === 'gullies') {
+        marker = L.circleMarker([latlng.lat, latlng.lng], getMarkerOptions(status));
+    } else if (layerIcons[layerType]) {
+        marker = L.marker([latlng.lat, latlng.lng], { icon: layerIcons[layerType] });
+    } else {
+        marker = L.marker([latlng.lat, latlng.lng]); // fallback
+    }
+    // Add to the correct layer group
+    if (window.dataLayers && window.dataLayers[layerType]) {
+        window.dataLayers[layerType].addLayer(marker);
+    } else {
+        console.warn('Layer not found:', layerType);
+        marker.addTo(window.map);
+    }
+    marker.on('click', function(e) {
+        if (deleteMode) {
+            handleGullyDelete(gullyId, marker, layerType);
+        } else {
+            currentMarker = marker;
+            showInspectionPopup(marker, gullyId, latlng, layerType);
+        }
+    });
+    marker.on('mouseover', function() {
+        if (deleteMode && layerType === 'gullies') {
+            marker.setStyle({ radius: 10 });
+        }
+    });
+    marker.on('mouseout', function() {
+        if (deleteMode && layerType === 'gullies') {
+            marker.setStyle({ radius: 8 });
+        } else if (layerType === 'gullies') {
+            marker.setStyle({ radius: 6 });
+        }
+    });
+    gullyData.push({ 
+        marker, 
+        id: gullyId, 
+        layer: layerType,
+        status: status
+    });
+    return marker;
+}
+
+// Add after the Firebase initialization
+// const layers = {
+//   gullies: L.layerGroup(),
+//   signage: L.layerGroup(),
+//   playgrounds: L.layerGroup(),
+//   parks: L.layerGroup(),
+//   walkways: L.layerGroup(),
+//   lining: L.layerGroup()
+// };
+
+let currentActiveLayer = 'gullies';
+let gullyData = [];
+let currentMarker = null;
+let currentInspectionPopup = null;
+let deleteMode = false;
+let editMode = false;
+
+// Add a Set to track imported file names and GPS positions
+let importedFiles = new Set();
+let importedPositions = new Set();
+
+// Add helper function to check for duplicate positions
+function isDuplicatePosition(lat, lng, tolerance = 0.0001) { // tolerance is roughly 11 meters
+    const positionKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+    if (importedPositions.has(positionKey)) {
+        return true;
+    }
+    
+    // Check nearby positions within tolerance
+    for (const pos of importedPositions) {
+        const [existingLat, existingLng] = pos.split(',').map(Number);
+        const distance = Math.sqrt(
+            Math.pow(existingLat - lat, 2) + 
+            Math.pow(existingLng - lng, 2)
+        );
+        if (distance < tolerance) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Update the handleKMLImport function
+async function handleImportFile(event) {
+    if (!auth.currentUser || currentRole !== 'admin') {
+        alert('Only administrators can import files');
+        return;
+    }
+
+    const file = event.target.files[0];
+    if (!file) return;
+
+    let selectedLayer = currentActiveLayer; // Use currentActiveLayer
+    if (!selectedLayer) {
+      alert('Please select a layer (e.g., Gullies, Playgrounds) before importing data.');
+      return;
+    }
+
+    // Check for duplicate file name
+    if (importedFiles.has(file.name)) {
+        alert('This file has already been imported. Please choose a different file or reset the map first.');
+        event.target.value = '';
+        return;
+    }
+
+    try {
+        console.log('handleImportFile: Starting file import...');
+        let geojson;
+        const extension = file.name.split('.').pop().toLowerCase();
+
+        const progressDiv = document.createElement('div');
+        progressDiv.className = 'loading-spinner';
+        progressDiv.innerHTML = `
+            <div class="spinner"></div>
+            <div>Importing features...</div>
+            <div id="import-progress">0/Unknown</div>
+        `;
+        document.body.appendChild(progressDiv);
+
+        if (extension === 'kml') {
+            const text = await file.text();
+            const kml = new DOMParser().parseFromString(text, 'text/xml');
+            geojson = toGeoJSON.kml(kml);
+        } else if (extension === 'kmz') {
+            console.log('handleImportFile: Detected KMZ file, decompressing...');
+            const zip = await JSZip.loadAsync(file);
+            let kmlFile = null;
+
+            // Find the KML file inside the KMZ (usually doc.kml or a .kml in the root)
+            zip.forEach((relativePath, zipEntry) => {
+                if (relativePath.toLowerCase().endsWith('.kml')) {
+                    kmlFile = zipEntry;
+                    return false; // Stop iteration
+                }
+            });
+
+            if (!kmlFile) {
+                throw new Error('No KML file found inside the KMZ archive.');
+            }
+            const kmlText = await kmlFile.async('text');
+            const kml = new DOMParser().parseFromString(kmlText, 'text/xml');
+            geojson = toGeoJSON.kml(kml);
+            console.log('handleImportFile: KMZ decompressed and KML parsed.');
+        } else {
+            throw new Error('Unsupported file format. Please import .kml or .kmz files.');
+        }
+
+        console.log('handleImportFile: Parsed GeoJSON:', geojson);
+
+        if (!geojson || !geojson.features || !geojson.features.length) {
+            alert('No valid features found in the imported file');
+            return;
+        }
+
+        // Update total for progress bar
+        const totalFeatures = geojson.features.length;
+        document.getElementById('import-progress').textContent = `0/${totalFeatures}`;
+
+        // Process and add features
+        let importCount = 0;
+        let duplicateCount = 0;
+        let skippedCount = 0;
+        const timestamp = Date.now();
+        const currentLayer = selectedLayer; // Use the selectedLayer after validation
+
+        console.log('handleImportFile: Importing to layer:', currentLayer);
+
+        for (const feature of geojson.features) {
+            if (feature.geometry && feature.geometry.type === 'Point' && feature.geometry.coordinates) {
+                const [lng, lat] = feature.geometry.coordinates;
+                if (isValidCoordinate(lng, lat)) {
+                    // Check for duplicate position
+                    if (isDuplicatePosition(lat, lng)) {
+                        console.log(`handleImportFile: Skipping duplicate position: ${lat}, ${lng}`);
+                        duplicateCount++;
+                        continue;
+                    }
+                    const id = `${currentLayer}_${timestamp}_${importCount}`;
+                    console.log('handleImportFile: Adding feature:', id, lat, lng);
+                    // Add marker to map
+                    const marker = addGullyToMap({ lat, lng }, id, currentLayer);
+                    // Save position to Set
+                    importedPositions.add(`${lat.toFixed(5)},${lng.toFixed(5)}`);
+                    // Save to Firebase
+                    await db.ref(`${currentLayer}/${id}`).set({
+                        location: { lat, lng },
+                        status: 'Unmarked',
+                        created: firebase.database.ServerValue.TIMESTAMP,
+                        createdBy: auth.currentUser.uid,
+                        sourceFile: file.name
+                    });
+                    importCount++;
+                    // Update progress
+                    const progressElement = document.getElementById('import-progress');
+                    if (progressElement) {
+                        progressElement.textContent = `${importCount}/${totalFeatures}`;
+                    }
+                }
+            } else {
+                skippedCount++;
+                console.warn('handleImportFile: Skipping non-Point geometry:', feature.geometry ? feature.geometry.type : 'undefined');
+            }
+        }
+        // Remove progress indicator
+        progressDiv.remove();
+        // Add file name to imported set
+        importedFiles.add(file.name);
+        console.log('handleImportFile: Import complete:', importCount, 'features imported,', duplicateCount, 'duplicates skipped,', skippedCount, 'non-Point features skipped');
+        if (importCount > 0) {
+            // Fit map to imported features
+            const bounds = L.latLngBounds(Array.from(importedPositions).map(pos => {
+                const [lat, lng] = pos.split(',').map(Number);
+                return [lat, lng];
+            }));
+            if (bounds.isValid()) {
+                window.map.fitBounds(bounds);
+            }
+            // Ensure the imported layer is visible on the map
+            if (currentLayer && window.dataLayers[currentLayer] && !window.map.hasLayer(window.dataLayers[currentLayer])) {
+                window.dataLayers[currentLayer].addTo(window.map);
+                updateLayerButtonStates(); // Update the checkbox for the newly visible layer
+            }
+            // Force map to re-render to show new markers
+            window.map.invalidateSize();
+            console.log('handleImportFile: Map invalidated size after import.');
+            const message = `Successfully imported ${importCount} features.\n${duplicateCount} duplicate positions were skipped.\n${skippedCount} non-point features were skipped.`;
+            alert(message);
+        } else {
+            alert('No valid Point features were imported. All positions were duplicates, invalid, or not Point geometry.');
+        }
+        
+    } catch (error) {
+        console.error('handleImportFile: Import error:', error);
+        alert('Error importing file: ' + error.message);
+    } finally {
+        // Clear the file input
+        event.target.value = '';
+    }
+}
+
+function isValidCoordinate(lng, lat) {
+  return !isNaN(lng) && !isNaN(lat) && 
+         lng >= -180 && lng <= 180 && 
+         lat >= -90 && lat <= 90;
+}
+
+function capturePhoto() {
+  try {
+    const photoInput = document.getElementById('inspection-photo');
+    // Create a temporary input for capturing photos
+    const tempInput = document.createElement('input');
+    tempInput.type = 'file';
+    tempInput.accept = 'image/*';
+    tempInput.capture = 'environment'; // Use the back camera
+    
+    // When a photo is selected, copy it to the main photo input
+    tempInput.onchange = function() {
+      if (this.files && this.files[0]) {
+        photoInput.files = this.files;
+      }
+    };
+    
+    tempInput.click();
+  } catch (error) {
+    console.error('Error capturing photo:', error);
+    alert('Error capturing photo. Please try again.');
+  }
+}
+
+function updateMarkerStatus(marker, status, layerType) {
+  const options = getMarkerOptions(status);
+  marker.setStyle({
+    fillColor: options.fillColor,
+    color: options.fillColor, // Same as fill color
+    weight: 0,               // No border
+    fillOpacity: 1,          // Fully opaque
+    opacity: 1
+  });
+  
+  // Update gullyData status
+  const gullyIndex = gullyData.findIndex(g => g.marker === marker);
+  if (gullyIndex !== -1) {
+    gullyData[gullyIndex].status = status;
+  }
+  
+  // Force summary update
+  updateSummary();
+}
+
+async function viewGullyHistory(gullyId) {
+  try {
+    // Get history from both locations
+    const [inspectionsSnapshot, historySnapshot] = await Promise.all([
+      db.ref(`gullies/${gullyId}/inspections`).once('value'),
+      db.ref(`gully_history/${gullyId}`).once('value')
+    ]);
+    
+    // Combine and sort all inspections
+    const allInspections = [];
+    
+    // Add inspections from main gully record
+    if (inspectionsSnapshot.exists()) {
+      Object.values(inspectionsSnapshot.val()).forEach(inspection => {
+        allInspections.push(inspection);
+      });
+    }
+    
+    // Add inspections from history
+    if (historySnapshot.exists()) {
+      Object.values(historySnapshot.val()).forEach(inspection => {
+        allInspections.push(inspection);
+      });
+    }
+    
+    // Sort by timestamp, most recent first
+    allInspections.sort((a, b) => b.timestamp - a.timestamp);
+    
+    // Create history display
+    const historyHtml = allInspections.map(inspection => {
+      const date = new Date(inspection.timestamp).toLocaleString();
+      const inspectorInfo = inspection.inspector || {};
+      const inspectorName = inspectorInfo.name || 'Unknown';
+      const inspectorInitials = inspectorInfo.initials || 'UN';
+      const status = inspection.status || 'Unknown';
+      const photoHtml = inspection.photoURL ? 
+        `<br><a href="${inspection.photoURL}" target="_blank" style="color: blue;">📷 View Photo</a>` : '';
+      
+      return `
+        <div style="border-bottom: 1px solid #ccc; margin-bottom: 10px; padding-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <strong style="font-size: 1.1em;">${date}</strong>
+            <div>
+              <span style="background: #e0e0e0; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${inspectorInitials}</span>
+            </div>
+          </div>
+          <div style="margin: 5px 0;">
+            <span style="font-weight: bold;">Inspector:</span> ${inspectorName}
+          </div>
+          <div style="margin: 5px 0;">
+            <span style="font-weight: bold;">Status:</span> 
+            <span style="color: ${getStatusColor(status)};">${status}</span>
+          </div>
+          <div style="margin: 5px 0;">
+            <span style="font-weight: bold;">Comments:</span><br>
+            ${inspection.comment || 'None'}
+          </div>
+          ${photoHtml}
+        </div>
+      `;
+    }).join('');
+    
+    // Create and show modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      max-width: 80%;
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: 10000;
+    `;
+    
+    modal.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;">Inspection History</h3>
+        <button onclick="this.parentElement.parentElement.remove()" 
+                style="border: none; background: #f0f0f0; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+          ✖ Close
+        </button>
+      </div>
+      <div>${historyHtml || 'No inspection history available'}</div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+  } catch (error) {
+    console.error('viewGullyHistory: Error loading history:', error);
+    alert('Error loading history: ' + error.message);
+  }
+}
+
+// Initialize auth state listener
+auth.onAuthStateChanged(user => {
+  console.log('Auth state changed, user:', user); 
+  if (user) {
+    console.log('Auth state changed: User authenticated, getting user data...');
+    db.ref('users/' + user.uid).once('value').then(snapshot => {
+      const userData = snapshot.val();
+      if (!userData) {
+        console.error('Auth state changed: No user data found');
+        return;
+      }
+      console.log('Auth state changed: User data retrieved, handling login success...');
+      handleLoginSuccess(userData);
+      
+      // Check map status after a moment
+      setTimeout(checkMapStatus, 1000);
+    });
+  } else {
+    console.log('Auth state changed: No user logged in, showing login screen');
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('map').style.display = 'none';
+    document.getElementById('functionToolbar').style.display = 'none';
+  }
+});
+
+// Update the summary display with descriptions
+function updateSummary() {
+  const counts = {
+    'All': 0,
+    'Clear': 0,
+    'Blocked': 0,
+    'Broken': 0,
+    'Remediation': 0,
+    'Replacement': 0,
+    'Expired': 0,
+    'Unmarked': 0
+  };
+
+  const descriptions = {
+    'All': 'Total number of gullies in the system',
+    'Clear': 'Gullies that are clean and functioning properly',
+    'Blocked': 'Gullies that are obstructed and need cleaning',
+    'Broken': 'Gullies that are damaged and not functioning',
+    'Remediation': 'Gullies that require maintenance work',
+    'Replacement': 'Gullies that need to be completely replaced',
+    'Expired': 'Gullies that need immediate inspection',
+    'Unmarked': 'Gullies that have not been inspected yet'
+  };
+  
+  // Count gullies by status
+  gullyData.forEach(gully => {
+    if (gully.layer === 'gullies') {
+      counts['All']++;
+      const status = gully.status || 'Unmarked';
+      if (counts.hasOwnProperty(status)) {
+        counts[status]++;
+      }
+    }
+  });
+  
+  // Create filter dropdown HTML
+  let filterHtml = `
+    <div style="margin-bottom: 15px;">
+      <div style="margin-bottom: 10px;"><strong>Filter Gullies</strong></div>
+      <select id="filterStatus" onchange="filterByStatus()" style="width: 100%; padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
+        <option value="All">Show All (${counts['All']})</option>
+  `;
+  
+  // Add options for each status that has gullies
+  Object.entries(counts).forEach(([status, count]) => {
+    if (status !== 'All' && count > 0) {
+      filterHtml += `<option value="${status}">${status} (${count})</option>`;
+    }
+  });
+  
+  filterHtml += `
+      </select>
+    </div>
+  `;
+  
+  // Update summary display with descriptions
+  let summaryHtml = '<div style="margin-bottom: 15px;"><strong>Gully Status Summary</strong></div>';
+  Object.entries(counts).forEach(([status, count]) => {
+    if (status === 'All' || count > 0) {
+      const color = getStatusColor(status);
+      summaryHtml += `
+        <div style="margin: 8px 0;">
+          <div style="display: flex; align-items: center;">
+            <span style="display: inline-block; width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 5px; border: 1px solid #000;"></span>
+            <span style="flex: 1; font-weight: bold;">${status}: ${count}</span>
+          </div>
+          <div style="margin-left: 17px; font-size: 0.9em; color: #666;">
+            ${descriptions[status]}
+          </div>
+        </div>
+      `;
+    }
+  });
+  
+  const summaryContent = document.getElementById('summaryContent');
+  if (summaryContent) {
+    summaryContent.innerHTML = filterHtml + summaryHtml;
+  }
+  
+  // Reapply current filter if exists
+  const filterStatus = document.getElementById('filterStatus');
+  if (filterStatus && filterStatus.value !== 'All') {
+    filterByStatus();
+  }
+}
+
+// Update the filter functionality
+function filterByStatus() {
+  const selectedStatus = document.getElementById('filterStatus').value;
+  
+  // Hide all markers first
+  gullyData.forEach(gully => {
+    if (gully.layer === 'gullies') {
+      gully.marker.setOpacity(0.2);
+    }
+  });
+  
+  // Show markers that match the filter
+  if (selectedStatus === 'All') {
+    gullyData.forEach(gully => {
+      if (gully.layer === 'gullies') {
+        gully.marker.setOpacity(1);
+      }
+    });
+  } else {
+    gullyData.forEach(gully => {
+      if (gully.layer === 'gullies' && gully.status === selectedStatus) {
+        gully.marker.setOpacity(1);
+      }
+    });
+  }
+}
+
+// Fix the export CSV function
+function exportData() {
+  if (!auth.currentUser) {
+    alert('Please log in to export data');
+    return;
+  }
+
+  try {
+    // Get all gully data from Firebase
+    db.ref('gullies').once('value')
+      .then(snapshot => {
+        const data = snapshot.val() || {};
+        
+        // Prepare CSV headers
+        let csvContent = 'ID,Latitude,Longitude,Status,Last Inspection,Inspector,Comments\n';
+        
+        // Process each gully
+        Object.entries(data).forEach(([id, gully]) => {
+          if (gully.location) {
+            const lastInspection = gully.inspections ? 
+              Object.values(gully.inspections).sort((a, b) => b.timestamp - a.timestamp)[0] : null;
+            
+            const row = [
+              id,
+              gully.location.lat,
+              gully.location.lng,
+              gully.status || 'Unmarked',
+              lastInspection ? new Date(lastInspection.timestamp).toLocaleDateString() : 'Never',
+              lastInspection ? lastInspection.inspector.name : 'None',
+              lastInspection ? (lastInspection.comment || '').replace(/,/g, ';') : ''
+            ];
+            
+            csvContent += row.join(',') + '\n';
+          }
+        });
+        
+        // Create and trigger download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        if (link.download !== undefined) {
+          const url = URL.createObjectURL(blob);
+          link.setAttribute('href', url);
+          link.setAttribute('download', `gully_data_${new Date().toISOString().split('T')[0]}.csv`);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      })
+      .catch(error => {
+        console.error('exportData: Export error:', error);
+        alert('Error exporting data: ' + error.message);
+      });
+  } catch (error) {
+    console.error('exportData: Export error:', error);
+    alert('Error exporting data: ' + error.message);
+  }
+}
+
+function resetMap() {
+  console.log('resetMap: Starting map reset...');
+  if (!auth.currentUser) {
+    alert('You must be logged in to reset the map');
+    return;
+  }
+
+  const confirmReset = confirm('Are you sure you want to reset the map? This will remove all gullies from the map.');
+  if (!confirmReset) {
+    return;
+  }
+
+  try {
+    // Check if window.map is a valid Leaflet map object
+    if (!(window.map instanceof L.Map)) {
+        console.error('resetMap: window.map is not a valid Leaflet map object. This should not happen during a normal reset. If the map is truly invalid, it might indicate a deeper issue.');
+        // initMap(); // Re-initialization removed to prevent full map reload on reset.
+    }
+
+    console.log('resetMap: window.map state before reset:', window.map);
+
+    // Show loading spinner
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading-spinner';
+    loadingDiv.innerHTML = `
+      <div class="spinner"></div>
+      <div>Resetting map...</div>
+    `;
+    document.body.appendChild(loadingDiv);
+
+    // Default center coordinates for Cork City
+    const defaultCenter = [51.9, -8.5];
+    const defaultZoom = 13;
+    
+    // Clear all layers
+    Object.values(window.dataLayers).forEach(layer => {
+      console.log(`resetMap: Attempting to clear layer: ${layer.id || "unknown"}`);
+      layer.clearLayers();
+    });
+
+    // Clear the gullyData array
+    gullyData.length = 0;
+    console.log('resetMap: Cleared gully data array');
+
+    // Reset the map view with animation
+    window.map.setView(defaultCenter, defaultZoom, {
+      animate: true,
+      duration: 1.0
+    });
+    console.log('resetMap: Map view reset.');
+
+    // Reset any active filters
+    const filterStatus = document.getElementById('filterStatus');
+    if (filterStatus) {
+      filterStatus.value = 'All';
+      console.log('resetMap: Reset filter status');
+    }
+
+    // Clear file input
+    const importFile = document.getElementById('importFile');
+    if (importFile) {
+      importFile.value = '';
+      console.log('resetMap: Cleared file input');
+    }
+
+    // Clear any existing popups
+    window.map.closePopup();
+    console.log('resetMap: Closed existing popups.');
+    
+    // Remove any existing summary popups
+    const existingSummary = document.querySelector('.summary-popup');
+    if (existingSummary) {
+      existingSummary.remove();
+      console.log('resetMap: Removed summary popup.');
+    }
+
+    // Update summary if it exists
+    if (typeof updateSummary === 'function') {
+      updateSummary();
+      console.log('resetMap: Updated summary.');
+    }
+
+    // Clear the sets of imported files and positions
+    importedFiles.clear();
+    importedPositions.clear();
+    console.log('resetMap: Cleared imported files and positions sets.');
+
+    // Remove loading spinner after a short delay
+    setTimeout(() => {
+      loadingDiv.remove();
+      console.log('resetMap: Map reset complete.');
+      alert('Map has been reset successfully');
+    }, 1000);
+
+  } catch (error) {
+    console.error('resetMap: Error resetting map:', error);
+    // Remove loading spinner if there's an error
+    const loadingDiv = document.querySelector('.loading-spinner');
+    if (loadingDiv) {
+      loadingDiv.remove();
+    }
+    alert('Error resetting map: ' + error.message);
+  }
+}
+
+function showSummaryPopup() {
+  // Calculate summary data
+  const summary = {
+    total: 0,
+    Clear: 0,
+    Blocked: 0,
+    Broken: 0,
+    Remediation: 0,
+    Replacement: 0,
+    Unmarked: 0
+  };
+
+  // Count gullies by status
+  gullyData.forEach(gully => {
+    if (gully.layer === 'gullies') {
+      summary.total++;
+      const status = gully.status || 'Unmarked';
+      if (summary.hasOwnProperty(status)) {
+        summary[status]++;
+      }
+    }
+  });
+
+  // Create popup HTML
+  const popupDiv = document.createElement('div');
+  popupDiv.className = 'summary-popup';
+  
+  const statusDescriptions = {
+    Clear: 'Gullies that are clean and functioning properly',
+    Blocked: 'Gullies that are obstructed and need cleaning',
+    Broken: 'Gullies that are damaged and not functioning',
+    Remediation: 'Gullies that require maintenance work',
+    Replacement: 'Gullies that need to be completely replaced',
+    Unmarked: 'Gullies that have not been inspected yet'
+  };
+
+  popupDiv.innerHTML = `
+    <div class="summary-header">
+      <h2 style="margin:0">Gully Inspection Summary</h2>
+      <button onclick="this.parentElement.parentElement.remove()" 
+              style="border:none;background:#f0f0f0;padding:5px 10px;border-radius:4px;cursor:pointer;">
+        ✖ Close
+      </button>
+    </div>
+    <div class="summary-content">
+      <div class="status-card" style="border-left-color:#2196F3">
+        <h3>Total Gullies</h3>
+        <div class="status-count">${summary.total}</div>
+        <div class="status-description">Total number of gullies in the system</div>
+      </div>
+      ${Object.entries(summary)
+        .filter(([status]) => status !== 'total')
+        .map(([status, count]) => `
+          <div class="status-card" style="border-left-color:${getStatusColor(status)}">
+            <h3>${status}</h3>
+            <div class="status-count">${count}</div>
+            <div class="status-description">${statusDescriptions[status] || ''}</div>
+          </div>
+        `).join('')}
+    </div>
+  `;
+
+  // Add popup to document
+  document.body.appendChild(popupDiv);
+}
+
+// Update the window.onload to include new initialization
+window.onload = () => {
+  document.getElementById("loginScreen").style.display = "block";
+  
+  // Initialize users
+  Promise.all([
+    ensureAllUsers()
+  ]).then(() => {
+    console.log('window.onload: User system initialized');
+    // Handle auto-login after initialization
+    handleAutoLogin();
+  }).catch(error => {
+    console.error('window.onload: Error during initialization:', error);
+  });
+};
+
+function togglePassword() {
+  const passwordInput = document.getElementById('password');
+  const toggle = document.querySelector('.password-toggle');
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    toggle.textContent = '👁️‍🗨️';
+  } else {
+    passwordInput.type = 'password';
+    toggle.textContent = '👁️';
+  }
+}
+
+// Load saved email on page load
+window.addEventListener('load', function() {
+  const savedEmail = localStorage.getItem('rememberedEmail');
+  if (savedEmail) {
+    document.getElementById('email').value = savedEmail;
+    document.getElementById('rememberMe').checked = true;
+  }
+});
+
+function printMap() {
+  window.print();
+}
+
+function updateWelcomeMessage(email) {
+  const welcomeDiv = document.getElementById('welcomeMessage');
+  if (welcomeDiv) {
+    welcomeDiv.textContent = `Welcome ${email.split('@')[0]}!`;
+    welcomeDiv.style.padding = '10px';
+    welcomeDiv.style.background = 'white';
+    welcomeDiv.style.borderRadius = '4px';
+    welcomeDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+    welcomeDiv.style.position = 'absolute';
+    welcomeDiv.style.top = '10px';
+    welcomeDiv.style.right = '10px';
+    welcomeDiv.style.zIndex = '1000';
+    welcomeDiv.style.display = 'block';
+  }
+}
+
+// Update scale control
+function updateScaleControl() {
+  if (window.map.scale) window.map.scale.remove();
+  
+  window.map.scale = L.control.scale({
+    metric: true,
+    imperial: false,
+    maxWidth: 200,
+    position: 'bottomleft',
+    updateWhenIdle: true
+  }).addTo(window.map);
+  
+  // Custom scale factor to correct the scale
+  const scaleFactor = 0.333333; // 1km = 3000m correction
+  
+  const originalGetScaleText = window.map.scale._getScaleText;
+  window.map.scale._getScaleText = function(ratio, text) {
+    const distance = ratio * scaleFactor;
+    if (distance >= 1) {
+      return distance.toFixed(0) + ' km';
+    } else {
+      return (distance * 1000).toFixed(0) + ' m';
+    }
+  };
+}
+
+function toggleFunctionTabs() {
+  const tabs = document.getElementById('functionTabs');
+  const icon = document.getElementById('tabToggleIcon');
+  tabs.classList.toggle('minimized');
+  icon.textContent = tabs.classList.contains('minimized') ? '▲' : '▼';
+}
+
+// Add a function to check map status
+function checkMapStatus() {
+  console.log('checkMapStatus: Map container:', document.getElementById('map'));
+  console.log('checkMapStatus: Map instance:', window.map);
+  if (window.map instanceof L.Map) {
+    console.log('checkMapStatus: Map center:', window.map.getCenter());
+    console.log('checkMapStatus: Map zoom:', window.map.getZoom());
+  } else {
+    console.warn('checkMapStatus: window.map is not a Leaflet map instance.');
+  }
+}
+
+// Add a function to check if map needs reset
+function checkMapState() {
+  if (gullyData.length > 0) {
+    const resetButton = document.querySelector('button[onclick="resetMap()"]');
+    if (resetButton) {
+      resetButton.style.backgroundColor = '#ff9800';
+      resetButton.style.color = 'white';
+      setTimeout(() => {
+        resetButton.style.backgroundColor = '';
+        resetButton.style.color = '';
+      }, 2000);
+    }
+  }
+}
+
+// Add the delete and edit functions
+function enableDeleteMode() {
+    if (!auth.currentUser || currentRole !== 'admin') {
+        alert('Only administrators can delete gullies');
+        return;
+    }
+    deleteMode = !deleteMode;
+    editMode = false;
+    const mapElement = document.getElementById('map');
+    const deleteButton = document.querySelector('button[onclick="enableDeleteMode()"]');
+    if (deleteMode) {
+        mapElement.style.cursor = 'pointer';
+        deleteButton.style.backgroundColor = '#ff4444';
+        deleteButton.style.color = 'white';
+        alert('Delete mode enabled. Click on gullies to delete them.');
+    } else {
+        mapElement.style.cursor = '';
+        deleteButton.style.backgroundColor = '';
+        deleteButton.style.color = '';
+    }
+    gullyData.forEach(gully => {
+        if (gully.marker) {
+            if (deleteMode) {
+                gully.marker.setStyle({ radius: 8 });
+            } else {
+                gully.marker.setStyle({ radius: 6 });
+            }
+        }
+    });
+}
+
+function enableEditMode() {
+    if (!auth.currentUser || currentRole !== 'admin') {
+        alert('Only administrators can edit gullies');
+        return;
+    }
+    
+    editMode = !editMode;
+    deleteMode = false;
+    
+    const editButton = document.querySelector('button[onclick="enableEditMode()"]');
+    if (editButton) {
+        if (editMode) {
+            editButton.style.backgroundColor = '#2196F3';
+            editButton.style.color = 'white';
+            alert('Edit mode enabled. Click on gullies to edit them.');
+        } else {
+            editButton.style.backgroundColor = '';
+            editButton.style.color = '';
+        }
+    }
+}
+
+async function handleGullyDelete(gullyId, marker, layerType) {
+    if (!deleteMode || !auth.currentUser || currentRole !== 'admin') return;
+    try {
+        const confirmDelete = confirm('Are you sure you want to delete this gully?');
+        if (!confirmDelete) return;
+        marker.setStyle({ fillColor: '#ff0000', radius: 8 });
+        // Remove from Firebase
+        await db.ref(`${layerType}/${gullyId}`).remove();
+        // Remove from map layer
+        if (window.dataLayers && window.dataLayers[layerType]) {
+            window.dataLayers[layerType].removeLayer(marker);
+        }
+        // Remove from gullyData array
+        const index = gullyData.findIndex(g => g.id === gullyId);
+        if (index !== -1) {
+            gullyData.splice(index, 1);
+        }
+        updateSummary();
+        // Remove marker from map if still present
+        if (window.map.hasLayer(marker)) {
+            window.map.removeLayer(marker);
+        }
+        enableDeleteMode(); // Disable delete mode after successful deletion
+    } catch (error) {
+        console.error('handleGullyDelete: Error deleting gully:', error);
+        alert('Error deleting gully: ' + error.message);
+        if (marker) {
+            marker.setStyle(getMarkerOptions('Unmarked'));
+        }
+    }
+}
+
+// Add the new mode variable
+let addMode = false;
+
+// Add the new functions
+function enableAddMode() {
+    if (!auth.currentUser || currentRole !== 'admin') {
+        alert('Only administrators can add new gullies');
+        return;
+    }
+    
+    addMode = !addMode;
+    editMode = false;
+    deleteMode = false;
+    
+    // Update cursor and button style
+    const mapElement = document.getElementById('map');
+    const addButton = document.querySelector('button[onclick="enableAddMode()"]');
+    
+    if (addMode) {
+        mapElement.style.cursor = 'crosshair';
+        addButton.style.backgroundColor = '#4CAF50';
+        addButton.style.color = 'white';
+        alert('Add mode enabled. Click on the map to add new asset.');
+        // Add click handler to map
+        window.map.on('click', handleMapClick);
+    } else {
+        mapElement.style.cursor = '';
+        addButton.style.backgroundColor = '';
+        addButton.style.color = '';
+        
+        // Remove click handler from map
+        window.map.off('click', handleMapClick);
+    }
+}
+
+async function handleMapClick(e) {
+    if (!addMode || !auth.currentUser || currentRole !== 'admin') return;
+    
+    try {
+        const timestamp = Date.now();
+        // Ensure 'activeLayer' is correctly referenced or replaced if it's from a removed dropdown
+        // For now, using 'gullies' as a default if activeLayer is not available
+        const currentLayer = currentActiveLayer || 'gullies'; 
+        const newId = `${currentLayer}_${timestamp}`;
+        const latlng = e.latlng;
+        
+        console.log('handleMapClick: Adding new gully at:', latlng);
+        
+        // Add marker to map
+        const marker = addGullyToMap(latlng, newId, currentLayer);
+        
+        // Save to Firebase
+        await db.ref(`${currentLayer}/${newId}`).set({
+            location: { 
+                lat: latlng.lat, 
+                lng: latlng.lng 
+            },
+            status: 'Unmarked',
+            created: firebase.database.ServerValue.TIMESTAMP,
+            createdBy: auth.currentUser.uid
+        });
+        
+        console.log('handleMapClick: New gully added successfully');
+        
+        // Show inspection popup immediately
+        currentMarker = marker;
+        showInspectionPopup(marker, newId, latlng, currentLayer);
+        
+        // Disable add mode after successful addition
+        enableAddMode();
+        
+    } catch (error) {
+        console.error('handleMapClick: Error adding new gully:', error);
+        alert('Error adding new gully: ' + error.message);
+    }
+}
+
+// Helper function to create tooltip
+function createTooltip() {
+    const tooltip = document.createElement('div');
+    tooltip.id = 'add-tooltip';
+    tooltip.style.cssText = `
+        position: fixed;
+        background: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 1000;
+        pointer-events: none;
+        font-size: 12px;
+    `;
+    document.body.appendChild(tooltip);
+    return tooltip;
+}
+
+// 1. Backup function
+function saveGullyData() {
+  if (!auth.currentUser) {
+    alert('Please log in to back up data');
+    return;
+  }
+  const layersToBackup = ['gullies', 'signage', 'playgrounds', 'parks', 'walkways', 'lining'];
+  const backup = {};
+  let completed = 0;
+  layersToBackup.forEach(layer => {
+    db.ref(layer).once('value').then(snapshot => {
+      backup[layer] = snapshot.val() || {};
+      completed++;
+      if (completed === layersToBackup.length) {
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `gully_backup_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        alert('Backup downloaded successfully!');
+      }
+    }).catch(error => {
+      alert('Error backing up ' + layer + ': ' + error.message);
+    });
+  });
+}
+
+// 2. User management modal
+function showUserManagement() {
+  if (!auth.currentUser) {
+    alert('Only administrators can view users');
+    return;
+  }
+  db.ref('users').once('value').then(snapshot => {
+    const users = snapshot.val() || {};
+    let html = `<div style="max-height:60vh;overflow:auto;">
+      <h3>User Management</h3>
+      <table style='width:100%;border-collapse:collapse;'>
+        <tr><th style='border-bottom:1px solid #ccc;'>Name</th><th style='border-bottom:1px solid #ccc;'>Email</th><th style='border-bottom:1px solid #ccc;'>Role</th></tr>`;
+    Object.values(users).forEach(user => {
+      html += `<tr><td>${user.name || ''}</td><td>${user.email || ''}</td><td>${user.role || ''}</td></tr>`;
+    });
+    html += '</table>';
+    html += `<div style='text-align:right;margin-top:10px;'><button onclick='this.closest(".user-management-modal").remove()' style='padding:6px 12px;border-radius:4px;'>Close</button></div></div>`;
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.2);z-index:2001;';
+    modal.className = 'user-management-modal';
+    modal.innerHTML = html;
+    document.body.appendChild(modal);
+  });
+}
+
+// Layer management
+let mapLayers = {
+  gullies: { visible: true, data: null },
+  playgrounds: { visible: false, data: null },
+  walkways: { visible: false, data: null },
+  signage: { visible: false, data: null },
+  lining: { visible: false, data: null }
+};
+
+function toggleLayer(layerName) {
+  console.log('toggleLayer: Toggling layer:', layerName);
+  
+  if (window.dataLayers && window.dataLayers[layerName]) {
+    const layer = window.dataLayers[layerName];
+    const isVisible = window.map.hasLayer(layer);
+    
+    // Toggle the clicked layer
+    if (!isVisible) {
+      layer.addTo(window.map);
+      currentActiveLayer = layerName;
+    } else {
+      layer.removeFrom(window.map);
+      if (currentActiveLayer === layerName) {
+        currentActiveLayer = null;
+      }
+    }
+    
+    // Update visual state of buttons
+    updateLayerButtonStates();
+  }
+}
+
+function showLayerControl() {
+  console.log('showLayerControl: Attempting to show layer control.');
+  const layerControl = document.getElementById('layerControlContainer');
+  if (layerControl) {
+    layerControl.style.display = layerControl.style.display === 'block' ? 'none' : 'block';
+    console.log('showLayerControl: Layer control visibility toggled.');
+  } else {
+    // If the container doesn't exist, create it dynamically
+    console.log('showLayerControl: Layer control container not found, creating it.');
+    createLayerControlContainer();
+  }
+}
+
+function createLayerControlContainer() {
+  const container = document.createElement('div');
+  container.id = 'layerControlContainer';
+  container.className = 'layer-control';
+  container.style.display = 'block'; // Show by default when created
+
+  container.innerHTML = `
+    <div class="layer-header" onclick="toggleLayerControl()">
+      <h3>Layers</h3>
+      <span class="collapse-icon"></span>
+    </div>
+    <div class="layer-content expanded">
+      <div class="layer-item">
+        <label for="gulliesLayer" class="layer-button" id="gulliesButton" onclick="toggleLayer('gullies')">
+          <input type="checkbox" id="gulliesLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''}>
+          <span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:#2196F3;border:2px solid #000;margin-right:2px;"></span>
+          Gullies
+        </label>
+      </div>
+      <div class="layer-item">
+        <label for="playgroundsLayer" class="layer-button" id="playgroundsButton" onclick="toggleLayer('playgrounds')">
+          <input type="checkbox" id="playgroundsLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''}>
+          <span style="display:inline-block;vertical-align:middle;"> <svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,3 3,17 17,17" fill="#43a047" stroke="#222" stroke-width="2"/></svg> </span>
+          Playgrounds
+        </label>
+      </div>
+      <div class="layer-item">
+        <label for="walkwaysLayer" class="layer-button" id="walkwaysButton" onclick="toggleLayer('walkways')">
+          <input type="checkbox" id="walkwaysLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''}>
+          <span style="display:inline-block;vertical-align:middle;"> <svg width="20" height="20" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" fill="#e53935" stroke="#222" stroke-width="2"/></svg> </span>
+          Walkways
+        </label>
+      </div>
+      <div class="layer-item">
+        <label for="signageLayer" class="layer-button" id="signageButton" onclick="toggleLayer('signage')">
+          <input type="checkbox" id="signageLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''}>
+          <span style="display:inline-block;vertical-align:middle;"> <svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" fill="#fbc02d" stroke="#222" stroke-width="2"/></svg> </span>
+          Signage
+        </label>
+      </div>
+      <div class="layer-item">
+        <label for="liningLayer" class="layer-button" id="liningButton" onclick="toggleLayer('lining')">
+          <input type="checkbox" id="liningLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''}>
+          <span style="display:inline-block;vertical-align:middle;"> <svg width="20" height="20" viewBox="0 0 20 20"><path d="M15 10a6 6 0 1 1-6-6a4 4 0 1 0 6 6z" fill="#333" stroke="#222" stroke-width="2"/></svg> </span>
+          Road Lining
+        </label>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(container);
+  updateLayerButtonStates(); // Call this to set initial checkbox states
+}
+
+function toggleLayerControl() {
+  console.log('toggleLayerControl: Toggling layer control visibility.');
+  const container = document.getElementById('layerControlContainer');
+  const content = container.querySelector('.layer-content');
+  const icon = container.querySelector('.collapse-icon');
+  
+  content.classList.toggle('expanded');
+  icon.classList.toggle('expanded');
+  console.log('toggleLayerControl: Layer control expanded state:', content.classList.contains('expanded'));
+}
+
+// Initialize layer visibility on startup
+function initializeLayerVisibility() {
+  console.log('initializeLayerVisibility: Initializing layer visibility.');
+
+  // Clear all layers from the map first to prevent duplicates during re-initialization
+  Object.values(window.dataLayers).forEach(layer => {
+    if (window.map.hasLayer(layer)) {
+      window.map.removeLayer(layer);
+    }
+  });
+
+  // Add layers to the map if they contain any features
+  Object.keys(window.dataLayers).forEach(layerName => {
+    if (window.dataLayers[layerName] && window.dataLayers[layerName].getLayers().length > 0) {
+      window.dataLayers[layerName].addTo(window.map);
+      console.log(`initializeLayerVisibility: Added ${layerName} to map because it contains data.`);
+    } else if (layerName === 'gullies') {
+      // Ensure gullies layer is always on the map, even if empty, as it's the default active layer.
+      window.dataLayers[layerName].addTo(window.map);
+      console.log(`initializeLayerVisibility: Added empty ${layerName} to map as default.`);
+    }
+  });
+
+  // Set the currentActiveLayer based on what's visible, or default to 'gullies'
+  let foundActive = false;
+  for (const layerName in window.dataLayers) {
+    if (window.map.hasLayer(window.dataLayers[layerName])) {
+      currentActiveLayer = layerName;
+      foundActive = true;
+      break;
+    }
+  }
+  if (!foundActive) {
+    currentActiveLayer = 'gullies'; // Fallback if no layers have data or are visible
+  }
+
+  updateLayerButtonStates(); // Ensure visual state is accurate
+  console.log('initializeLayerVisibility: Layer button states updated.');
+}
+
+// Remove the old layer control div if it still exists from previous versions
+document.querySelector('.layer-control')?.remove();
+
+// Add a form submit handler to always call login()
+document.addEventListener('DOMContentLoaded', function() {
+  var loginForm = document.getElementById('loginForm');
+  if (loginForm) {
+    loginForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      login();
+      return false;
+    });
+  }
+});
+
+// Add after updateMarkerStatus or near other popup/inspection functions
+function showInspectionPopup(marker, gullyId, latlng, layerType) {
+  // Custom popup for playgrounds and walkways
+  if (layerType === 'playgrounds' || layerType === 'walkways') {
+    db.ref(`${layerType}/${gullyId}`).once('value').then(snapshot => {
+      const asset = snapshot.val() || {};
+      const description = asset.description || 'No description';
+      const status = asset.status || '';
+      const comment = asset.comment || '';
+      const photoURL = asset.photoURL || '';
+      const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
+      let html = `<div class='inspection-popup popup-form'>`;
+      html += `<h3 style='margin-top:0;'>${layerType.charAt(0).toUpperCase() + layerType.slice(1)} Asset</h3>`;
+      html += `<div><b>Description:</b> ${description}</div>`;
+      html += `<div><b>Status:</b> <select id='asset-status'>`;
+      html += `<option value='Fixed'${status === 'Fixed' ? ' selected' : ''}>Fixed</option>`;
+      html += `<option value='Replaced'${status === 'Replaced' ? ' selected' : ''}>Replaced</option>`;
+      html += `<option value='New Installation'${status === 'New Installation' ? ' selected' : ''}>New Installation</option>`;
+      html += `</select></div>`;
+      html += `<div><b>Comment:</b><br/>`;
+      html += `<input type='text' id='asset-comment' placeholder='Enter comment' style='width:100%;margin-bottom:5px;' value="${comment || ''}">`;
+      html += `</div>`;
+      html += `<div><b>Photo:</b><br/>`;
+      if (photoURL) {
+        html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+        html += `<img src='${photoURL}' alt='Asset Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+      }
+      if (canEdit) {
+        html += `<input type='file' id='asset-photo' accept='image/*' style='margin-top:5px;display:none;'/><br/>`;
+        html += `<button id='take-photo-btn' type='button' style='margin:5px 0;'>📸 Take Photo</button>`;
+        html += `<img id='asset-photo-preview' style='max-width:100%;max-height:100px;display:none;margin:5px 0;'>`;
+      }
+      html += `</div>`;
+      if (canEdit) {
+        html += `<div style='margin-top:8px;display:flex;align-items:center;gap:8px;'>`;
+        html += `<input type='checkbox' id='confirm-save-asset' style='margin-right:4px;'>`;
+        html += `<label for='confirm-save-asset' style='margin:0;'>Confirm Save</label>`;
+        html += `<button id='save-asset' style='margin-left:8px;' disabled>Save</button>`;
+        html += `</div>`;
+      }
+      html += `</div>`;
+      currentInspectionPopup = L.popup({
+        maxWidth: 350,
+        closeButton: true,
+        className: 'inspection-popup'
+      })
+        .setLatLng([latlng.lat, latlng.lng])
+        .setContent(html)
+        .openOn(window.map);
+      setTimeout(() => {
+        if (canEdit) {
+          // Photo preview logic
+          const photoInput = document.getElementById('asset-photo');
+          const photoPreview = document.getElementById('asset-photo-preview');
+          if (photoInput && photoPreview) {
+            photoInput.onchange = function() {
+              if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                  photoPreview.src = e.target.result;
+                  photoPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+              } else {
+                photoPreview.style.display = 'none';
+              }
+            };
+          }
+          // Take Photo button
+          const takePhotoBtn = document.getElementById('take-photo-btn');
+          if (takePhotoBtn && photoInput) {
+            takePhotoBtn.onclick = function() {
+              photoInput.setAttribute('capture', 'environment');
+              photoInput.click();
+            };
+          }
+          // Confirm Save checkbox
+          const confirmSave = document.getElementById('confirm-save-asset');
+          const saveBtn = document.getElementById('save-asset');
+          if (confirmSave && saveBtn) {
+            confirmSave.onchange = function() {
+              saveBtn.disabled = !confirmSave.checked;
+            };
+            saveBtn.disabled = !confirmSave.checked;
+          }
+          // Save logic
+          if (saveBtn) {
+            saveBtn.onclick = async function() {
+              if (saveBtn.disabled) return;
+              try {
+                saveBtn.textContent = 'Saving...';
+                saveBtn.disabled = true;
+                const newStatus = document.getElementById('asset-status').value;
+                const newComment = document.getElementById('asset-comment').value;
+                let newPhotoURL = photoURL;
+                if (photoInput && photoInput.files && photoInput.files[0]) {
+                  const file = photoInput.files[0];
+                  const storageRef = storage.ref(`${layerType}/${gullyId}/${Date.now()}_${file.name}`);
+                  await storageRef.put(file);
+                  newPhotoURL = await storageRef.getDownloadURL();
+                }
+                await db.ref(`${layerType}/${gullyId}`).update({
+                  status: newStatus,
+                  comment: newComment,
+                  photoURL: newPhotoURL
+                });
+                alert('Asset updated!');
+                window.map.closePopup(currentInspectionPopup);
+              } catch (err) {
+                alert('Error saving asset: ' + err.message);
+                saveBtn.textContent = 'Save';
+                saveBtn.disabled = false;
+              }
+            };
+          }
+        }
+      }, 100);
+    });
+    return; // Prevent running the gully popup code
+  }
+  if (currentInspectionPopup) {
+    window.map.closePopup(currentInspectionPopup);
+    currentInspectionPopup = null;
+  }
+  db.ref(`${layerType}/${gullyId}`).once('value').then(snapshot => {
+    const gully = snapshot.val() || {};
+    const status = gully.status || 'Unmarked';
+    const lastInspection = gully.inspections ?
+      Object.values(gully.inspections).sort((a, b) => b.timestamp - a.timestamp)[0] : null;
+    const comment = lastInspection ? lastInspection.comment : '';
+    const photoURL = lastInspection ? lastInspection.photoURL : '';
+    const inspector = lastInspection && lastInspection.inspector ? lastInspection.inspector.name : '';
+    const timestamp = lastInspection ? lastInspection.timestamp : null;
+    const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
+    console.log('showInspectionPopup: canEdit:', canEdit, 'window.currentUserData:', window.currentUserData, 'editMode:', editMode);
+    if (!canEdit) {
+      console.warn('showInspectionPopup: Save button will not show because canEdit is false.');
+    }
+    // Date picker setup
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    let lastDate = timestamp ? new Date(timestamp).toISOString().split('T')[0] : todayStr;
+    let html = `<div class='inspection-popup popup-form'>`;
+    html += `<h3 style='margin-top:0;'>Gully Inspection</h3>`;
+    html += `<div><b>ID:</b> ${gullyId}</div>`;
+    html += `<div><b>Status:</b> `;
+    if (canEdit) {
+      html += `<select id='inspection-status'>`;
+      [
+        'Clear',
+        'Blocked',
+        'Broken',
+        'Remediation',
+        'Replacement',
+        'Unmarked'
+      ].forEach(opt => {
+        html += `<option value='${opt}'${status === opt ? ' selected' : ''}>${opt}</option>`;
+      });
+      html += `</select>`;
+    } else {
+      html += `<span style='color:${getStatusColor(status)};'>${status}</span>`;
+    }
+    html += `</div>`;
+    html += `<div><b>Inspector:</b> ${inspector || '-'}</div>`;
+    html += `<div><b>Last Inspected:</b> ${timestamp ? new Date(timestamp).toLocaleString() : '-'}</div>`;
+    // Date picker
+    if (canEdit) {
+      html += `<div><b>Inspection Date:</b><br/><input type='date' id='inspection-date' max='${todayStr}' value='${lastDate}' style='width:100%;margin-bottom:5px;'></div>`;
+    }
+    html += `<div><b>Comment:</b><br/>`;
+    if (canEdit) {
+      html += `<input type='text' id='inspection-comment-custom' placeholder='Enter comment' style='width:100%;margin-bottom:5px;' value="${comment || ''}">`;
+    } else {
+      html += `<div style='min-height:2em;'>${comment || '-'}</div>`;
+    }
+    html += `</div>`;
+    html += `<div><b>Photo:</b><br/>`;
+    if (photoURL) {
+      html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+      html += `<img src='${photoURL}' alt='Gully Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+    }
+    if (canEdit) {
+      html += `<input type='file' id='inspection-photo' accept='image/*' style='margin-top:5px;display:none;'/><br/>`;
+      html += `<button id='take-photo-btn' type='button' style='margin:5px 0;'>📸 Take Photo</button>`;
+      html += `<img id='inspection-photo-preview' style='max-width:100%;max-height:100px;display:none;margin:5px 0;'>`;
+    }
+    html += `</div>`;
+    if (canEdit) {
+      html += `<div style='margin-top:8px;display:flex;align-items:center;gap:8px;'>`;
+      html += `<input type='checkbox' id='confirm-save-inspection' style='margin-right:4px;'><label for='confirm-save-inspection' style='margin:0;'>Confirm Save Inspection</label>`;
+      html += `<button id='save-inspection' style='margin-left:8px;' disabled>Save Inspection</button>`;
+      html += `</div>`;
+    }
+    html += `<button id='view-history' style='margin-top:8px;'>View History</button>`;
+    html += `</div>`;
+    currentInspectionPopup = L.popup({
+      maxWidth: 350,
+      closeButton: true,
+      className: 'inspection-popup'
+    })
+      .setLatLng([latlng.lat, latlng.lng])
+      .setContent(html)
+      .openOn(window.map);
+    setTimeout(() => {
+      if (canEdit) {
+        // Photo preview
+        const photoInput = document.getElementById('inspection-photo');
+        const photoPreview = document.getElementById('inspection-photo-preview');
+        if (photoInput && photoPreview) {
+          photoInput.onchange = function() {
+            if (photoInput.files && photoInput.files[0]) {
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                photoPreview.src = e.target.result;
+                photoPreview.style.display = 'block';
+              };
+              reader.readAsDataURL(photoInput.files[0]);
+            } else {
+              photoPreview.style.display = 'none';
+            }
+          };
+        }
+        // Take Photo button
+        const takePhotoBtn = document.getElementById('take-photo-btn');
+        if (takePhotoBtn && photoInput) {
+          takePhotoBtn.onclick = function() {
+            photoInput.setAttribute('capture', 'environment');
+            photoInput.click();
+          };
+        }
+        // Confirm Save Inspection checkbox
+        const confirmSave = document.getElementById('confirm-save-inspection');
+        const saveBtn = document.getElementById('save-inspection');
+        if (!saveBtn) {
+          console.error('Save Inspection button not found in popup!');
+          return;
+        }
+        if (confirmSave) {
+          confirmSave.onchange = function() {
+            saveBtn.disabled = !confirmSave.checked;
+          };
+          saveBtn.disabled = !confirmSave.checked;
+        } else {
+          // Fallback: always enable for admin if checkbox missing
+          saveBtn.disabled = false;
+        }
+        saveBtn.onclick = async function() {
+          if (saveBtn.disabled) return;
+          try {
+            console.log('[SaveInspection] Save button clicked');
+            saveBtn.textContent = 'Saving...';
+            saveBtn.disabled = true;
+            const newStatus = document.getElementById('inspection-status').value;
+            const commentCustom = document.getElementById('inspection-comment-custom');
+            const newComment = commentCustom.value;
+            const dateInput = document.getElementById('inspection-date');
+            let inspectionTimestamp = Date.now();
+            if (dateInput && dateInput.value) {
+              inspectionTimestamp = new Date(dateInput.value + 'T12:00:00').getTime();
+            }
+            let newPhotoURL = photoURL;
+            if (photoInput && photoInput.files && photoInput.files[0]) {
+              const file = photoInput.files[0];
+              const storageRef = storage.ref(`inspections/${gullyId}/${Date.now()}_${file.name}`);
+              console.log('[SaveInspection] Uploading photo to Firebase Storage...');
+              // Add a timeout for the upload
+              const uploadPromise = storageRef.put(file);
+              const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Photo upload timed out after 30 seconds')), 30000));
+              await Promise.race([uploadPromise, timeoutPromise]);
+              newPhotoURL = await storageRef.getDownloadURL();
+              console.log('[SaveInspection] Photo uploaded, URL:', newPhotoURL);
+            }
+            // Inspector fallback logic
+            let inspectorName = '';
+            let inspectorInitials = '';
+            if (window.currentUserData) {
+              inspectorName = window.currentUserData.name || window.currentUserData.email || auth.currentUser.email || auth.currentUser.uid;
+              inspectorInitials = window.currentUserData.initials || (window.currentUserData.name ? window.currentUserData.name.split(' ').map(n=>n[0]).join('').toUpperCase() : '') || (auth.currentUser.email ? auth.currentUser.email[0].toUpperCase() : 'U');
+            } else if (auth.currentUser) {
+              inspectorName = auth.currentUser.email || auth.currentUser.uid;
+              inspectorInitials = auth.currentUser.email ? auth.currentUser.email[0].toUpperCase() : 'U';
+            } else {
+              inspectorName = 'Unknown';
+              inspectorInitials = 'UN';
+            }
+            console.log('[SaveInspection] Inspector:', inspectorName, inspectorInitials);
+            const inspectionId = db.ref().push().key;
+            const inspectionData = {
+              status: newStatus,
+              comment: newComment,
+              photoURL: newPhotoURL,
+              timestamp: inspectionTimestamp,
+              inspector: {
+                name: inspectorName,
+                initials: inspectorInitials
+              }
+            };
+            console.log('[SaveInspection] Writing inspection data to database:', inspectionData);
+            await db.ref(`${layerType}/${gullyId}/inspections/${inspectionId}`).set(inspectionData);
+            await db.ref(`${layerType}/${gullyId}`).update({ status: newStatus });
+            updateMarkerStatus(marker, newStatus, layerType);
+            alert('Inspection saved!');
+            window.map.closePopup(currentInspectionPopup);
+            console.log('[SaveInspection] Inspection saved and popup closed.');
+          } catch (err) {
+            console.error('[SaveInspection] Error saving inspection:', err);
+            alert('Error saving inspection: ' + err.message);
+            saveBtn.textContent = 'Save Inspection';
+            saveBtn.disabled = false;
+          }
+        };
+      }
+      document.getElementById('view-history').onclick = function() {
+        viewGullyHistory(gullyId);
+      };
+    }, 100);
+  });
+
+  // Custom popup for signage
+  if (layerType === 'signage') {
+    db.ref(`${layerType}/${gullyId}`).once('value').then(snapshot => {
+      const asset = snapshot.val() || {};
+      const description = asset.description || 'No description';
+      const status = asset.status || '';
+      const comment = asset.comment || '';
+      const photoURL = asset.photoURL || '';
+      const date = asset.date ? new Date(asset.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
+      let html = `<div class='inspection-popup popup-form'>`;
+      html += `<h3 style='margin-top:0;'>Signage Asset</h3>`;
+      html += `<div><b>Description:</b> ${description}</div>`;
+      html += `<div><b>Status:</b> <select id='signage-status'>`;
+      html += `<option value='Replacement'${status === 'Replacement' ? ' selected' : ''}>Replacement</option>`;
+      html += `<option value='New'${status === 'New' ? ' selected' : ''}>New</option>`;
+      html += `<option value='Retired'${status === 'Retired' ? ' selected' : ''}>Retired</option>`;
+      html += `<option value='Changed'${status === 'Changed' ? ' selected' : ''}>Changed</option>`;
+      html += `</select></div>`;
+      html += `<div><b>Date:</b><br/><input type='date' id='signage-date' value='${date}' style='width:100%;margin-bottom:5px;'></div>`;
+      html += `<div><b>Comment:</b><br/>`;
+      html += `<input type='text' id='signage-comment' placeholder='Enter comment' style='width:100%;margin-bottom:5px;' value="${comment || ''}">`;
+      html += `</div>`;
+      html += `<div><b>Photo:</b><br/>`;
+      if (photoURL) {
+        html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+        html += `<img src='${photoURL}' alt='Signage Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+      }
+      if (canEdit) {
+        html += `<input type='file' id='signage-photo' accept='image/*' style='margin-top:5px;display:none;'/><br/>`;
+        html += `<button id='take-photo-btn' type='button' style='margin:5px 0;'>📸 Take Photo</button>`;
+        html += `<img id='signage-photo-preview' style='max-width:100%;max-height:100px;display:none;margin:5px 0;'>`;
+      }
+      html += `</div>`;
+      if (canEdit) {
+        html += `<div style='margin-top:8px;display:flex;align-items:center;gap:8px;'>`;
+        html += `<input type='checkbox' id='confirm-save-signage' style='margin-right:4px;'>`;
+        html += `<label for='confirm-save-signage' style='margin:0;'>Confirm Save</label>`;
+        html += `<button id='save-signage' style='margin-left:8px;' disabled>Save</button>`;
+        html += `</div>`;
+      }
+      html += `</div>`;
+      currentInspectionPopup = L.popup({
+        maxWidth: 350,
+        closeButton: true,
+        className: 'inspection-popup'
+      })
+        .setLatLng([latlng.lat, latlng.lng])
+        .setContent(html)
+        .openOn(window.map);
+      setTimeout(() => {
+        if (canEdit) {
+          // Photo preview logic
+          const photoInput = document.getElementById('signage-photo');
+          const photoPreview = document.getElementById('signage-photo-preview');
+          if (photoInput && photoPreview) {
+            photoInput.onchange = function() {
+              if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                  photoPreview.src = e.target.result;
+                  photoPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+              } else {
+                photoPreview.style.display = 'none';
+              }
+            };
+          }
+          // Take Photo button
+          const takePhotoBtn = document.getElementById('take-photo-btn');
+          if (takePhotoBtn && photoInput) {
+            takePhotoBtn.onclick = function() {
+              photoInput.setAttribute('capture', 'environment');
+              photoInput.click();
+            };
+          }
+          // Confirm Save checkbox
+          const confirmSave = document.getElementById('confirm-save-signage');
+          const saveBtn = document.getElementById('save-signage');
+          if (confirmSave && saveBtn) {
+            confirmSave.onchange = function() {
+              saveBtn.disabled = !confirmSave.checked;
+            };
+            saveBtn.disabled = !confirmSave.checked;
+          }
+          // Save logic
+          if (saveBtn) {
+            saveBtn.onclick = async function() {
+              if (saveBtn.disabled) return;
+              try {
+                saveBtn.textContent = 'Saving...';
+                saveBtn.disabled = true;
+                const newStatus = document.getElementById('signage-status').value;
+                const newComment = document.getElementById('signage-comment').value;
+                const newDate = document.getElementById('signage-date').value;
+                let newPhotoURL = photoURL;
+                if (photoInput && photoInput.files && photoInput.files[0]) {
+                  const file = photoInput.files[0];
+                  const storageRef = storage.ref(`${layerType}/${gullyId}/${Date.now()}_${file.name}`);
+                  await storageRef.put(file);
+                  newPhotoURL = await storageRef.getDownloadURL();
+                }
+                await db.ref(`${layerType}/${gullyId}`).update({
+                  status: newStatus,
+                  comment: newComment,
+                  date: newDate,
+                  photoURL: newPhotoURL
+                });
+                alert('Signage asset updated!');
+                window.map.closePopup(currentInspectionPopup);
+              } catch (err) {
+                alert('Error saving signage asset: ' + err.message);
+                saveBtn.textContent = 'Save';
+                saveBtn.disabled = false;
+              }
+            };
+          }
+        }
+      }, 100);
+    });
+    return; // Prevent running the gully popup code
+  }
+  // Custom popup for road lining
+  if (layerType === 'lining') {
+    db.ref(`${layerType}/${gullyId}`).once('value').then(snapshot => {
+      const asset = snapshot.val() || {};
+      const description = asset.description || 'No description';
+      const status = asset.status || '';
+      const comment = asset.comment || '';
+      const photoURL = asset.photoURL || '';
+      const date = asset.date ? new Date(asset.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
+      let html = `<div class='inspection-popup popup-form'>`;
+      html += `<h3 style='margin-top:0;'>Road Lining Asset</h3>`;
+      html += `<div><b>Description of Type of Lining:</b> ${description}</div>`;
+      html += `<div><b>Status:</b> <select id='lining-status'>`;
+      html += `<option value='New'${status === 'New' ? ' selected' : ''}>New</option>`;
+      html += `<option value='Renewed'${status === 'Renewed' ? ' selected' : ''}>Renewed</option>`;
+      html += `</select></div>`;
+      html += `<div><b>Date:</b><br/><input type='date' id='lining-date' value='${date}' style='width:100%;margin-bottom:5px;'></div>`;
+      html += `<div><b>Comment:</b><br/>`;
+      html += `<input type='text' id='lining-comment' placeholder='Enter comment' style='width:100%;margin-bottom:5px;' value="${comment || ''}">`;
+      html += `</div>`;
+      html += `<div><b>Photo:</b><br/>`;
+      if (photoURL) {
+        html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+        html += `<img src='${photoURL}' alt='Lining Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+      }
+      if (canEdit) {
+        html += `<input type='file' id='lining-photo' accept='image/*' style='margin-top:5px;display:none;'/><br/>`;
+        html += `<button id='take-photo-btn' type='button' style='margin:5px 0;'>📸 Take Photo</button>`;
+        html += `<img id='lining-photo-preview' style='max-width:100%;max-height:100px;display:none;margin:5px 0;'>`;
+      }
+      html += `</div>`;
+      if (canEdit) {
+        html += `<div style='margin-top:8px;display:flex;align-items:center;gap:8px;'>`;
+        html += `<input type='checkbox' id='confirm-save-lining' style='margin-right:4px;'>`;
+        html += `<label for='confirm-save-lining' style='margin:0;'>Confirm Save</label>`;
+        html += `<button id='save-lining' style='margin-left:8px;' disabled>Save</button>`;
+        html += `</div>`;
+      }
+      html += `</div>`;
+      currentInspectionPopup = L.popup({
+        maxWidth: 350,
+        closeButton: true,
+        className: 'inspection-popup'
+      })
+        .setLatLng([latlng.lat, latlng.lng])
+        .setContent(html)
+        .openOn(window.map);
+      setTimeout(() => {
+        if (canEdit) {
+          // Photo preview logic
+          const photoInput = document.getElementById('lining-photo');
+          const photoPreview = document.getElementById('lining-photo-preview');
+          if (photoInput && photoPreview) {
+            photoInput.onchange = function() {
+              if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                  photoPreview.src = e.target.result;
+                  photoPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+              } else {
+                photoPreview.style.display = 'none';
+              }
+            };
+          }
+          // Take Photo button
+          const takePhotoBtn = document.getElementById('take-photo-btn');
+          if (takePhotoBtn && photoInput) {
+            takePhotoBtn.onclick = function() {
+              photoInput.setAttribute('capture', 'environment');
+              photoInput.click();
+            };
+          }
+          // Confirm Save checkbox
+          const confirmSave = document.getElementById('confirm-save-lining');
+          const saveBtn = document.getElementById('save-lining');
+          if (confirmSave && saveBtn) {
+            confirmSave.onchange = function() {
+              saveBtn.disabled = !confirmSave.checked;
+            };
+            saveBtn.disabled = !confirmSave.checked;
+          }
+          // Save logic
+          if (saveBtn) {
+            saveBtn.onclick = async function() {
+              if (saveBtn.disabled) return;
+              try {
+                saveBtn.textContent = 'Saving...';
+                saveBtn.disabled = true;
+                const newStatus = document.getElementById('lining-status').value;
+                const newComment = document.getElementById('lining-comment').value;
+                const newDate = document.getElementById('lining-date').value;
+                let newPhotoURL = photoURL;
+                if (photoInput && photoInput.files && photoInput.files[0]) {
+                  const file = photoInput.files[0];
+                  const storageRef = storage.ref(`${layerType}/${gullyId}/${Date.now()}_${file.name}`);
+                  await storageRef.put(file);
+                  newPhotoURL = await storageRef.getDownloadURL();
+                }
+                await db.ref(`${layerType}/${gullyId}`).update({
+                  status: newStatus,
+                  comment: newComment,
+                  date: newDate,
+                  photoURL: newPhotoURL
+                });
+                alert('Road lining asset updated!');
+                window.map.closePopup(currentInspectionPopup);
+              } catch (err) {
+                alert('Error saving road lining asset: ' + err.message);
+                saveBtn.textContent = 'Save';
+                saveBtn.disabled = false;
+              }
+            };
+          }
+        }
+      }, 100);
+    });
+    return; // Prevent running the gully popup code
+  }
+}
+
+// Add the loadFromBackup function
+function loadFromBackup() {
+  if (!auth.currentUser) {
+    alert('Please log in to load backup data');
+    return;
+  }
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const backup = JSON.parse(text);
+      // Clear all layers and gullyData
+      Object.values(window.dataLayers).forEach(layer => layer.clearLayers());
+      gullyData.length = 0;
+      // Add features from backup
+      Object.keys(backup).forEach(layerType => {
+        const items = backup[layerType] || {};
+        Object.entries(items).forEach(([id, item]) => {
+          if (item.location) {
+            addGullyToMap(item.location, id, layerType, item.status || 'Unmarked');
+          }
+        });
+      });
+      initializeLayerVisibility();
+      alert('Backup loaded successfully!');
+    } catch (err) {
+      alert('Error loading backup: ' + err.message);
+    }
+  };
+  input.click();
+}
+
+// Forgot password handler (attach directly, not in DOMContentLoaded)
+const forgotLink = document.getElementById('forgotPasswordLink');
+if (forgotLink) {
+  forgotLink.onclick = function(e) {
+    e.preventDefault();
+    let email = document.getElementById('email').value.trim();
+    if (!email) {
+      email = prompt('Please enter your email address to reset your password:');
+      if (!email) return;
+    }
+    // Normalize and validate email
+    const validation = validateAndNormalizeEmail(email);
+    if (!validation.isValid) {
+      document.getElementById('loginError').style.color = 'red';
+      document.getElementById('loginError').textContent = '❌ ' + validation.message;
+      return;
+    }
+    firebase.auth().sendPasswordResetEmail(validation.normalizedEmail)
+      .then(() => {
+        document.getElementById('loginError').style.color = 'green';
+        document.getElementById('loginError').textContent = '✔️ Password reset email sent. Please check your inbox.';
+      })
+      .catch(error => {
+        document.getElementById('loginError').style.color = 'red';
+        document.getElementById('loginError').textContent = '❌ ' + (error.message || 'Error sending password reset email.');
+      });
+  };
+}
+
+</script>
 </body>
 </html>
