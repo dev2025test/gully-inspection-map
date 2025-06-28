@@ -1,6 +1,5 @@
 // All JavaScript from index.html will be placed here, organized by section. 
 
-document.addEventListener('DOMContentLoaded', function() {
 // --- Firebase Config and Initialization ---
 const firebaseConfig = {
   apiKey: "AIzaSyBsteq-tHQdiDcRk5UBg52AwAxpVcq67cw",
@@ -16,12 +15,24 @@ const auth = firebase.auth();
 const db = firebase.database();
 const storage = firebase.storage();
 
-// --- User Management and Login Logic ---
 let currentRole = null;
 window.currentUserData = null;
 
 function showUserManagement() {
   alert("User management feature coming soon!");
+}
+
+function toggleToolbar() {
+  alert("Toolbar toggle feature coming soon!");
+}
+
+function initializeMap() {
+  if (!window.map) {
+    window.map = L.map('map').setView([51.8985, -8.4756], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(window.map);
+  }
 }
 
 function login(isAutoLogin = false) {
@@ -60,6 +71,7 @@ function login(isAutoLogin = false) {
       loginScreenDiv.style.display = 'none';
       document.getElementById('map').style.display = 'block';
       document.getElementById('summary').style.display = 'block';
+      initializeMap();
       // Optionally call setupUIForRole(userData.role, userData.adminPrivileges);
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
@@ -90,6 +102,7 @@ auth.onAuthStateChanged(user => {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('map').style.display = 'block';
       document.getElementById('summary').style.display = 'block';
+      initializeMap();
       // Optionally call setupUIForRole(userData.role, userData.adminPrivileges);
     });
   } else {
@@ -108,17 +121,12 @@ function logout() {
   });
 }
 
-/**
- * Filters visible assets on the map based on search text and selected layer.
- * Matches asset id, status, or marker description/title.
- */
 function filterAssets() {
   const searchText = document.getElementById('assetSearchInput').value.trim().toLowerCase();
   const selectedLayer = document.getElementById('assetSearchLayer').value;
   gullyData.forEach(gully => {
     let matchesLayer = (selectedLayer === 'all' || gully.layer === selectedLayer);
     let matchesText = false;
-    // Try to match id, status, or description (if available)
     if (searchText === '') {
       matchesText = true;
     } else {
@@ -311,9 +319,15 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies', status = 'Unmarke
 // When initializing the map, add all cluster groups to the map if they have data
 // (This is handled in your existing map/layer logic) 
 
-// Add a placeholder for toggleToolbar
-function toggleToolbar() {
-  alert("Toolbar toggle feature coming soon!");
-}
+document.addEventListener('DOMContentLoaded', function() {
+// --- Marker Clustering Setup ---
+window.dataLayers = {
+  gullies: L.layerGroup(),
+  playgrounds: L.markerClusterGroup(),
+  walkways: L.markerClusterGroup(),
+  signage: L.markerClusterGroup(),
+  lining: L.markerClusterGroup()
+};
 
+// ... keep the rest of the code that does not need to be global ...
 });
