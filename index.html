@@ -89,7 +89,9 @@
       right: auto !important;
       top: 10px;
       z-index: 1000;
-      background: white;
+      background: #fff;
+      opacity: 1;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
       padding: 15px;
       border-radius: 4px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
@@ -2667,7 +2669,7 @@ function createLayerControlContainer() {
 
   container.innerHTML = `
     <div class="layer-header" onclick="toggleLayerControl()">
-      <h3>Layers</h3>
+      <h3 style="margin-bottom:0;font-size:1.2em;font-weight:bold;">Layer List</h3>
       <span class="collapse-icon"></span>
     </div>
     <div class="layer-content expanded">
