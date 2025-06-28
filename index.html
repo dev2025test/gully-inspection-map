@@ -92,11 +92,10 @@
       background: #fff !important;
       opacity: 1 !important;
       box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      border: 1px solid #bbb;
       padding: 15px;
       border-radius: 4px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       min-width: 200px;
-      border: 1px solid #bbb;
     }
     .layer-item {
       display: flex;
@@ -2669,8 +2668,10 @@ function createLayerControlContainer() {
   container.style.display = 'block'; // Show by default when created
 
   container.innerHTML = `
+    <div style="margin-bottom:10px;text-align:center;">
+      <h3 id="layer-list-heading" style="margin:0;font-size:1.2em;font-weight:bold;">Layer List</h3>
+    </div>
     <div class="layer-header" onclick="toggleLayerControl()">
-      <h3 id="layer-list-heading" style="margin-bottom:0;font-size:1.2em;font-weight:bold;">Layer List</h3>
       <span class="collapse-icon"></span>
     </div>
     <div class="layer-content expanded">
