@@ -671,7 +671,27 @@
     .btn .bi, .toolbar-button .bi {
       margin-right: 4px;
     }
-    /* (rest of your valid CSS here) */
+    .toolbar-content {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      justify-content: space-between !important;
+      gap: 8px !important;
+      width: 100%;
+      overflow-x: auto;
+    }
+    .button-group {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      gap: 8px !important;
+      width: 100%;
+    }
+    @media (max-width: 900px) {
+      .toolbar-content, .button-group {
+        flex-wrap: wrap !important;
+        justify-content: flex-start !important;
+        gap: 4px !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -734,15 +754,15 @@
     </h3>
     <span id="toolbarToggleIcon">▼</span>
   </div>
-  <div class="toolbar-content d-flex flex-wrap gap-2 p-2">
-    <div class="button-group admin-only d-flex gap-2">
+  <div class="toolbar-content d-flex flex-nowrap gap-2 p-2 w-100">
+    <div class="button-group admin-only d-flex flex-nowrap gap-2 w-100">
       <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center" onclick="showUserManagement()" title="Manage users">👥 <span>Users</span></button>
       <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center" onclick="logout()" title="Log out of your account">🚪 <span>Logout</span></button>
       <button class="btn btn-warning toolbar-button d-inline-flex align-items-center" onclick="enableEditMode()" title="Enable edit mode">✏️ <span>Edit</span></button>
       <button class="btn btn-danger toolbar-button d-inline-flex align-items-center" onclick="enableDeleteMode()" title="Enable delete mode">🗑️ <span>Delete</span></button>
       <button class="btn btn-success toolbar-button d-inline-flex align-items-center" onclick="enableAddMode()" title="Add a new item">➕ <span>Add New</span></button>
     </div>
-    <div class="button-group d-flex gap-2">
+    <div class="button-group d-flex flex-nowrap gap-2 w-100">
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="printMap()" title="Print the current map view">🖨️ <span>Print</span></button>
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="resetMap()" title="Reset the map to its default state">🔄 <span>Reset</span></button>
       <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSummaryPopup()" title="Show summary statistics">📊 <span>Summary</span></button>
