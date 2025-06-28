@@ -2916,34 +2916,34 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     }
     html += `<div class='mb-2'><label class='form-label'><b>Comment:</b></label>`;
     if (canEdit) {
-      html += `<input type='text' id='inspection-comment-custom' class='form-control' placeholder='Enter comment' value="${comment || ''}">`;
-    } else {
-      html += `<div class='form-control-plaintext' style='min-height:2em;'>${comment || '-'}</div>`;
-    }
-    html += `</div>`;
-    html += `<div class='mb-2'><label class='form-label'><b>Photo:</b></label><br/>`;
-    if (photoURL) {
-      html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
-      html += `<img src='${photoURL}' alt='Gully Photo' class='img-fluid rounded mb-2' style='max-width:100%;max-height:100px;'>`;
-    }
-    if (canEdit) {
-      html += `<input type='file' id='inspection-photo' accept='image/*' class='form-control mb-2' style='margin-top:5px;display:block;'/><br/>`;
+      html += `<textarea id='inspection-comment-custom' class='form-control' placeholder='Enter comment'>${comment || ''}</textarea></div>`;
+      html += `<div class='mb-2'><label class='form-label'><b>Photo:</b></label><br/>`;
+      html += `<input type='file' id='inspection-photo' accept='image/*' class='form-control mb-2' style='display:none;'/>`;
+      html += `<button id='take-photo-btn' type='button' class='btn btn-outline-primary mb-2 w-100'>📸 Take Photo / Upload Picture</button>`;
       html += `<img id='inspection-photo-preview' class='img-fluid rounded mb-2' style='max-width:100%;max-height:100px;display:none;'>`;
-    }
-    html += `</div>`;
-    if (canEdit) {
+      html += `</div>`;
       html += `<div class='form-check mb-2'>`;
       html += `<input type='checkbox' class='form-check-input' id='confirm-save-inspection'>`;
       html += `<label class='form-check-label' for='confirm-save-inspection'>Confirm Save Inspection</label>`;
       html += `</div>`;
-    }
-    // Buttons in a row at the bottom
-    html += `<div class='d-flex gap-2 justify-content-end mt-3'>`;
-    if (canEdit) {
+      html += `<div class='d-flex gap-2 justify-content-end mt-3'>`;
       html += `<button id='save-inspection' class='btn btn-success flex-fill' type='button' disabled>Save Inspection</button>`;
+      html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
+      html += `</div>`;
+    } else {
+      html += `<div class='mb-2'><label class='form-label'><b>Inspection Date:</b></label> <span>${lastDate}</span></div>`;
+      html += `<div class='mb-2'><label class='form-label'><b>Status:</b></label> <span style='color:${getStatusColor(status)};'>${status}</span></div>`;
+      html += `<div class='mb-2'><label class='form-label'><b>Comment:</b></label> <div class='form-control-plaintext' style='min-height:2em;'>${comment || '-'}</div></div>`;
+      if (photoURL) {
+        html += `<div class='mb-2'><label class='form-label'><b>Photo:</b></label><br/>`;
+        html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+        html += `<img src='${photoURL}' alt='Gully Photo' class='img-fluid rounded mb-2' style='max-width:100%;max-height:100px;'>`;
+        html += `</div>`;
+      }
+      html += `<div class='d-flex gap-2 justify-content-end mt-3'>`;
+      html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
+      html += `</div>`;
     }
-    html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
-    html += `</div>`;
     html += `</form>`;
     // Remove any existing modal
     document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
@@ -2970,6 +2970,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
         // Photo preview
         const photoInput = document.getElementById('inspection-photo');
         const photoPreview = document.getElementById('inspection-photo-preview');
+        const takePhotoBtn = document.getElementById('take-photo-btn');
         if (photoInput && photoPreview) {
           photoInput.onchange = function() {
             if (photoInput.files && photoInput.files[0]) {
@@ -2982,6 +2983,11 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
             } else {
               photoPreview.style.display = 'none';
             }
+          };
+        }
+        if (takePhotoBtn && photoInput) {
+          takePhotoBtn.onclick = function() {
+            photoInput.click();
           };
         }
         // Confirm Save Inspection checkbox
