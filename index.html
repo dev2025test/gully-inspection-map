@@ -654,6 +654,25 @@
   justify-content: center;
 }
   </style>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+    .toolbar-button, .btn {
+      color: #111 !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .btn .bi, .toolbar-button .bi {
+      margin-right: 4px;
+    }
+    /* (rest of your valid CSS here) */
+  </style>
 </head>
 <body>
 <div id="map" style="width:100vw; height:100vh; min-height:400px;"></div>
@@ -717,22 +736,22 @@
   </div>
   <div class="toolbar-content d-flex flex-wrap gap-2 p-2">
     <div class="button-group admin-only d-flex gap-2">
-      <button class="btn btn-secondary toolbar-button" onclick="showUserManagement()" title="Manage users">👥 Users</button>
-      <button class="btn btn-secondary toolbar-button" onclick="logout()" title="Log out of your account">🚪 Logout</button>
-      <button class="btn btn-warning toolbar-button" onclick="enableEditMode()" title="Enable edit mode">✏️ Edit</button>
-      <button class="btn btn-danger toolbar-button" onclick="enableDeleteMode()" title="Enable delete mode">🗑️ Delete</button>
-      <button class="btn btn-success toolbar-button" onclick="enableAddMode()" title="Add a new item">➕ Add New</button>
+      <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center" onclick="showUserManagement()" title="Manage users">👥 <span>Users</span></button>
+      <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center" onclick="logout()" title="Log out of your account">🚪 <span>Logout</span></button>
+      <button class="btn btn-warning toolbar-button d-inline-flex align-items-center" onclick="enableEditMode()" title="Enable edit mode">✏️ <span>Edit</span></button>
+      <button class="btn btn-danger toolbar-button d-inline-flex align-items-center" onclick="enableDeleteMode()" title="Enable delete mode">🗑️ <span>Delete</span></button>
+      <button class="btn btn-success toolbar-button d-inline-flex align-items-center" onclick="enableAddMode()" title="Add a new item">➕ <span>Add New</span></button>
     </div>
     <div class="button-group d-flex gap-2">
-      <button class="btn btn-outline-secondary toolbar-button" onclick="printMap()" title="Print the current map view">🖨️ Print</button>
-      <button class="btn btn-outline-secondary toolbar-button" onclick="resetMap()" title="Reset the map to its default state">🔄 Reset</button>
-      <button class="btn btn-outline-info toolbar-button" onclick="showSummaryPopup()" title="Show summary statistics">📊 Summary</button>
-      <button class="btn btn-outline-secondary toolbar-button" onclick="showLayerControl()" title="Show or hide map layers">🗺️ Layers</button>
-      <label for="importFile" class="btn btn-outline-primary toolbar-button" title="Import data from a file">📂 Import</label>
+      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="printMap()" title="Print the current map view">🖨️ <span>Print</span></button>
+      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="resetMap()" title="Reset the map to its default state">🔄 <span>Reset</span></button>
+      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSummaryPopup()" title="Show summary statistics">📊 <span>Summary</span></button>
+      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="showLayerControl()" title="Show or hide map layers">🗺️ <span>Layers</span></button>
+      <label for="importFile" class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" title="Import data from a file">📂 <span>Import</span></label>
       <input type="file" id="importFile" onchange="handleImportFile(event)" style="display: none;">
-      <button class="btn btn-outline-success toolbar-button" onclick="exportData()" title="Export data as CSV file">💾 Export CSV</button>
-      <button class="btn btn-outline-warning toolbar-button" onclick="saveGullyData()" title="Backup all gully data">💾 Backup</button>
-      <button class="btn btn-outline-primary toolbar-button" onclick="loadFromBackup()" title="Load data from a backup file">📂 Load Backup</button>
+      <button class="btn btn-outline-success toolbar-button d-inline-flex align-items-center" onclick="exportData()" title="Export data as CSV file">💾 <span>Export CSV</span></button>
+      <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" onclick="saveGullyData()" title="Backup all gully data">💾 <span>Backup</span></button>
+      <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" onclick="loadFromBackup()" title="Load data from a backup file">📂 <span>Load Backup</span></button>
     </div>
   </div>
 </div>
@@ -2865,20 +2884,16 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     const inspector = lastInspection && lastInspection.inspector ? lastInspection.inspector.name : '';
     const timestamp = lastInspection ? lastInspection.timestamp : null;
     const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
-    console.log('showInspectionPopup: canEdit:', canEdit, 'window.currentUserData:', window.currentUserData, 'editMode:', editMode);
-    if (!canEdit) {
-      console.warn('showInspectionPopup: Save button will not show because canEdit is false.');
-    }
     // Date picker setup
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     let lastDate = timestamp ? new Date(timestamp).toISOString().split('T')[0] : todayStr;
-    let html = `<div class='inspection-popup popup-form'>`;
-    html += `<h3 style='margin-top:0;'>Gully Inspection</h3>`;
-    html += `<div><b>ID:</b> ${gullyId}</div>`;
-    html += `<div><b>Status:</b> `;
+    // Build the modal content
+    let html = `<form id='gully-inspection-form' class='needs-validation' novalidate>`;
+    html += `<div class='mb-2'><label class='form-label'><b>ID:</b></label> <span>${gullyId}</span></div>`;
+    html += `<div class='mb-2'><label class='form-label'><b>Status:</b></label> `;
     if (canEdit) {
-      html += `<select id='inspection-status'>`;
+      html += `<select id='inspection-status' class='form-select mb-2'>`;
       [
         'Clear',
         'Blocked',
@@ -2894,38 +2909,37 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
       html += `<span style='color:${getStatusColor(status)};'>${status}</span>`;
     }
     html += `</div>`;
-    html += `<div><b>Inspector:</b> ${inspector || '-'}</div>`;
-    html += `<div><b>Last Inspected:</b> ${timestamp ? new Date(timestamp).toLocaleString() : '-'}</div>`;
-    // Date picker
+    html += `<div class='mb-2'><label class='form-label'><b>Inspector:</b></label> <span>${inspector || '-'}</span></div>`;
+    html += `<div class='mb-2'><label class='form-label'><b>Last Inspected:</b></label> <span>${timestamp ? new Date(timestamp).toLocaleString() : '-'}</span></div>`;
     if (canEdit) {
-      html += `<div><b>Inspection Date:</b><br/><input type='date' id='inspection-date' max='${todayStr}' value='${lastDate}' style='width:100%;margin-bottom:5px;'></div>`;
+      html += `<div class='mb-2'><label class='form-label'><b>Inspection Date:</b></label><input type='date' id='inspection-date' class='form-control' max='${todayStr}' value='${lastDate}' required></div>`;
     }
-    html += `<div><b>Comment:</b><br/>`;
+    html += `<div class='mb-2'><label class='form-label'><b>Comment:</b></label>`;
     if (canEdit) {
-      html += `<input type='text' id='inspection-comment-custom' placeholder='Enter comment' style='width:100%;margin-bottom:5px;' value="${comment || ''}">`;
+      html += `<input type='text' id='inspection-comment-custom' class='form-control' placeholder='Enter comment' value="${comment || ''}">`;
     } else {
-      html += `<div style='min-height:2em;'>${comment || '-'}</div>`;
+      html += `<div class='form-control-plaintext' style='min-height:2em;'>${comment || '-'}</div>`;
     }
     html += `</div>`;
-    html += `<div><b>Photo:</b><br/>`;
+    html += `<div class='mb-2'><label class='form-label'><b>Photo:</b></label><br/>`;
     if (photoURL) {
       html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
-      html += `<img src='${photoURL}' alt='Gully Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+      html += `<img src='${photoURL}' alt='Gully Photo' class='img-fluid rounded mb-2' style='max-width:100%;max-height:100px;'>`;
     }
     if (canEdit) {
-      html += `<input type='file' id='inspection-photo' accept='image/*' style='margin-top:5px;display:none;'/><br/>`;
-      html += `<button id='take-photo-btn' type='button' style='margin:5px 0;'>📸 Take Photo</button>`;
-      html += `<img id='inspection-photo-preview' style='max-width:100%;max-height:100px;display:none;margin:5px 0;'>`;
+      html += `<input type='file' id='inspection-photo' accept='image/*' class='form-control mb-2' style='margin-top:5px;display:block;'/><br/>`;
+      html += `<img id='inspection-photo-preview' class='img-fluid rounded mb-2' style='max-width:100%;max-height:100px;display:none;'>`;
     }
     html += `</div>`;
     if (canEdit) {
-      html += `<div style='margin-top:8px;display:flex;align-items:center;gap:8px;'>`;
-      html += `<input type='checkbox' id='confirm-save-inspection' style='margin-right:4px;'><label for='confirm-save-inspection' style='margin:0;'>Confirm Save Inspection</label>`;
-      html += `<button id='save-inspection' style='margin-left:8px;' disabled>Save Inspection</button>`;
+      html += `<div class='form-check mb-2'>`;
+      html += `<input type='checkbox' class='form-check-input' id='confirm-save-inspection'>`;
+      html += `<label class='form-check-label' for='confirm-save-inspection'>Confirm Save Inspection</label>`;
       html += `</div>`;
+      html += `<button id='save-inspection' class='btn btn-success w-100 mb-2' type='button' disabled>Save Inspection</button>`;
     }
-    html += `<button id='view-history' style='margin-top:8px;'>View History</button>`;
-    html += `</div>`;
+    html += `<button id='view-history' class='btn btn-outline-secondary w-100' type='button'>View History</button>`;
+    html += `</form>`;
     // Remove any existing modal
     document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
     const inspectionBackdrop = document.createElement('div');
@@ -2938,7 +2952,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     modal.style.overflowY = 'auto';
     modal.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="m-0">${layerType === 'gullies' ? 'Gully Inspection' : layerType.charAt(0).toUpperCase() + layerType.slice(1) + ' Asset'}</h3>
+        <h3 class="m-0">Gully Inspection</h3>
         <button class="btn btn-secondary" onclick="this.closest('.card').parentElement.remove()">✖ Close</button>
       </div>
       <div>${html}</div>
@@ -2965,14 +2979,6 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
             }
           };
         }
-        // Take Photo button
-        const takePhotoBtn = document.getElementById('take-photo-btn');
-        if (takePhotoBtn && photoInput) {
-          takePhotoBtn.onclick = function() {
-            photoInput.setAttribute('capture', 'environment');
-            photoInput.click();
-          };
-        }
         // Confirm Save Inspection checkbox
         const confirmSave = document.getElementById('confirm-save-inspection');
         const saveBtn = document.getElementById('save-inspection');
@@ -2986,13 +2992,11 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
           };
           saveBtn.disabled = !confirmSave.checked;
         } else {
-          // Fallback: always enable for admin if checkbox missing
           saveBtn.disabled = false;
         }
         saveBtn.onclick = async function() {
           if (saveBtn.disabled) return;
           try {
-            console.log('[SaveInspection] Save button clicked');
             saveBtn.textContent = 'Saving...';
             saveBtn.disabled = true;
             const newStatus = document.getElementById('inspection-status').value;
@@ -3007,13 +3011,10 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
             if (photoInput && photoInput.files && photoInput.files[0]) {
               const file = photoInput.files[0];
               const storageRef = storage.ref(`inspections/${gullyId}/${Date.now()}_${file.name}`);
-              console.log('[SaveInspection] Uploading photo to Firebase Storage...');
-              // Add a timeout for the upload
               const uploadPromise = storageRef.put(file);
               const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Photo upload timed out after 30 seconds')), 30000));
               await Promise.race([uploadPromise, timeoutPromise]);
               newPhotoURL = await storageRef.getDownloadURL();
-              console.log('[SaveInspection] Photo uploaded, URL:', newPhotoURL);
             }
             // Inspector fallback logic
             let inspectorName = '';
@@ -3028,7 +3029,6 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
               inspectorName = 'Unknown';
               inspectorInitials = 'UN';
             }
-            console.log('[SaveInspection] Inspector:', inspectorName, inspectorInitials);
             const inspectionId = db.ref().push().key;
             const inspectionData = {
               status: newStatus,
@@ -3040,15 +3040,12 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
                 initials: inspectorInitials
               }
             };
-            console.log('[SaveInspection] Writing inspection data to database:', inspectionData);
             await db.ref(`${layerType}/${gullyId}/inspections/${inspectionId}`).set(inspectionData);
             await db.ref(`${layerType}/${gullyId}`).update({ status: newStatus });
             updateMarkerStatus(marker, newStatus, layerType);
             alert('Inspection saved!');
-            window.map.closePopup(currentInspectionPopup);
-            console.log('[SaveInspection] Inspection saved and popup closed.');
+            inspectionBackdrop.remove();
           } catch (err) {
-            console.error('[SaveInspection] Error saving inspection:', err);
             alert('Error saving inspection: ' + err.message);
             saveBtn.textContent = 'Save Inspection';
             saveBtn.disabled = false;
