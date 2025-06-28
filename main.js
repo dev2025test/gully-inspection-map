@@ -140,8 +140,14 @@ function filterAssets() {
   });
 }
 
-document.getElementById('assetSearchInput').addEventListener('input', filterAssets);
-document.getElementById('assetSearchLayer').addEventListener('change', filterAssets);
+const assetSearchInput = document.getElementById('assetSearchInput');
+if (assetSearchInput) {
+  assetSearchInput.addEventListener('input', filterAssets);
+}
+const assetSearchLayer = document.getElementById('assetSearchLayer');
+if (assetSearchLayer) {
+  assetSearchLayer.addEventListener('change', filterAssets);
+}
 
 /**
  * Shows a global loading spinner with a message.
@@ -304,5 +310,10 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies', status = 'Unmarke
 
 // When initializing the map, add all cluster groups to the map if they have data
 // (This is handled in your existing map/layer logic) 
+
+// Add a placeholder for toggleToolbar
+function toggleToolbar() {
+  alert("Toolbar toggle feature coming soon!");
+}
 
 });
