@@ -617,7 +617,8 @@
                placeholder="Email" 
                class="login-input" 
                autocomplete="username"
-               list="email-suggestions">
+               list="email-suggestions"
+               title="Enter your work email address">
         <datalist id="email-suggestions">
           <option value="shane_dorgan@corkcity.ie">
           <option value="aman_kushwaha@corkcity.ie">
@@ -632,15 +633,16 @@
                id="password" 
                placeholder="Password" 
                class="login-input" 
-               autocomplete="current-password">
-        <span class="password-toggle" onclick="togglePassword()">👁️</span>
+               autocomplete="current-password"
+               title="Enter your password">
+        <span class="password-toggle" onclick="togglePassword()" title="Show or hide password">👁️</span>
       </div>
       <div class="remember-me">
-        <label>
+        <label title="Keep me logged in on this device">
           <input type="checkbox" id="rememberMe"> Remember me
         </label>
       </div>
-      <button type="submit" class="login-button" onclick="login(); return false;">Login</button>
+      <button type="submit" class="login-button" onclick="login(); return false;" title="Log in to your account">Login</button>
     </form>
     <div style="margin-top:10px;text-align:center;">
       <a href="#" id="forgotPasswordLink" style="color:#1976D2;text-decoration:underline;cursor:pointer;font-size:14px;">Forgot password?</a>
@@ -664,23 +666,23 @@
   </div>
   <div class="toolbar-content">
     <div class="button-group admin-only">
-      <button class="toolbar-button" onclick="showUserManagement()">👥 Users</button>
-      <button class="toolbar-button" onclick="logout()">🚪 Logout</button>
-      <button class="toolbar-button" onclick="enableEditMode()">✏️ Edit</button>
-      <button class="toolbar-button" onclick="enableDeleteMode()">🗑️ Delete</button>
-      <button class="toolbar-button" onclick="enableAddMode()">➕ Add New</button>
+      <button class="toolbar-button" onclick="showUserManagement()" title="Manage users">👥 Users</button>
+      <button class="toolbar-button" onclick="logout()" title="Log out of your account">🚪 Logout</button>
+      <button class="toolbar-button" onclick="enableEditMode()" title="Enable edit mode">✏️ Edit</button>
+      <button class="toolbar-button" onclick="enableDeleteMode()" title="Enable delete mode">🗑️ Delete</button>
+      <button class="toolbar-button" onclick="enableAddMode()" title="Add a new item">➕ Add New</button>
       <!-- <button class="toolbar-button" onclick="showLayerControl()">🗺️ Layers</button> -->
     </div>
     <div class="button-group">
-      <button class="toolbar-button" onclick="printMap()">🖨️ Print</button>
-      <button class="toolbar-button" onclick="resetMap()">🔄 Reset</button>
-      <button class="toolbar-button" onclick="showSummaryPopup()">📊 Summary</button>
-      <button class="toolbar-button" onclick="showLayerControl()">🗺️ Layers</button>
-      <label for="importFile" class="toolbar-button">📂 Import</label>
+      <button class="toolbar-button" onclick="printMap()" title="Print the current map view">🖨️ Print</button>
+      <button class="toolbar-button" onclick="resetMap()" title="Reset the map to its default state">🔄 Reset</button>
+      <button class="toolbar-button" onclick="showSummaryPopup()" title="Show summary statistics">📊 Summary</button>
+      <button class="toolbar-button" onclick="showLayerControl()" title="Show or hide map layers">🗺️ Layers</button>
+      <label for="importFile" class="toolbar-button" title="Import data from a file">📂 Import</label>
       <input type="file" id="importFile" onchange="handleImportFile(event)" style="display: none;">
-      <button class="toolbar-button" onclick="exportData()">💾 Export CSV</button>
-      <button class="toolbar-button" onclick="saveGullyData()">💾 Backup</button>
-      <button class="toolbar-button" onclick="loadFromBackup()">📂 Load Backup</button>
+      <button class="toolbar-button" onclick="exportData()" title="Export data as CSV file">💾 Export CSV</button>
+      <button class="toolbar-button" onclick="saveGullyData()" title="Backup all gully data">💾 Backup</button>
+      <button class="toolbar-button" onclick="loadFromBackup()" title="Load data from a backup file">📂 Load Backup</button>
     </div>
   </div>
 </div>
