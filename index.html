@@ -2798,6 +2798,12 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
         html += `<button id='save-asset' style='margin-left:8px;' disabled>Save</button>`;
         html += `</div>`;
       }
+      html += `<div class='d-flex gap-2 justify-content-end mt-3'>`;
+      if (canEdit) {
+        html += `<button id='save-asset' class='btn btn-success flex-fill' type='button' disabled>Save</button>`;
+      }
+      html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
+      html += `</div>`;
       html += `</div>`;
       // Remove any existing modal
       document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
@@ -3130,6 +3136,12 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
         html += `<button id='save-signage' style='margin-left:8px;' disabled>Save</button>`;
         html += `</div>`;
       }
+      html += `<div class='d-flex gap-2 justify-content-end mt-3'>`;
+      if (canEdit) {
+        html += `<button id='save-signage' class='btn btn-success flex-fill' type='button' disabled>Save</button>`;
+      }
+      html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
+      html += `</div>`;
       html += `</div>`;
       // Remove any existing modal
       document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
@@ -3263,6 +3275,12 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
         html += `<button id='save-lining' style='margin-left:8px;' disabled>Save</button>`;
         html += `</div>`;
       }
+      html += `<div class='d-flex gap-2 justify-content-end mt-3'>`;
+      if (canEdit) {
+        html += `<button id='save-lining' class='btn btn-success flex-fill' type='button' disabled>Save</button>`;
+      }
+      html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
+      html += `</div>`;
       html += `</div>`;
       // Remove any existing modal
       document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
