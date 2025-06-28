@@ -1420,10 +1420,10 @@ function getMarkerOptions(status) {
   return {
     radius: 6,
     fillColor: colors[status] || '#9E9E9E',
-    color: colors[status] || '#9E9E9E', // Same as fill color to remove visible border
-    weight: 0,             // No border
+    color: '#000', // Always black border
+    weight: 2,     // Thicker border
     opacity: 1,
-    fillOpacity: 1        // Fully opaque
+    fillOpacity: 1 // Fully opaque
   };
 }
 
