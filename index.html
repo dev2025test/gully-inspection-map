@@ -2952,10 +2952,12 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     if (canEdit) {
       html += `<div class='mb-2'><label class='form-label'><b>Quick Comment:</b></label><select id='quick-comment' class='form-select mb-2'>
         <option value=''>-- Select --</option>
-        <option value='Routine'>Routine</option>
+        <option value='Clear'>Clear</option>
         <option value='Blocked'>Blocked</option>
-        <option value='Requires follow-up'>Requires follow-up</option>
-        <option value='No issues'>No issues</option>
+        <option value='Broken'>Broken</option>
+        <option value='Remediation'>Remediation</option>
+        <option value='Replacement'>Replacement</option>
+        <option value='Unmarked'>Unmarked</option>
       </select></div>`;
     }
     // Comment textarea
