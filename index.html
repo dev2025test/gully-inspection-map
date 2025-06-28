@@ -96,6 +96,7 @@
       border-radius: 4px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       min-width: 200px;
+      border: 1px solid #bbb;
     }
     .layer-item {
       display: flex;
@@ -2669,7 +2670,7 @@ function createLayerControlContainer() {
 
   container.innerHTML = `
     <div class="layer-header" onclick="toggleLayerControl()">
-      <h3 style="margin-bottom:0;font-size:1.2em;font-weight:bold;">Layer List</h3>
+      <h3 id="layer-list-heading" style="margin-bottom:0;font-size:1.2em;font-weight:bold;">Layer List</h3>
       <span class="collapse-icon"></span>
     </div>
     <div class="layer-content expanded">
