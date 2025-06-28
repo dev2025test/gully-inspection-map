@@ -2180,8 +2180,8 @@ function showSummaryPopup() {
     </div>
     <div class="summary-content row g-3">
       <div class="col-12 col-md-6 col-lg-4">
-        <div class="status-card card p-3 mb-2" style="border-left: 4px solid #2196F3">
-          <h3 class="mb-2" style="writing-mode:initial;letter-spacing:normal;">Total Gullies</h3>
+        <div class="status-card card p-3 mb-2 text-center">
+          <h3 class="mb-2">Total Gullies</h3>
           <div class="status-count">${summary.total}</div>
           <div class="status-description">Total number of gullies in the system</div>
         </div>
@@ -2190,8 +2190,8 @@ function showSummaryPopup() {
         .filter(([status]) => status !== 'total')
         .map(([status, count]) => `
           <div class="col-12 col-md-6 col-lg-4">
-            <div class="status-card card p-3 mb-2" style="border-left: 4px solid ${getStatusColor(status)}">
-              <h3 class="mb-2" style="writing-mode:initial;letter-spacing:normal;">${status}</h3>
+            <div class="status-card card p-3 mb-2 text-center" style="border-left: 4px solid ${getStatusColor(status)}">
+              <h3 class="mb-2">${status}</h3>
               <div class="status-count">${count}</div>
               <div class="status-description">${{
                 Clear: 'Gullies that are clean and functioning properly',
