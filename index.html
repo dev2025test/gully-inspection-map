@@ -1072,19 +1072,22 @@ function login(isAutoLogin = false) {
   
   if (!email || !password) {
     document.getElementById("loginError").textContent = "❌ Please enter both email and password";
-    document.getElementById("loginScreen").style.opacity = "1"; // Ensure opacity reset
+    const loginScreen = document.getElementById("loginScreen");
+    if (loginScreen) loginScreen.style.opacity = "1";
     return;
   }
 
   const validation = validateAndNormalizeEmail(email);
   if (!validation.isValid) {
     document.getElementById("loginError").textContent = `❌ ${validation.message}`;
-    document.getElementById("loginScreen").style.opacity = "1"; // Ensure opacity reset
+    const loginScreen = document.getElementById("loginScreen");
+    if (loginScreen) loginScreen.style.opacity = "1";
     return;
   }
 
   document.getElementById("loginError").textContent = "Logging in...";
-  document.getElementById("loginScreen").style.opacity = "0.5";
+  const loginScreen = document.getElementById("loginScreen");
+  if (loginScreen) loginScreen.style.opacity = "0.5";
 
   auth.signInWithEmailAndPassword(validation.normalizedEmail, password)
     .then(userCredential => {
@@ -1100,9 +1103,12 @@ function login(isAutoLogin = false) {
       currentRole = userData.role;
       
       // Update UI
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('map').style.display = 'block';
-      document.getElementById('summary').style.display = 'block';
+      const loginScreen = document.getElementById('loginScreen');
+      if (loginScreen) loginScreen.style.display = 'none';
+      const mapDiv = document.getElementById('map');
+      if (mapDiv) mapDiv.style.display = 'block';
+      const summaryDiv = document.getElementById('summary');
+      if (summaryDiv) summaryDiv.style.display = 'block';
       
       // Setup UI with proper privileges
       setupUIForRole(userData.role, userData.adminPrivileges);
@@ -1124,7 +1130,8 @@ function login(isAutoLogin = false) {
       console.error('Login error:', error);
       // Do not retry with default password
       document.getElementById("loginError").textContent = "❌ " + error.message;
-      document.getElementById("loginScreen").style.opacity = "1"; // Ensure opacity reset
+      const loginScreen = document.getElementById("loginScreen");
+      if (loginScreen) loginScreen.style.opacity = "1";
     });
 }
 
