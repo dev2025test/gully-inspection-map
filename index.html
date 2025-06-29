@@ -731,49 +731,59 @@ body .layer-control * {
 <body>
 <div id="map" style="width:100vw; height:100vh; min-height:400px;"></div>
 
-<div id="loginScreen" class="login-background">
-  <div id="loginBox" class="card shadow">
-    <h2 class="mb-3">Welcome to Gully Inspection System</h2>
-    <form id="loginForm" autocomplete="on">
-      <div class="input-group mb-3">
-        <input type="email" 
-               id="email" 
-               placeholder="Email" 
-               class="form-control login-input" 
-               autocomplete="username"
-               list="email-suggestions"
-               title="Enter your work email address">
-        <datalist id="email-suggestions">
-          <option value="shane_dorgan@corkcity.ie">
-          <option value="aman_kushwaha@corkcity.ie">
-          <option value="richard_daly@corkcity.ie">
-          <option value="john_ocallaghan@corkcity.ie">
-          <option value="ronan_oconnor@corkcity.ie">
-          <option value="viewer@corkcity.ie">
-        </datalist>
+<!-- LOGIN PAGE HEADER -->
+<div id="loginScreen" class="login-background" style="min-height:100vh;">
+  <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh;">
+    <div class="card shadow-lg p-0" style="max-width:700px;width:100%;border-radius:18px;overflow:hidden;">
+      <!-- Header Bar -->
+      <div class="d-flex align-items-center justify-content-between px-4 py-3" style="background:#fff;border-bottom:1px solid #eee;">
+        <div class="d-flex align-items-center gap-3">
+          <img src="https://www.corkcity.ie/en/council-services/council-news/news-2020/cork-city-council-logo.png" alt="Cork City Council Logo" style="height:48px;width:auto;">
+          <span style="font-size:1.5rem;font-weight:700;letter-spacing:1px;">CORK CITY COUNCIL</span>
+        </div>
+        <span style="font-size:1.35rem;font-weight:600;">Asset Management System</span>
       </div>
-      <div class="password-container mb-3">
-        <input type="password" 
-               id="password" 
-               placeholder="Password" 
-               class="form-control login-input" 
-               autocomplete="current-password"
-               title="Enter your password">
-        <span class="password-toggle" onclick="togglePassword()" title="Show or hide password">👁️</span>
+      <div class="d-flex flex-row">
+        <!-- Main Login Form -->
+        <div class="flex-grow-1 p-4" style="min-width:320px;">
+          <h2 class="mb-2" style="font-weight:700;">Asset Management System</h2>
+          <div class="mb-3" style="font-size:1.1rem;color:#444;">Please sign in to continue.</div>
+          <form id="loginForm" autocomplete="on">
+            <div class="mb-3">
+              <label for="email" class="form-label" style="font-weight:500;">Username</label>
+              <input type="email" id="email" placeholder="Username" class="form-control form-control-lg" autocomplete="username" style="font-size:1.1rem;">
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label" style="font-weight:500;">Password</label>
+              <input type="password" id="password" placeholder="Password" class="form-control form-control-lg" autocomplete="current-password" style="font-size:1.1rem;">
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg w-100 mb-2" onclick="login(); return false;" style="font-weight:600;font-size:1.15rem;">Sign In</button>
+            <div class="text-start mt-2">
+              <a href="#" id="forgotPasswordLink" style="color:#1976D2;text-decoration:underline;cursor:pointer;font-size:1rem;">Forgot password?</a>
+            </div>
+            <p id="loginError" style="color:red;margin-top:10px;"></p>
+          </form>
+        </div>
+        <!-- Sidebar Icons -->
+        <div class="d-flex flex-column align-items-center justify-content-center gap-3 p-4" style="background:#f8f9fa;min-width:90px;">
+          <div style="background:#1976d2;border-radius:12px;width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
+            <i class="bi bi-map" style="font-size:2rem;color:#fff;"></i>
+          </div>
+          <div style="background:#388e3c;border-radius:12px;width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
+            <i class="bi bi-wrench" style="font-size:2rem;color:#fff;"></i>
+          </div>
+          <div style="background:#fbc02d;border-radius:12px;width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
+            <i class="bi bi-archive" style="font-size:2rem;color:#fff;"></i>
+          </div>
+          <div style="background:#6c4eb6;border-radius:12px;width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
+            <i class="bi bi-bar-chart" style="font-size:2rem;color:#fff;"></i>
+          </div>
+        </div>
       </div>
-      <div class="form-check remember-me mb-3">
-        <label class="form-check-label" title="Keep me logged in on this device">
-          <input type="checkbox" id="rememberMe" class="form-check-input"> Remember me
-        </label>
-      </div>
-      <button type="submit" class="btn btn-primary login-button w-100" onclick="login(); return false;" title="Log in to your account">Login</button>
-    </form>
-    <div style="margin-top:10px;text-align:center;">
-      <a href="#" id="forgotPasswordLink" style="color:#1976D2;text-decoration:underline;cursor:pointer;font-size:14px;">Forgot password?</a>
     </div>
-    <p id="loginError" style="color:red;"></p>
   </div>
 </div>
+<!-- END LOGIN PAGE HEADER -->
 
 <div class="toggle-layers" onclick="toggleLayerControl()">🗺️ Show Layers</div>
 
