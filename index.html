@@ -721,66 +721,99 @@
   position: absolute;
   left: 24px;
   top: 24px;
-  z-index: 2000;
-  min-width: 280px;
-  max-width: 350px;
-  border-radius: 1rem;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+  z-index: 3000;
+  min-width: 300px;
+  max-width: 370px;
+  border-radius: 1.1rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.22), 0 1.5px 8px rgba(0,0,0,0.10);
   border: 1.5px solid #b0b0b0;
-  background: #fff;
+  background: linear-gradient(135deg, #f8fafc 80%, #e3eaf3 100%);
   padding: 0;
   margin: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  transition: box-shadow 0.2s;
 }
 .layer-control-card .card-header {
-  background: #f8f9fa;
-  border-radius: 1rem 1rem 0 0;
-  border-bottom: 1px solid #eee;
+  background: #f3f6fa;
+  border-radius: 1.1rem 1.1rem 0 0;
+  border-bottom: 1px solid #e0e6ed;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1.25rem 0.75rem 1.25rem;
+  font-size: 1.18rem;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  user-select: none;
+  cursor: move;
+}
+.layer-control-card .drag-handle {
+  margin-right: 10px;
+  color: #888;
+  font-size: 1.3em;
+  cursor: move;
+  user-select: none;
+  display: flex;
+  align-items: center;
 }
 .layer-control-card .card-title {
-  font-size: 1.2rem;
+  font-size: 1.18rem;
   font-weight: 600;
   margin: 0;
+  color: #1a2330;
+  letter-spacing: 0.01em;
 }
 .layer-control-card .btn-close {
   font-size: 1.3rem;
   color: #888;
   opacity: 1;
+  margin-left: 10px;
 }
 .layer-control-card .list-group {
-  border-radius: 0 0 1rem 1rem;
+  border-radius: 0 0 1.1rem 1.1rem;
   margin: 0;
   padding: 0.5rem 0 0.5rem 0;
+  background: none;
 }
 .layer-control-card .list-group-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.85rem;
   border: none;
-  background: #fff;
-  font-size: 1rem;
-  padding: 0.75rem 1.25rem;
-  transition: background 0.15s;
+  background: none;
+  font-size: 1.05rem;
+  padding: 0.85rem 1.25rem;
+  transition: background 0.15s, box-shadow 0.15s;
   cursor: pointer;
+  border-radius: 0.5rem;
+  margin-bottom: 2px;
+  color: #1a2330;
 }
 .layer-control-card .list-group-item:hover,
 .layer-control-card .list-group-item:focus {
-  background: #f0f4fa;
+  background: #e8f0fe;
+  box-shadow: 0 2px 8px rgba(33,150,243,0.07);
 }
 .layer-control-card .form-check-input {
-  margin-right: 0.5rem;
+  margin-right: 0.7rem;
   accent-color: #2196F3;
+  width: 1.25em;
+  height: 1.25em;
+  border: 2px solid #b0b0b0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  cursor: pointer;
 }
 .layer-control-card .layer-icon {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
+  background: none;
 }
   </style>
 </head>
@@ -2764,33 +2797,34 @@ function createLayerControlContainer() {
   container.style.display = 'block';
   container.innerHTML = `
     <div class="card-header">
+      <span class="drag-handle" title="Drag to move"><i class="bi bi-grip-vertical"></i></span>
       <span class="card-title">Layer Selection</span>
       <button type="button" class="btn-close" aria-label="Close" id="closeLayerControlBtn"></button>
     </div>
     <ul class="list-group list-group-flush">
       <li class="list-group-item" onclick="toggleLayer('gullies')">
         <input class="form-check-input" type="checkbox" id="gulliesLayer" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''}>
-        <span class="layer-icon" style="background:#2196F3;border-radius:50%;width:20px;height:20px;border:2px solid #000;"></span>
+        <span class="layer-icon" style="background:#2196F3;border-radius:50%;width:22px;height:22px;border:2px solid #000;"></span>
         Gullies
       </li>
       <li class="list-group-item" onclick="toggleLayer('playgrounds')">
         <input class="form-check-input" type="checkbox" id="playgroundsLayer" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''}>
-        <span class="layer-icon"><svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,3 3,17 17,17" fill="#43a047" stroke="#222" stroke-width="2"/></svg></span>
+        <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><polygon points="10,3 3,17 17,17" fill="#43a047" stroke="#222" stroke-width="2"/></svg></span>
         Playgrounds
       </li>
       <li class="list-group-item" onclick="toggleLayer('walkways')">
         <input class="form-check-input" type="checkbox" id="walkwaysLayer" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''}>
-        <span class="layer-icon"><svg width="20" height="20" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" fill="#e53935" stroke="#222" stroke-width="2"/></svg></span>
+        <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" fill="#e53935" stroke="#222" stroke-width="2"/></svg></span>
         Walkways
       </li>
       <li class="list-group-item" onclick="toggleLayer('signage')">
         <input class="form-check-input" type="checkbox" id="signageLayer" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''}>
-        <span class="layer-icon"><svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" fill="#fbc02d" stroke="#222" stroke-width="2"/></svg></span>
+        <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" fill="#fbc02d" stroke="#222" stroke-width="2"/></svg></span>
         Signage
       </li>
       <li class="list-group-item" onclick="toggleLayer('lining')">
         <input class="form-check-input" type="checkbox" id="liningLayer" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''}>
-        <span class="layer-icon"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M15 10a6 6 0 1 1-6-6a4 4 0 1 0 6 6z" fill="#333" stroke="#222" stroke-width="2"/></svg></span>
+        <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><path d="M15 10a6 6 0 1 1-6-6a4 4 0 1 0 6 6z" fill="#333" stroke="#222" stroke-width="2"/></svg></span>
         Road Lining
       </li>
     </ul>
@@ -3606,33 +3640,34 @@ if (forgotLink) {
       container.style.display = 'block';
       container.innerHTML = `
         <div class="card-header">
+          <span class="drag-handle" title="Drag to move"><i class="bi bi-grip-vertical"></i></span>
           <span class="card-title">Layer Selection</span>
           <button type="button" class="btn-close" aria-label="Close" id="closeLayerControlBtn"></button>
         </div>
         <ul class="list-group list-group-flush">
           <li class="list-group-item" onclick="toggleLayer('gullies')">
             <input class="form-check-input" type="checkbox" id="gulliesLayer" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''}>
-            <span class="layer-icon" style="background:#2196F3;border-radius:50%;width:20px;height:20px;border:2px solid #000;"></span>
+            <span class="layer-icon" style="background:#2196F3;border-radius:50%;width:22px;height:22px;border:2px solid #000;"></span>
             Gullies
           </li>
           <li class="list-group-item" onclick="toggleLayer('playgrounds')">
             <input class="form-check-input" type="checkbox" id="playgroundsLayer" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''}>
-            <span class="layer-icon"><svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,3 3,17 17,17" fill="#43a047" stroke="#222" stroke-width="2"/></svg></span>
+            <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><polygon points="10,3 3,17 17,17" fill="#43a047" stroke="#222" stroke-width="2"/></svg></span>
             Playgrounds
           </li>
           <li class="list-group-item" onclick="toggleLayer('walkways')">
             <input class="form-check-input" type="checkbox" id="walkwaysLayer" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''}>
-            <span class="layer-icon"><svg width="20" height="20" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" fill="#e53935" stroke="#222" stroke-width="2"/></svg></span>
+            <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" fill="#e53935" stroke="#222" stroke-width="2"/></svg></span>
             Walkways
           </li>
           <li class="list-group-item" onclick="toggleLayer('signage')">
             <input class="form-check-input" type="checkbox" id="signageLayer" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''}>
-            <span class="layer-icon"><svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" fill="#fbc02d" stroke="#222" stroke-width="2"/></svg></span>
+            <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" fill="#fbc02d" stroke="#222" stroke-width="2"/></svg></span>
             Signage
           </li>
           <li class="list-group-item" onclick="toggleLayer('lining')">
             <input class="form-check-input" type="checkbox" id="liningLayer" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''}>
-            <span class="layer-icon"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M15 10a6 6 0 1 1-6-6a4 4 0 1 0 6 6z" fill="#333" stroke="#222" stroke-width="2"/></svg></span>
+            <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><path d="M15 10a6 6 0 1 1-6-6a4 4 0 1 0 6 6z" fill="#333" stroke="#222" stroke-width="2"/></svg></span>
             Road Lining
           </li>
         </ul>
