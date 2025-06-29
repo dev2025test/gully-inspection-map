@@ -3074,6 +3074,17 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
       html += `<img src='${photoURL}' alt='Inspection Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
       html += `</div>`;
     }
+    // Status dropdown for editable gullies
+    if (canEdit) {
+      html += `<div class='mb-2'><label class='form-label'><b>Status:</b></label><select id='inspection-status' class='form-select'>`;
+      const statuses = ['Clear','Blocked','Broken','Remediation','Replacement','Unmarked'];
+      statuses.forEach(s => {
+        html += `<option value='${s}'${status === s ? ' selected' : ''}>${s}</option>`;
+      });
+      html += `</select></div>`;
+    } else {
+      html += `<div class='mb-2'><label class='form-label'><b>Status:</b></label> <span>${status}</span></div>`;
+    }
     // Confirm inspection checkbox and Save button
     if (canEdit) {
       html += `<div class='form-check mb-2'>`;
@@ -3156,9 +3167,11 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
           try {
             saveBtn.textContent = 'Saving...';
             saveBtn.disabled = true;
-            const newStatus = document.getElementById('inspection-status').value;
+            // Robustly get values, fallback if missing
+            const statusInput = document.getElementById('inspection-status');
+            const newStatus = statusInput ? statusInput.value : (gully.status || 'Unmarked');
             const commentCustom = document.getElementById('inspection-comment-custom');
-            const newComment = commentCustom.value;
+            const newComment = commentCustom ? commentCustom.value : '';
             const dateInput = document.getElementById('inspection-date');
             let inspectionTimestamp = Date.now();
             if (dateInput && dateInput.value) {
