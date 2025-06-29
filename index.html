@@ -3490,18 +3490,7 @@ if (forgotLink) {
   };
 }
 
-// Add JS: When quick-comment dropdown changes, set textarea value
-setTimeout(() => {
-  if (canEdit) {
-    const quickComment = document.getElementById('quick-comment');
-    const commentBox = document.getElementById('inspection-comment-custom');
-    if (quickComment && commentBox) {
-      quickComment.onchange = function() {
-        if (quickComment.value) commentBox.value = quickComment.value;
-      };
-    }
-  }
-}, 100);
+// The quick-comment dropdown logic is now handled inside each popup function where canEdit is defined.
 
 </script>
 </body>
