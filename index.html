@@ -716,17 +716,15 @@
     }
   </style>
   <style>
-body .layer-control {
+/* 3. Make .layer-control background less transparent and always solid */
+body .layer-control, .layer-control, .layer-control * {
   background: #fff !important;
+  opacity: 1 !important;
   box-shadow: 0 6px 24px rgba(0,0,0,0.25) !important;
   border: 2px solid #888 !important;
-  opacity: 1 !important;
   color: #222 !important;
   backdrop-filter: none !important;
-  /* Remove any transparency from parent */
-}
-body .layer-control * {
-  opacity: 1 !important;
+  filter: none !important;
 }
   </style>
 </head>
