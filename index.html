@@ -847,6 +847,104 @@
       }
     }
   </style>
+  <style>
+    /* ... existing styles ... */
+    @media (max-width: 900px) {
+      #loginBox, .card.shadow-lg.p-0 {
+        min-width: unset !important;
+        width: 98vw !important;
+        max-width: 98vw !important;
+        padding: 10px !important;
+        border-radius: 14px !important;
+      }
+      #loginScreen .container {
+        min-height: 100vh !important;
+        padding: 0 !important;
+      }
+      #loginScreen .d-flex.flex-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+      }
+      #loginScreen .d-flex.flex-column.align-items-center.justify-content-center.gap-3.p-4 {
+        display: none !important;
+      }
+      #loginScreen .d-flex.align-items-center.justify-content-between.px-4.py-3 {
+        flex-direction: column !important;
+        gap: 0.5em !important;
+        padding: 0.7em 0.5em !important;
+        text-align: center !important;
+      }
+      #loginScreen img[alt="Cork City Council Logo"] {
+        height: 38px !important;
+        max-width: 90vw !important;
+      }
+      #loginScreen span[style*="font-size:1.5rem"] {
+        font-size: 1.1rem !important;
+      }
+      #loginScreen span[style*="font-size:1.35rem"] {
+        font-size: 1.05rem !important;
+      }
+      #loginScreen .flex-grow-1.p-4 {
+        padding: 1em 0.5em !important;
+        min-width: unset !important;
+      }
+      #loginForm .form-control, #loginForm .form-control-lg {
+        font-size: 1.08em !important;
+        padding: 0.7em 1em !important;
+      }
+      #loginForm .btn, #loginForm .btn-lg {
+        font-size: 1.08em !important;
+        padding: 0.7em 1em !important;
+      }
+      #loginForm label.form-label {
+        font-size: 1.05em !important;
+      }
+      #forgotPasswordLink {
+        font-size: 0.98em !important;
+      }
+    }
+    @media (max-width: 600px) {
+      #loginBox, .card.shadow-lg.p-0 {
+        min-width: unset !important;
+        width: 99vw !important;
+        max-width: 99vw !important;
+        padding: 4px !important;
+        border-radius: 10px !important;
+      }
+      #loginScreen .d-flex.align-items-center.justify-content-between.px-4.py-3 {
+        flex-direction: column !important;
+        gap: 0.3em !important;
+        padding: 0.5em 0.2em !important;
+      }
+      #loginScreen img[alt="Cork City Council Logo"] {
+        height: 28px !important;
+        max-width: 90vw !important;
+      }
+      #loginScreen span[style*="font-size:1.5rem"] {
+        font-size: 0.98rem !important;
+      }
+      #loginScreen span[style*="font-size:1.35rem"] {
+        font-size: 0.92rem !important;
+      }
+      #loginScreen .flex-grow-1.p-4 {
+        padding: 0.7em 0.2em !important;
+      }
+      #loginForm .form-control, #loginForm .form-control-lg {
+        font-size: 1em !important;
+        padding: 0.6em 0.7em !important;
+      }
+      #loginForm .btn, #loginForm .btn-lg {
+        font-size: 1em !important;
+        padding: 0.6em 0.7em !important;
+      }
+      #loginForm label.form-label {
+        font-size: 0.98em !important;
+      }
+      #forgotPasswordLink {
+        font-size: 0.92em !important;
+      }
+    }
+  </style>
 </head>
 <body>
 <div id="map" style="width:100vw; height:100vh; min-height:400px;"></div>
