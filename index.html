@@ -722,6 +722,8 @@ body .layer-control {
   border: 2px solid #888 !important;
   opacity: 1 !important;
   color: #222 !important;
+  backdrop-filter: none !important;
+  /* Remove any transparency from parent */
 }
 body .layer-control * {
   opacity: 1 !important;
@@ -738,7 +740,7 @@ body .layer-control * {
       <!-- Header Bar -->
       <div class="d-flex align-items-center justify-content-between px-4 py-3" style="background:#fff;border-bottom:1px solid #eee;">
         <div class="d-flex align-items-center gap-3">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/6e/Cork_City_Council_logo.png" alt="Cork City Council Logo" style="height:48px;width:auto;">
+          <img src="https://oaidalleapiprodscus.blob.core.windows.net/private/org-3bQw7QkQkQkQkQkQkQkQkQkQ/user-3bQw7QkQkQkQkQkQkQkQkQkQ/img-3bQw7QkQkQkQkQkQkQkQkQkQ.png" alt="Cork City Council Logo" style="height:48px;width:auto;">
           <span style="font-size:1.5rem;font-weight:700;letter-spacing:1px;">CORK CITY COUNCIL</span>
         </div>
         <span style="font-size:1.35rem;font-weight:600;">Asset Management System</span>
@@ -2692,8 +2694,9 @@ function createLayerControlContainer() {
   container.style.display = 'block'; // Show by default when created
 
   container.innerHTML = `
-    <div style="margin-bottom:14px;text-align:center;">
-      <span style="font-size:1.3em;font-weight:bold;letter-spacing:0.5px;">Layer List</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="font-size:1.3em;font-weight:bold;letter-spacing:0.5px;">Map Layers</span>
+      <button id="closeLayerControlBtn" style="background:none;border:none;font-size:1.5em;line-height:1;color:#888;cursor:pointer;" title="Close">&times;</button>
     </div>
     <div class="layer-content expanded">
       <div class="layer-item">
@@ -2735,6 +2738,16 @@ function createLayerControlContainer() {
   `;
   document.body.appendChild(container);
   updateLayerButtonStates(); // Call this to set initial checkbox states
+
+  // Add close button logic
+  setTimeout(() => {
+    const closeBtn = document.getElementById('closeLayerControlBtn');
+    if (closeBtn) {
+      closeBtn.onclick = function() {
+        container.style.display = 'none';
+      };
+    }
+  }, 0);
 }
 
 function toggleLayerControl() {
