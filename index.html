@@ -716,15 +716,71 @@
     }
   </style>
   <style>
-/* 3. Make .layer-control background less transparent and always solid */
-body .layer-control, .layer-control, .layer-control * {
-  background: #fff !important;
-  opacity: 1 !important;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.25) !important;
-  border: 2px solid #888 !important;
-  color: #222 !important;
-  backdrop-filter: none !important;
-  filter: none !important;
+/* Add new styles for a modern Bootstrap card popup */
+.layer-control-card {
+  position: absolute;
+  left: 24px;
+  top: 24px;
+  z-index: 2000;
+  min-width: 280px;
+  max-width: 350px;
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+  border: 1.5px solid #b0b0b0;
+  background: #fff;
+  padding: 0;
+  margin: 0;
+}
+.layer-control-card .card-header {
+  background: #f8f9fa;
+  border-radius: 1rem 1rem 0 0;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem 0.75rem 1.25rem;
+}
+.layer-control-card .card-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+}
+.layer-control-card .btn-close {
+  font-size: 1.3rem;
+  color: #888;
+  opacity: 1;
+}
+.layer-control-card .list-group {
+  border-radius: 0 0 1rem 1rem;
+  margin: 0;
+  padding: 0.5rem 0 0.5rem 0;
+}
+.layer-control-card .list-group-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: none;
+  background: #fff;
+  font-size: 1rem;
+  padding: 0.75rem 1.25rem;
+  transition: background 0.15s;
+  cursor: pointer;
+}
+.layer-control-card .list-group-item:hover,
+.layer-control-card .list-group-item:focus {
+  background: #f0f4fa;
+}
+.layer-control-card .form-check-input {
+  margin-right: 0.5rem;
+  accent-color: #2196F3;
+}
+.layer-control-card .layer-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
 }
   </style>
 </head>
@@ -2688,66 +2744,43 @@ function showLayerControl() {
 function createLayerControlContainer() {
   const container = document.createElement('div');
   container.id = 'layerControlContainer';
-  container.className = 'layer-control';
+  container.className = 'layer-control-card card shadow';
   container.style.display = 'block';
-  container.style.position = 'absolute';
-  container.style.left = '24px';
-  container.style.top = '24px';
-  container.style.zIndex = '2000';
-  container.style.background = 'none';
-  container.style.border = 'none';
-  container.style.boxShadow = 'none';
-  container.style.padding = '0';
-  container.style.margin = '0';
   container.innerHTML = `
-    <div style="background:#fff; border-radius:18px; box-shadow:0 8px 32px rgba(0,0,0,0.22); border:2px solid #888; padding:0; min-width:260px; max-width:340px;">
-      <div style="padding:18px 18px 10px 18px; background:#fff; border-radius:18px 18px 0 0; border-bottom:1px solid #eee; display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:1.3em;font-weight:bold;letter-spacing:0.5px;">Layer Selection</span>
-        <button id="closeLayerControlBtn" style="background:none;border:none;font-size:1.5em;line-height:1;color:#888;cursor:pointer;" title="Close">&times;</button>
-      </div>
-      <div class="layer-content expanded" style="padding:16px 18px 18px 18px; background:#fff; border-radius:0 0 18px 18px;">
-        <div class="layer-item">
-          <label for="gulliesLayer" class="layer-button" id="gulliesButton" onclick="toggleLayer('gullies')">
-            <input type="checkbox" id="gulliesLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''}>
-            <span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:#2196F3;border:2px solid #000;margin-right:2px;"></span>
-            Gullies
-          </label>
-        </div>
-        <div class="layer-item">
-          <label for="playgroundsLayer" class="layer-button" id="playgroundsButton" onclick="toggleLayer('playgrounds')">
-            <input type="checkbox" id="playgroundsLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''}>
-            <span style="display:inline-block;vertical-align:middle;"> <svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,3 3,17 17,17" fill="#43a047" stroke="#222" stroke-width="2"/></svg> </span>
-            Playgrounds
-          </label>
-        </div>
-        <div class="layer-item">
-          <label for="walkwaysLayer" class="layer-button" id="walkwaysButton" onclick="toggleLayer('walkways')">
-            <input type="checkbox" id="walkwaysLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''}>
-            <span style="display:inline-block;vertical-align:middle;"> <svg width="20" height="20" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" fill="#e53935" stroke="#222" stroke-width="2"/></svg> </span>
-            Walkways
-          </label>
-        </div>
-        <div class="layer-item">
-          <label for="signageLayer" class="layer-button" id="signageButton" onclick="toggleLayer('signage')">
-            <input type="checkbox" id="signageLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''}>
-            <span style="display:inline-block;vertical-align:middle;"> <svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" fill="#fbc02d" stroke="#222" stroke-width="2"/></svg> </span>
-            Signage
-          </label>
-        </div>
-        <div class="layer-item">
-          <label for="liningLayer" class="layer-button" id="liningButton" onclick="toggleLayer('lining')">
-            <input type="checkbox" id="liningLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''}>
-            <span style="display:inline-block;vertical-align:middle;"> <svg width="20" height="20" viewBox="0 0 20 20"><path d="M15 10a6 6 0 1 1-6-6a4 4 0 1 0 6 6z" fill="#333" stroke="#222" stroke-width="2"/></svg> </span>
-            Road Lining
-          </label>
-        </div>
-      </div>
+    <div class="card-header">
+      <span class="card-title">Layer Selection</span>
+      <button type="button" class="btn-close" aria-label="Close" id="closeLayerControlBtn"></button>
     </div>
+    <ul class="list-group list-group-flush">
+      <li class="list-group-item" onclick="toggleLayer('gullies')">
+        <input class="form-check-input" type="checkbox" id="gulliesLayer" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''}>
+        <span class="layer-icon" style="background:#2196F3;border-radius:50%;width:20px;height:20px;"></span>
+        Gullies
+      </li>
+      <li class="list-group-item" onclick="toggleLayer('playgrounds')">
+        <input class="form-check-input" type="checkbox" id="playgroundsLayer" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''}>
+        <span class="layer-icon"><svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,3 3,17 17,17" fill="#43a047" stroke="#222" stroke-width="2"/></svg></span>
+        Playgrounds
+      </li>
+      <li class="list-group-item" onclick="toggleLayer('walkways')">
+        <input class="form-check-input" type="checkbox" id="walkwaysLayer" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''}>
+        <span class="layer-icon"><svg width="20" height="20" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" fill="#e53935" stroke="#222" stroke-width="2"/></svg></span>
+        Walkways
+      </li>
+      <li class="list-group-item" onclick="toggleLayer('signage')">
+        <input class="form-check-input" type="checkbox" id="signageLayer" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''}>
+        <span class="layer-icon"><svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" fill="#fbc02d" stroke="#222" stroke-width="2"/></svg></span>
+        Signage
+      </li>
+      <li class="list-group-item" onclick="toggleLayer('lining')">
+        <input class="form-check-input" type="checkbox" id="liningLayer" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''}>
+        <span class="layer-icon"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M15 10a6 6 0 1 1-6-6a4 4 0 1 0 6 6z" fill="#333" stroke="#222" stroke-width="2"/></svg></span>
+        Road Lining
+      </li>
+    </ul>
   `;
   document.body.appendChild(container);
-  updateLayerButtonStates(); // Call this to set initial checkbox states
-
-  // Add close button logic
+  updateLayerButtonStates();
   setTimeout(() => {
     const closeBtn = document.getElementById('closeLayerControlBtn');
     if (closeBtn) {
