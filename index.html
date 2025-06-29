@@ -797,12 +797,12 @@
           <img src="cork-city-council-logo.jpg" alt="Cork City Council Logo" style="height:48px;width:auto;">
           <span style="font-size:1.5rem;font-weight:700;letter-spacing:1px;">CORK CITY COUNCIL</span>
         </div>
-        <span style="font-size:1.35rem;font-weight:600;">Asset Management System</span>
+        <span style="font-size:1.35rem;font-weight:600;">Asset Management System (Roads)</span>
       </div>
       <div class="d-flex flex-row">
         <!-- Main Login Form -->
         <div class="flex-grow-1 p-4" style="min-width:320px;">
-          <h2 class="mb-2" style="font-weight:700;">Asset Management System</h2>
+          <h2 class="mb-2" style="font-weight:700;">Asset Management System (Roads)</h2>
           <div class="mb-3" style="font-size:1.1rem;color:#444;">Please sign in to continue.</div>
           <form id="loginForm" autocomplete="on">
             <div class="mb-3">
@@ -1370,23 +1370,34 @@ function initMap() {
 // Update the layer toggle function
 function toggleLayer(layerName) {
   console.log('toggleLayer: Toggling layer:', layerName);
-  
   if (window.dataLayers && window.dataLayers[layerName]) {
     const layer = window.dataLayers[layerName];
     const isVisible = window.map.hasLayer(layer);
-    
-    // Toggle the clicked layer
     if (!isVisible) {
+      // Add all markers for this layer to the map
       layer.addTo(window.map);
+      if (layerName === 'gullies') {
+        gullyData.forEach(g => {
+          if (!window.map.hasLayer(g.marker)) {
+            g.marker.addTo(window.map);
+          }
+        });
+      }
       currentActiveLayer = layerName;
     } else {
+      // Remove all markers for this layer from the map
+      if (layerName === 'gullies') {
+        gullyData.forEach(g => {
+          if (window.map.hasLayer(g.marker)) {
+            window.map.removeLayer(g.marker);
+          }
+        });
+      }
       layer.removeFrom(window.map);
       if (currentActiveLayer === layerName) {
         currentActiveLayer = null;
       }
     }
-    
-    // Update visual state of buttons
     updateLayerButtonStates();
   }
 }
@@ -3046,6 +3057,23 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     } else {
       html += `<div class='mb-2'><label class='form-label'><b>Comment:</b></label> <div class='form-control-plaintext' style='min-height:2em;'>${comment || '-'}</div></div>`;
     }
+    // --- PHOTO UPLOAD/TAKE PHOTO/PREVIEW ---
+    if (canEdit) {
+      html += `<div class='mb-2'><label class='form-label'><b>Photo:</b></label><br/>`;
+      if (photoURL) {
+        html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+        html += `<img src='${photoURL}' alt='Inspection Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+      }
+      html += `<input type='file' id='inspection-photo' accept='image/*' style='margin-top:5px;display:none;'/><br/>`;
+      html += `<button id='take-photo-btn' type='button' style='margin:5px 0;'>📸 Take Photo</button>`;
+      html += `<img id='inspection-photo-preview' style='max-width:100%;max-height:100px;display:none;margin:5px 0;'>`;
+      html += `</div>`;
+    } else if (photoURL) {
+      html += `<div class='mb-2'><label class='form-label'><b>Photo:</b></label><br/>`;
+      html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+      html += `<img src='${photoURL}' alt='Inspection Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+      html += `</div>`;
+    }
     // Confirm inspection checkbox and Save button
     if (canEdit) {
       html += `<div class='form-check mb-2'>`;
@@ -3104,6 +3132,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
         }
         if (takePhotoBtn && photoInput) {
           takePhotoBtn.onclick = function() {
+            photoInput.setAttribute('capture', 'environment');
             photoInput.click();
           };
         }
