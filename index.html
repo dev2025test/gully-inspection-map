@@ -2692,11 +2692,11 @@ function createLayerControlContainer() {
   container.style.display = 'block'; // Show by default when created
 
   container.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <span style="font-size:1.3em;font-weight:bold;letter-spacing:0.5px;">Map Layers</span>
+    <div style="padding:18px 18px 10px 18px; background:#fff; border-radius:14px 14px 0 0; border-bottom:1px solid #eee; display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:1.3em;font-weight:bold;letter-spacing:0.5px;">Layer Selection</span>
       <button id="closeLayerControlBtn" style="background:none;border:none;font-size:1.5em;line-height:1;color:#888;cursor:pointer;" title="Close">&times;</button>
     </div>
-    <div class="layer-content expanded">
+    <div class="layer-content expanded" style="padding:16px 18px 18px 18px; background:#fff; border-radius:0 0 14px 14px;">
       <div class="layer-item">
         <label for="gulliesLayer" class="layer-button" id="gulliesButton" onclick="toggleLayer('gullies')">
           <input type="checkbox" id="gulliesLayer" style="margin-right: 5px;" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''}>
