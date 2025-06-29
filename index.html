@@ -2801,6 +2801,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
       const status = asset.status || '';
       const comment = asset.comment || '';
       const photoURL = asset.photoURL || '';
+      const date = asset.date ? new Date(asset.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
       const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
       let html = `<div class='inspection-popup popup-form'>`;
       html += `<h3 style='margin-top:0;'>${layerType.charAt(0).toUpperCase() + layerType.slice(1)} Asset</h3>`;
@@ -2903,6 +2904,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
                 saveBtn.disabled = true;
                 const newStatus = document.getElementById('asset-status').value;
                 const newComment = document.getElementById('asset-comment').value;
+                const newDate = document.getElementById('asset-date').value;
                 let newPhotoURL = photoURL;
                 if (photoInput && photoInput.files && photoInput.files[0]) {
                   const file = photoInput.files[0];
@@ -2913,6 +2915,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
                 await db.ref(`${layerType}/${gullyId}`).update({
                   status: newStatus,
                   comment: newComment,
+                  date: newDate,
                   photoURL: newPhotoURL
                 });
                 alert('Asset updated!');
