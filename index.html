@@ -1775,20 +1775,21 @@ function capturePhoto() {
 
 function updateMarkerStatus(marker, status, layerType) {
   const options = getMarkerOptions(status);
-  marker.setStyle({
-    fillColor: options.fillColor,
-    color: '#000', // Always black border
-    weight: 2,     // Thicker border
-    fillOpacity: 1,
-    opacity: 1
-  });
-  
+  // Only call setStyle if marker is a CircleMarker (gullies)
+  if (layerType === 'gullies' && marker && typeof marker.setStyle === 'function') {
+    marker.setStyle({
+      fillColor: options.fillColor,
+      color: '#000', // Always black border
+      weight: 2,     // Thicker border
+      fillOpacity: 1,
+      opacity: 1
+    });
+  }
   // Update gullyData status
   const gullyIndex = gullyData.findIndex(g => g.marker === marker);
   if (gullyIndex !== -1) {
     gullyData[gullyIndex].status = status;
   }
-  
   // Force summary update
   updateSummary();
 }
