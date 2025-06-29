@@ -2811,7 +2811,8 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
       const photoURL = asset.photoURL || '';
       const date = asset.date ? new Date(asset.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
       const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
-      let html = `<div class='inspection-popup popup-form'>`;
+      let html = `<form id='asset-inspection-form'>`;
+      html += `<div class='inspection-popup popup-form'>`;
       html += `<h3 style='margin-top:0;'>${layerType.charAt(0).toUpperCase() + layerType.slice(1)} Asset</h3>`;
       html += `<div><b>Description:</b> ${description}</div>`;
       html += `<div><b>Status:</b> <select id='asset-status'>`;
@@ -2819,8 +2820,10 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
       html += `<option value='Replaced'${status === 'Replaced' ? ' selected' : ''}>Replaced</option>`;
       html += `<option value='New Installation'${status === 'New Installation' ? ' selected' : ''}>New Installation</option>`;
       html += `</select></div>`;
+      // Always show date picker, disabled if not editable
+      html += `<div><b>Date:</b><br/><input type='date' id='asset-date' value='${date}' style='width:100%;margin-bottom:5px;' ${canEdit ? '' : 'disabled'}></div>`;
       html += `<div><b>Comment:</b><br/>`;
-      html += `<input type='text' id='asset-comment' placeholder='Enter comment' style='width:100%;margin-bottom:5px;' value="${comment || ''}">`;
+      html += `<input type='text' id='asset-comment' placeholder='Enter comment' style='width:100%;margin-bottom:5px;' value="${comment || ''}" ${canEdit ? '' : 'readonly'}>`;
       html += `</div>`;
       html += `<div><b>Photo:</b><br/>`;
       if (photoURL) {
@@ -2847,6 +2850,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
       html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
       html += `</div>`;
       html += `</div>`;
+      html += `</form>`;
       // Remove any existing modal
       document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
       const inspectionBackdrop = document.createElement('div');
@@ -2858,15 +2862,9 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
       modal.style.maxHeight = '90vh';
       modal.style.overflowY = 'auto';
       modal.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h3 class="m-0">${layerType === 'gullies' ? 'Gully Inspection' : layerType.charAt(0).toUpperCase() + layerType.slice(1) + ' Asset'}</h3>
-          <button class="btn btn-secondary" onclick="this.closest('.card').parentElement.remove()">✖ Close</button>
-        </div>
-        <div>${html}</div>
-      `;
+        <div class=\"d-flex justify-content-between align-items-center mb-3\">\n        <h3 class=\"m-0\">${layerType === 'gullies' ? 'Gully Inspection' : layerType.charAt(0).toUpperCase() + layerType.slice(1) + ' Asset'}</h3>\n        <button class=\"btn btn-secondary\" onclick=\"this.closest('.card').parentElement.remove()\">✖ Close</button>\n      </div>\n      <div>${html}</div>\n    `;
       inspectionBackdrop.appendChild(modal);
       document.body.appendChild(inspectionBackdrop);
-      // Re-attach event handlers as before (photo preview, save, etc.)
       setTimeout(() => {
         if (canEdit) {
           // Photo preview logic
