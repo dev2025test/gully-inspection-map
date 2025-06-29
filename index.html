@@ -3040,18 +3040,6 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     } else {
       html += `<div class='mb-2'><label class='form-label'><b>Inspection Date:</b></label> <span>${lastDate}</span></div>`;
     }
-    // Dropdown for common comments
-    if (canEdit) {
-      html += `<div class='mb-2'><label class='form-label'><b>Quick Comment:</b></label><select id='quick-comment' class='form-select mb-2'>
-        <option value=''>-- Select --</option>
-        <option value='Clear'>Clear</option>
-        <option value='Blocked'>Blocked</option>
-        <option value='Broken'>Broken</option>
-        <option value='Remediation'>Remediation</option>
-        <option value='Replacement'>Replacement</option>
-        <option value='Unmarked'>Unmarked</option>
-      </select></div>`;
-    }
     // Comment textarea
     if (canEdit) {
       html += `<div class='mb-2'><label class='form-label'><b>Comment:</b></label><textarea id='inspection-comment-custom' class='form-control' placeholder='Enter comment'>${comment || ''}</textarea></div>`;
