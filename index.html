@@ -2799,6 +2799,7 @@ function createLayerControlContainer() {
         container.style.display = 'none';
       };
     }
+    makeLayerControlDraggable();
   }, 0);
 }
 
@@ -3576,6 +3577,49 @@ if (forgotLink) {
 }
 
 // The quick-comment dropdown logic is now handled inside each popup function where canEdit is defined.
+
+    // --- DRAGGABLE LAYER CONTROL POPUP ---
+    // Add draggable functionality to the layer control card
+    function makeLayerControlDraggable() {
+      const container = document.getElementById('layerControlContainer');
+      if (!container) return;
+      let isDragging = false;
+      let offsetX = 0, offsetY = 0;
+      const header = container.querySelector('.card-header');
+      if (!header) return;
+      header.style.cursor = 'move';
+      header.onmousedown = function(e) {
+        isDragging = true;
+        offsetX = e.clientX - container.offsetLeft;
+        offsetY = e.clientY - container.offsetTop;
+        document.onmousemove = function(e) {
+          if (!isDragging) return;
+          container.style.left = (e.clientX - offsetX) + 'px';
+          container.style.top = (e.clientY - offsetY) + 'px';
+          container.style.right = 'auto';
+        };
+        document.onmouseup = function() {
+          isDragging = false;
+          document.onmousemove = null;
+          document.onmouseup = null;
+        };
+      };
+    }
+    // Call this after creating the layer control container
+    function createLayerControlContainer() {
+      // ... existing code ...
+      document.body.appendChild(container);
+      updateLayerButtonStates();
+      setTimeout(() => {
+        const closeBtn = document.getElementById('closeLayerControlBtn');
+        if (closeBtn) {
+          closeBtn.onclick = function() {
+            container.style.display = 'none';
+          };
+        }
+        makeLayerControlDraggable();
+      }, 0);
+    }
 
 </script>
 </body>
