@@ -738,7 +738,7 @@ body .layer-control * {
       <!-- Header Bar -->
       <div class="d-flex align-items-center justify-content-between px-4 py-3" style="background:#fff;border-bottom:1px solid #eee;">
         <div class="d-flex align-items-center gap-3">
-          <img src="https://www.corkcity.ie/en/council-services/public-info/council-logo.png" alt="Cork City Council Logo" style="height:48px;width:auto;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/6e/Cork_City_Council_logo.png" alt="Cork City Council Logo" style="height:48px;width:auto;">
           <span style="font-size:1.5rem;font-weight:700;letter-spacing:1px;">CORK CITY COUNCIL</span>
         </div>
         <span style="font-size:1.35rem;font-weight:600;">Asset Management System</span>
@@ -1081,7 +1081,6 @@ async function ensureAllUsers() {
 function login(isAutoLogin = false) {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
-  const rememberMe = document.getElementById("rememberMe").checked;
   
   if (!email || !password) {
     document.getElementById("loginError").textContent = "❌ Please enter both email and password";
@@ -1125,14 +1124,6 @@ function login(isAutoLogin = false) {
       
       // Setup UI with proper privileges
       setupUIForRole(userData.role, userData.adminPrivileges);
-      
-      // Save credentials if remember me is checked
-      if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
-        // Note: We don't store the password for security reasons
-      } else {
-        localStorage.removeItem('rememberedEmail');
-      }
       
       // Clear URL parameters after auto-login
       if (isAutoLogin) {
