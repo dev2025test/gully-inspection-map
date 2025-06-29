@@ -816,6 +816,37 @@
   background: none;
 }
   </style>
+  <style>
+    /* ... existing styles ... */
+    @media (max-width: 900px) {
+      .layer-control-card {
+        min-width: 90vw !important;
+        max-width: 98vw !important;
+        left: 2vw !important;
+        top: 2vw !important;
+        font-size: 1.12em !important;
+        padding: 0 !important;
+      }
+      .layer-control-card .card-header {
+        font-size: 1.25em !important;
+        padding: 1.1em 1.2em 1em 1.2em !important;
+      }
+      .layer-control-card .list-group-item {
+        font-size: 1.13em !important;
+        padding: 1.1em 1.2em !important;
+        gap: 1.2em !important;
+      }
+      .layer-control-card .form-check-input {
+        width: 1.7em !important;
+        height: 1.7em !important;
+      }
+      .layer-control-card .layer-icon {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 1.5em !important;
+      }
+    }
+  </style>
 </head>
 <body>
 <div id="map" style="width:100vw; height:100vh; min-height:400px;"></div>
@@ -3683,6 +3714,56 @@ if (forgotLink) {
         }
         makeLayerControlDraggable();
       }, 0);
+    }
+
+    // --- ENHANCED DRAGGABLE FOR TOUCH (TABLET) ---
+    function makeLayerControlDraggable() {
+      const container = document.getElementById('layerControlContainer');
+      if (!container) return;
+      let isDragging = false;
+      let offsetX = 0, offsetY = 0;
+      const header = container.querySelector('.card-header');
+      if (!header) return;
+      header.style.cursor = 'move';
+
+      // Mouse events
+      header.onmousedown = function(e) {
+        isDragging = true;
+        offsetX = e.clientX - container.offsetLeft;
+        offsetY = e.clientY - container.offsetTop;
+        document.onmousemove = function(e) {
+          if (!isDragging) return;
+          container.style.left = (e.clientX - offsetX) + 'px';
+          container.style.top = (e.clientY - offsetY) + 'px';
+          container.style.right = 'auto';
+        };
+        document.onmouseup = function() {
+          isDragging = false;
+          document.onmousemove = null;
+          document.onmouseup = null;
+        };
+      };
+
+      // Touch events for tablet/mobile
+      header.ontouchstart = function(e) {
+        if (e.touches.length !== 1) return;
+        isDragging = true;
+        const touch = e.touches[0];
+        offsetX = touch.clientX - container.offsetLeft;
+        offsetY = touch.clientY - container.offsetTop;
+        document.ontouchmove = function(e) {
+          if (!isDragging || e.touches.length !== 1) return;
+          const moveTouch = e.touches[0];
+          container.style.left = (moveTouch.clientX - offsetX) + 'px';
+          container.style.top = (moveTouch.clientY - offsetY) + 'px';
+          container.style.right = 'auto';
+        };
+        document.ontouchend = function() {
+          isDragging = false;
+          document.ontouchmove = null;
+          document.ontouchend = null;
+        };
+      };
     }
 
 </script>
