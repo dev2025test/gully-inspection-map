@@ -1037,6 +1037,7 @@
       <button class="btn btn-outline-success toolbar-button d-inline-flex align-items-center" onclick="exportData()" title="Export data as CSV file"><i class="bi bi-download"></i> <span>Export CSV</span></button>
       <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" onclick="saveGullyData()" title="Backup all gully data"><i class="bi bi-save"></i> <span>Backup</span></button>
       <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" onclick="loadFromBackup()" title="Load data from a backup file"><i class="bi bi-folder"></i> <span>Load Backup</span></button>
+      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" id="toggleMapLayerBtn" onclick="toggleMapLayer()" title="Switch between Map and Satellite"><i class="bi bi-globe"></i> Satellite</button>
     </div>
   </div>
 </div>
@@ -3873,6 +3874,45 @@ if (forgotLink) {
           document.ontouchend = null;
         };
       };
+    }
+
+    // Add base layers for OSM and Esri Satellite
+    let osiLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    });
+    let satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles © Esri',
+      maxZoom: 19
+    });
+    let isSatellite = false;
+
+    // Update initMap to use osiLayer as the default
+    function initMap() {
+      // ... existing code ...
+      window.map = L.map('map', {
+        center: [51.9, -8.5],
+        zoom: 13,
+        zoomControl: false,
+        attributionControl: false
+      });
+      osiLayer.addTo(window.map);
+      // ... rest of initMap ...
+    }
+
+    // Add the toggleMapLayer function
+    function toggleMapLayer() {
+      if (!window.map) return;
+      if (isSatellite) {
+        window.map.removeLayer(satelliteLayer);
+        osiLayer.addTo(window.map);
+        document.getElementById('toggleMapLayerBtn').innerHTML = '<i class="bi bi-globe"></i> Satellite';
+      } else {
+        window.map.removeLayer(osiLayer);
+        satelliteLayer.addTo(window.map);
+        document.getElementById('toggleMapLayerBtn').innerHTML = '<i class="bi bi-map"></i> Map';
+      }
+      isSatellite = !isSatellite;
     }
 
 </script>
