@@ -3912,6 +3912,10 @@ if (forgotLink) {
         satelliteLayer.addTo(window.map);
         document.getElementById('toggleMapLayerBtn').innerHTML = '<i class="bi bi-map"></i> Map';
       }
+      // Ensure zoom control is present after switching layers
+      if (!window.map.zoomControl) {
+        window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
+      }
       isSatellite = !isSatellite;
     }
 
