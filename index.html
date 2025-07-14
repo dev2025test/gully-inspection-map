@@ -1320,18 +1320,31 @@ function login(isAutoLogin = false) {
   if (loginScreen) loginScreen.style.opacity = "0.5";
 
   auth.signInWithEmailAndPassword(validation.normalizedEmail, password)
-    .then(userCredential => {
-      return db.ref(`users/${userCredential.user.uid}`).once('value');
-    })
-    .then(snapshot => {
+    .then(async userCredential => {
+      const userRef = db.ref(`users/${userCredential.user.uid}`);
+      let snapshot = await userRef.once('value');
+      if (!snapshot.exists()) {
+        // Try to find user config for this email
+        const userConfig = USER_CONFIG.users.find(u => u.email.toLowerCase() === validation.normalizedEmail.toLowerCase());
+        if (userConfig) {
+          // Create user data in DB
+          await userRef.set({
+            ...userConfig,
+            created: firebase.database.ServerValue.TIMESTAMP,
+            lastUpdated: firebase.database.ServerValue.TIMESTAMP
+          });
+          // Re-fetch snapshot
+          snapshot = await userRef.once('value');
+        } else {
+          throw new Error('No user data found and no config for this user');
+        }
+      }
       if (!snapshot.exists()) {
         throw new Error('No user data found');
       }
-      
       const userData = snapshot.val();
       window.currentUserData = userData;
       currentRole = userData.role;
-      
       // Update UI
       const loginScreen = document.getElementById('loginScreen');
       if (loginScreen) loginScreen.style.display = 'none';
@@ -1339,10 +1352,8 @@ function login(isAutoLogin = false) {
       if (mapDiv) mapDiv.style.display = 'block';
       const summaryDiv = document.getElementById('summary');
       if (summaryDiv) summaryDiv.style.display = 'block';
-      
       // Setup UI with proper privileges
       setupUIForRole(userData.role, userData.adminPrivileges);
-      
       // Clear URL parameters after auto-login
       if (isAutoLogin) {
         window.history.replaceState({}, document.title, window.location.pathname);
