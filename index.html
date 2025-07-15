@@ -164,7 +164,7 @@
     }
     .login-background {
       background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
-                  url('https://www.corkcity.ie/en/media/cork-city-hall.jpg');
+                  url('cork_city_hall_night.jpg');
       background-size: cover;
       background-position: center;
     }
@@ -1420,6 +1420,10 @@ function setupInactivityTracking() {
 }
 
 function logout() {
+  // Log logout event before signing out
+  if (auth.currentUser && auth.currentUser.email) {
+    logUserEvent('logout', auth.currentUser.email);
+  }
   auth.signOut().then(() => {
     window.location.reload();
   }).catch(error => {
@@ -1710,6 +1714,8 @@ function handleLoginSuccess(userData) {
   }, 500);
   // Start inactivity tracking
   setupInactivityTracking();
+  // Log login event
+  logUserEvent('login', userData.email);
 }
 
 function getStatusColor(status) {
@@ -3961,6 +3967,17 @@ if (forgotLink) {
         window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
       }
       isSatellite = !isSatellite;
+    }
+
+    // --- USER LOGIN/LOGOUT LOGGING ---
+    function logUserEvent(eventType, userEmail) {
+      if (!userEmail) return;
+      const logRef = db.ref('user_logs').push();
+      logRef.set({
+        email: userEmail,
+        event: eventType,
+        timestamp: Date.now()
+      });
     }
 
 </script>
