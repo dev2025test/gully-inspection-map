@@ -1,0 +1,39 @@
+{
+  "users": {
+    "eoin_doyle@corkcity.ie": {
+      "email": "eoin_doyle@corkcity.ie",
+      "role": "operator",
+      "name": "Eoin Doyle",
+      "initials": "ED",
+      "isAdmin": false
+    },
+    "dan_corcoran@corkcity.ie": {
+      "email": "dan_corcoran@corkcity.ie",
+      "role": "operator",
+      "name": "Dan Corcoran",
+      "initials": "DC",
+      "isAdmin": false
+    },
+    "martin_mccormick@corkcity.ie": {
+      "email": "martin_mccormick@corkcity.ie",
+      "role": "operator",
+      "name": "Martin McCormick",
+      "initials": "MM",
+      "isAdmin": false
+    },
+    "johnp_treacy@corkcity.ie": {
+      "email": "johnp_treacy@corkcity.ie",
+      "role": "operator",
+      "name": "Johnp Treacy",
+      "initials": "JT",
+      "isAdmin": false
+    },
+    "flor_crowley@corkcity.ie": {
+      "email": "flor_crowley@corkcity.ie",
+      "role": "operator",
+      "name": "Flor Crowley",
+      "initials": "FC",
+      "isAdmin": false
+    }
+  }
+} 

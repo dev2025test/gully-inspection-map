@@ -1130,6 +1130,38 @@ const USER_CONFIG = {
       name: 'Viewer',
       initials: 'VW',
       isAdmin: false
+    },
+    // Added Eoin Doyle
+    {
+      email: 'eoin_doyle@corkcity.ie',
+      role: 'operator',
+      name: 'Eoin Doyle',
+      initials: 'ED',
+      isAdmin: false
+    },
+    // Added Dan Corcoran
+    {
+      email: 'dan_corcoran@corkcity.ie',
+      role: 'operator',
+      name: 'Dan Corcoran',
+      initials: 'DC',
+      isAdmin: false
+    },
+    // Added Flor Crowley
+    {
+      email: 'flor_crowley@corkcity.ie',
+      role: 'operator',
+      name: 'Flor Crowley',
+      initials: 'FC',
+      isAdmin: false
+    },
+    // Added Martin McCormick
+    {
+      email: 'martin_mccormick@corkcity.ie',
+      role: 'operator',
+      name: 'Martin McCormick',
+      initials: 'MM',
+      isAdmin: false
     }
   ]
 };
@@ -3344,7 +3376,19 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
             const dateInput = document.getElementById('inspection-date');
             let inspectionTimestamp = Date.now();
             if (dateInput && dateInput.value) {
-              inspectionTimestamp = new Date(dateInput.value + 'T12:00:00').getTime();
+              // Combine selected date with current time (hours and minutes)
+              const now = new Date();
+              const [year, month, day] = dateInput.value.split('-');
+              const dateWithTime = new Date(
+                Number(year),
+                Number(month) - 1,
+                Number(day),
+                now.getHours(),
+                now.getMinutes(),
+                now.getSeconds(),
+                now.getMilliseconds()
+              );
+              inspectionTimestamp = dateWithTime.getTime();
             }
             let newPhotoURL = photoURL;
             if (photoInput && photoInput.files && photoInput.files[0]) {
