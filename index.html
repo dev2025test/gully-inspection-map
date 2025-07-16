@@ -1384,6 +1384,9 @@ function login(isAutoLogin = false) {
         throw new Error('No user data found');
       }
       const userData = snapshot.val();
+      if (userData.approved === false) {
+        throw new Error('Your account is pending admin approval. Please contact an administrator.');
+      }
       window.currentUserData = userData;
       currentRole = userData.role;
       // Update UI
@@ -3986,6 +3989,156 @@ if (forgotLink) {
         event: eventType,
         timestamp: Date.now()
       });
+    }
+
+    // Add Register button below Sign In in the login form
+    // Find the login form and add after the Sign In button:
+    // <button type="button" class="btn btn-outline-primary w-100 mt-2" onclick="showRegisterModal()">Register</button>
+
+    // Add the Register modal and logic
+    function showRegisterModal() {
+      document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop-custom';
+      backdrop.onclick = function(e) { if (e.target === backdrop) backdrop.remove(); };
+      const modal = document.createElement('div');
+      modal.className = 'card shadow p-4';
+      modal.style.maxWidth = '400px';
+      modal.style.maxHeight = '90vh';
+      modal.style.overflowY = 'auto';
+      modal.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="m-0">Register</h3>
+          <button class="btn btn-secondary" onclick="this.closest('.card').parentElement.remove()">✖ Close</button>
+        </div>
+        <form id="registerForm">
+          <div class="mb-3">
+            <label for="regEmail" class="form-label">Email</label>
+            <input type="email" id="regEmail" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="regPassword" class="form-label">Password</label>
+            <input type="password" id="regPassword" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="regName" class="form-label">Full Name</label>
+            <input type="text" id="regName" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Register</button>
+          <div id="registerError" style="color:red;margin-top:10px;"></div>
+        </form>
+      `;
+      backdrop.appendChild(modal);
+      document.body.appendChild(backdrop);
+      document.getElementById('registerForm').onsubmit = function(e) {
+        e.preventDefault();
+        registerUser();
+      };
+    }
+
+    function registerUser() {
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const name = document.getElementById('regName').value.trim();
+      const errorDiv = document.getElementById('registerError');
+      errorDiv.textContent = '';
+      if (!email || !password || !name) {
+        errorDiv.textContent = 'Please fill in all fields.';
+        return;
+      }
+      // Optional: restrict to @corkcity.ie
+      if (!/@corkcity\.ie$/.test(email)) {
+        errorDiv.textContent = 'Registration is only allowed for @corkcity.ie emails.';
+        return;
+      }
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          const user = userCredential.user;
+          db.ref('users/' + user.uid).set({
+            email: email,
+            name: name,
+            role: 'operator',
+            initials: name.split(' ').map(n => n[0]).join('').toUpperCase(),
+            isAdmin: false,
+            approved: false, // admin must approve
+            created: firebase.database.ServerValue.TIMESTAMP
+          });
+          alert('Registration successful! Your account is pending admin approval. You will not be able to log in until approved.');
+          document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
+          auth.signOut(); // Ensure user is signed out until approved
+        })
+        .catch(error => {
+          errorDiv.textContent = error.message;
+        });
+    }
+
+    // Prevent login if not approved
+    function login(isAutoLogin = false) {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      if (!email || !password) {
+        document.getElementById("loginError").textContent = "❌ Please enter both email and password";
+        const loginScreen = document.getElementById("loginScreen");
+        if (loginScreen) loginScreen.style.opacity = "1";
+        return;
+      }
+      const validation = validateAndNormalizeEmail(email);
+      if (!validation.isValid) {
+        document.getElementById("loginError").textContent = `❌ ${validation.message}`;
+        const loginScreen = document.getElementById("loginScreen");
+        if (loginScreen) loginScreen.style.opacity = "1";
+        return;
+      }
+      document.getElementById("loginError").textContent = "Logging in...";
+      const loginScreen = document.getElementById("loginScreen");
+      if (loginScreen) loginScreen.style.opacity = "0.5";
+      auth.signInWithEmailAndPassword(validation.normalizedEmail, password)
+        .then(async userCredential => {
+          const userRef = db.ref(`users/${userCredential.user.uid}`);
+          let snapshot = await userRef.once('value');
+          if (!snapshot.exists()) {
+            // Try to find user config for this email
+            const userConfig = USER_CONFIG.users.find(u => u.email.toLowerCase() === validation.normalizedEmail.toLowerCase());
+            if (userConfig) {
+              await userRef.set({
+                ...userConfig,
+                created: firebase.database.ServerValue.TIMESTAMP,
+                lastUpdated: firebase.database.ServerValue.TIMESTAMP
+              });
+              snapshot = await userRef.once('value');
+            } else {
+              throw new Error('No user data found and no config for this user');
+            }
+          }
+          if (!snapshot.exists()) {
+            throw new Error('No user data found');
+          }
+          const userData = snapshot.val();
+          if (userData.approved === false) {
+            throw new Error('Your account is pending admin approval. Please contact an administrator.');
+          }
+          window.currentUserData = userData;
+          currentRole = userData.role;
+          // Update UI
+          const loginScreen = document.getElementById('loginScreen');
+          if (loginScreen) loginScreen.style.display = 'none';
+          const mapDiv = document.getElementById('map');
+          if (mapDiv) mapDiv.style.display = 'block';
+          const summaryDiv = document.getElementById('summary');
+          if (summaryDiv) summaryDiv.style.display = 'block';
+          // Setup UI with proper privileges
+          setupUIForRole(userData.role, userData.adminPrivileges);
+          // Clear URL parameters after auto-login
+          if (isAutoLogin) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        })
+        .catch(error => {
+          console.error('Login error:', error);
+          document.getElementById("loginError").textContent = "❌ " + error.message;
+          const loginScreen = document.getElementById("loginScreen");
+          if (loginScreen) loginScreen.style.opacity = "1";
+        });
     }
 
 </script>
