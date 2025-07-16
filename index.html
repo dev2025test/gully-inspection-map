@@ -1045,7 +1045,7 @@
       <input type="file" id="importFile" onchange="handleImportFile(event)" style="display: none;">
       <button class="btn btn-outline-success toolbar-button d-inline-flex align-items-center" onclick="exportData()" title="Export data as CSV file"><i class="bi bi-download"></i> <span>Export CSV</span></button>
       <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" onclick="saveGullyData()" title="Backup all gully data"><i class="bi bi-save"></i> <span>Backup</span></button>
-      <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" onclick="loadFromBackup()" title="Load data from a backup file"><i class="bi bi-folder"></i> <span>Load Backup</span></button>
+      <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" onclick="loadFromBackup()" title="Load data from a backup file"><i class="bi bi-folder"></i> <i class="bi bi-arrow-up"></i> <span>Load Backup</span></button>
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" id="toggleMapLayerBtn" onclick="toggleMapLayer()" title="Switch between Map and Satellite"><i class="bi bi-globe"></i> Satellite</button>
     </div>
   </div>
@@ -2233,7 +2233,7 @@ function updateSummary() {
     'Unmarked': 'Gullies that have not been inspected yet'
   };
   
-  // Count gullies by status
+  // Only count gullies in the 'gullies' layer
   gullyData.forEach(gully => {
     if (gully.layer === 'gullies') {
       counts['All']++;
@@ -2388,102 +2388,116 @@ function resetMap() {
     return;
   }
 
-  const confirmReset = confirm('Are you sure you want to reset the map? This will remove all gullies from the map.');
-  if (!confirmReset) {
+  // Prompt for password before reset
+  const password = prompt('Please enter your password to confirm map reset:');
+  if (!password) {
+    alert('Reset cancelled. Password is required.');
     return;
   }
+  const email = auth.currentUser.email;
+  const credential = firebase.auth.EmailAuthProvider.credential(email, password);
+  auth.currentUser.reauthenticateWithCredential(credential)
+    .then(() => {
+      // Password correct, proceed with reset
+      const confirmReset = confirm('Are you sure you want to reset the map? This will remove all gullies from the map.');
+      if (!confirmReset) {
+        return;
+      }
+      try {
+        // Check if window.map is a valid Leaflet map object
+        if (!(window.map instanceof L.Map)) {
+            console.error('resetMap: window.map is not a valid Leaflet map object. This should not happen during a normal reset. If the map is truly invalid, it might indicate a deeper issue.');
+            // initMap(); // Re-initialization removed to prevent full map reload on reset.
+        }
 
-  try {
-    // Check if window.map is a valid Leaflet map object
-    if (!(window.map instanceof L.Map)) {
-        console.error('resetMap: window.map is not a valid Leaflet map object. This should not happen during a normal reset. If the map is truly invalid, it might indicate a deeper issue.');
-        // initMap(); // Re-initialization removed to prevent full map reload on reset.
-    }
+        console.log('resetMap: window.map state before reset:', window.map);
 
-    console.log('resetMap: window.map state before reset:', window.map);
+        // Show loading spinner
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading-spinner';
+        loadingDiv.innerHTML = `
+          <div class="spinner"></div>
+          <div>Resetting map...</div>
+        `;
+        document.body.appendChild(loadingDiv);
 
-    // Show loading spinner
-    const loadingDiv = document.createElement('div');
-    loadingDiv.className = 'loading-spinner';
-    loadingDiv.innerHTML = `
-      <div class="spinner"></div>
-      <div>Resetting map...</div>
-    `;
-    document.body.appendChild(loadingDiv);
+        // Default center coordinates for Cork City
+        const defaultCenter = [51.9, -8.5];
+        const defaultZoom = 13;
+        
+        // Clear all layers
+        Object.values(window.dataLayers).forEach(layer => {
+          console.log(`resetMap: Attempting to clear layer: ${layer.id || "unknown"}`);
+          layer.clearLayers();
+        });
 
-    // Default center coordinates for Cork City
-    const defaultCenter = [51.9, -8.5];
-    const defaultZoom = 13;
-    
-    // Clear all layers
-    Object.values(window.dataLayers).forEach(layer => {
-      console.log(`resetMap: Attempting to clear layer: ${layer.id || "unknown"}`);
-      layer.clearLayers();
+        // Clear the gullyData array
+        gullyData.length = 0;
+        console.log('resetMap: Cleared gully data array');
+
+        // Reset the map view with animation
+        window.map.setView(defaultCenter, defaultZoom, {
+          animate: true,
+          duration: 1.0
+        });
+        console.log('resetMap: Map view reset.');
+
+        // Reset any active filters
+        const filterStatus = document.getElementById('filterStatus');
+        if (filterStatus) {
+          filterStatus.value = 'All';
+          console.log('resetMap: Reset filter status');
+        }
+
+        // Clear file input
+        const importFile = document.getElementById('importFile');
+        if (importFile) {
+          importFile.value = '';
+          console.log('resetMap: Cleared file input');
+        }
+
+        // Clear any existing popups
+        window.map.closePopup();
+        console.log('resetMap: Closed existing popups.');
+        
+        // Remove any existing summary popups
+        const existingSummary = document.querySelector('.summary-popup');
+        if (existingSummary) {
+          existingSummary.remove();
+          console.log('resetMap: Removed summary popup.');
+        }
+
+        // Update summary if it exists
+        if (typeof updateSummary === 'function') {
+          updateSummary();
+          console.log('resetMap: Updated summary.');
+        }
+
+        // Clear the sets of imported files and positions
+        importedFiles.clear();
+        importedPositions.clear();
+        console.log('resetMap: Cleared imported files and positions sets.');
+
+        // Remove loading spinner after a short delay
+        setTimeout(() => {
+          loadingDiv.remove();
+          console.log('resetMap: Map reset complete.');
+          alert('Map has been reset successfully');
+        }, 1000);
+
+      } catch (error) {
+        console.error('resetMap: Error resetting map:', error);
+        // Remove loading spinner if there's an error
+        const loadingDiv = document.querySelector('.loading-spinner');
+        if (loadingDiv) {
+          loadingDiv.remove();
+        }
+        alert('Error resetting map: ' + error.message);
+      }
+    })
+    .catch(error => {
+      alert('Password incorrect. Map reset cancelled.');
     });
-
-    // Clear the gullyData array
-    gullyData.length = 0;
-    console.log('resetMap: Cleared gully data array');
-
-    // Reset the map view with animation
-    window.map.setView(defaultCenter, defaultZoom, {
-      animate: true,
-      duration: 1.0
-    });
-    console.log('resetMap: Map view reset.');
-
-    // Reset any active filters
-    const filterStatus = document.getElementById('filterStatus');
-    if (filterStatus) {
-      filterStatus.value = 'All';
-      console.log('resetMap: Reset filter status');
-    }
-
-    // Clear file input
-    const importFile = document.getElementById('importFile');
-    if (importFile) {
-      importFile.value = '';
-      console.log('resetMap: Cleared file input');
-    }
-
-    // Clear any existing popups
-    window.map.closePopup();
-    console.log('resetMap: Closed existing popups.');
-    
-    // Remove any existing summary popups
-    const existingSummary = document.querySelector('.summary-popup');
-    if (existingSummary) {
-      existingSummary.remove();
-      console.log('resetMap: Removed summary popup.');
-    }
-
-    // Update summary if it exists
-    if (typeof updateSummary === 'function') {
-      updateSummary();
-      console.log('resetMap: Updated summary.');
-    }
-
-    // Clear the sets of imported files and positions
-    importedFiles.clear();
-    importedPositions.clear();
-    console.log('resetMap: Cleared imported files and positions sets.');
-
-    // Remove loading spinner after a short delay
-    setTimeout(() => {
-      loadingDiv.remove();
-      console.log('resetMap: Map reset complete.');
-      alert('Map has been reset successfully');
-    }, 1000);
-
-  } catch (error) {
-    console.error('resetMap: Error resetting map:', error);
-    // Remove loading spinner if there's an error
-    const loadingDiv = document.querySelector('.loading-spinner');
-    if (loadingDiv) {
-      loadingDiv.remove();
-    }
-    alert('Error resetting map: ' + error.message);
-  }
 }
 
 function showSummaryPopup() {
@@ -3266,9 +3280,23 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
     }
     // Date picker
     if (canEdit) {
-      html += `<div class='mb-2'><label class='form-label'><b>Inspection Date:</b></label><input type='date' id='inspection-date' class='form-control' max='${todayStr}' value='${lastDate}' required></div>`;
+      // Add time input next to date input
+      let lastTime = '12:00';
+      if (timestamp) {
+        const d = new Date(timestamp);
+        lastTime = d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+      } else {
+        const now = new Date();
+        lastTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+      }
+      html += `<div class='mb-2'><label class='form-label'><b>Inspection Date & Time:</b></label><div style='display:flex;gap:8px;'><input type='date' id='inspection-date' class='form-control' max='${todayStr}' value='${lastDate}' required><input type='time' id='inspection-time' class='form-control' value='${lastTime}' required></div></div>`;
     } else {
-      html += `<div class='mb-2'><label class='form-label'><b>Inspection Date:</b></label> <span>${lastDate}</span></div>`;
+      let timeStr = '12:00';
+      if (timestamp) {
+        const d = new Date(timestamp);
+        timeStr = d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+      }
+      html += `<div class='mb-2'><label class='form-label'><b>Inspection Date & Time:</b></label> <span>${lastDate} ${timeStr}</span></div>`;
     }
     // Comment textarea
     if (canEdit) {
