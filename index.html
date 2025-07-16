@@ -3425,19 +3425,20 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
             const commentCustom = document.getElementById('inspection-comment-custom');
             const newComment = commentCustom ? commentCustom.value : '';
             const dateInput = document.getElementById('inspection-date');
+            const timeInput = document.getElementById('inspection-time');
             let inspectionTimestamp = Date.now();
-            if (dateInput && dateInput.value) {
-              // Combine selected date with current time (hours and minutes)
-              const now = new Date();
+            if (dateInput && dateInput.value && timeInput && timeInput.value) {
+              // Combine selected date and selected time
               const [year, month, day] = dateInput.value.split('-');
+              const [hour, minute] = timeInput.value.split(':');
               const dateWithTime = new Date(
                 Number(year),
                 Number(month) - 1,
                 Number(day),
-                now.getHours(),
-                now.getMinutes(),
-                now.getSeconds(),
-                now.getMilliseconds()
+                Number(hour),
+                Number(minute),
+                0,
+                0
               );
               inspectionTimestamp = dateWithTime.getTime();
             }
@@ -3445,41 +3446,45 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
             if (photoInput && photoInput.files && photoInput.files[0]) {
               const file = photoInput.files[0];
               const storageRef = storage.ref(`inspections/${gullyId}/${Date.now()}_${file.name}`);
-              const uploadPromise = storageRef.put(file);
+              // Show progress bar at upload start
+              const progressContainer = document.getElementById('photo-upload-progress-container');
+              const progressBar = document.getElementById('photo-upload-progress-bar');
+              const progressText = document.getElementById('photo-upload-progress-text');
+              if (progressContainer && progressBar && progressText) {
+                progressContainer.style.display = 'block';
+                progressBar.style.width = '0%';
+                progressText.textContent = 'Uploading photo...';
+              }
+              const uploadTask = storageRef.put(file);
+              uploadTask.on('state_changed', function(snapshot) {
+                const percent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                if (progressBar) progressBar.style.width = percent + '%';
+                if (progressText) progressText.textContent = `Uploading photo... ${percent}%`;
+              });
               const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Photo upload timed out after 2 minutes')), 120000));
-              await Promise.race([uploadPromise, timeoutPromise]);
+              await Promise.race([
+                uploadTask,
+                timeoutPromise
+              ]);
               newPhotoURL = await storageRef.getDownloadURL();
+              if (progressContainer && progressBar && progressText) {
+                progressBar.style.width = '100%';
+                progressText.textContent = 'Upload complete!';
+                setTimeout(() => { progressContainer.style.display = 'none'; }, 1000);
+              }
             }
-            // Inspector fallback logic
-            let inspectorName = '';
-            let inspectorInitials = '';
-            if (window.currentUserData) {
-              inspectorName = window.currentUserData.name || window.currentUserData.email || auth.currentUser.email || auth.currentUser.uid;
-              inspectorInitials = window.currentUserData.initials || (window.currentUserData.name ? window.currentUserData.name.split(' ').map(n=>n[0]).join('').toUpperCase() : '') || (auth.currentUser.email ? auth.currentUser.email[0].toUpperCase() : 'U');
-            } else if (auth.currentUser) {
-              inspectorName = auth.currentUser.email || auth.currentUser.uid;
-              inspectorInitials = auth.currentUser.email ? auth.currentUser.email[0].toUpperCase() : 'U';
-            } else {
-              inspectorName = 'Unknown';
-              inspectorInitials = 'UN';
-            }
-            const inspectionId = db.ref().push().key;
-            const inspectionData = {
+            await db.ref(`${layerType}/${gullyId}`).update({
               status: newStatus,
               comment: newComment,
-              photoURL: newPhotoURL,
-              timestamp: inspectionTimestamp,
-              inspector: {
-                name: inspectorName,
-                initials: inspectorInitials
-              }
-            };
-            await db.ref(`${layerType}/${gullyId}/inspections/${inspectionId}`).set(inspectionData);
-            await db.ref(`${layerType}/${gullyId}`).update({ status: newStatus });
-            updateMarkerStatus(marker, newStatus, layerType);
+              date: newDate,
+              photoURL: newPhotoURL
+            });
             alert('Inspection saved!');
             inspectionBackdrop.remove();
           } catch (err) {
+            // Hide progress bar on error
+            const progressContainer = document.getElementById('photo-upload-progress-container');
+            if (progressContainer) progressContainer.style.display = 'none';
             alert('Error saving inspection: ' + err.message);
             saveBtn.textContent = 'Save Inspection';
             saveBtn.disabled = false;
