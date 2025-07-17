@@ -970,13 +970,21 @@
         flex-direction: row !important;
         align-items: center !important;
         justify-content: flex-start !important;
-        gap: 8px !important;
+        gap: 0 !important;
       }
       .button-group {
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
-        gap: 8px !important;
+        gap: 0 !important;
+      }
+      .toolbar-button, .button-group > button, .toolbar-content > button {
+        margin: 0 !important;
+        border-radius: 0 !important;
+        border-right: 1px solid #ddd !important;
+      }
+      .toolbar-button:last-child, .button-group > button:last-child, .toolbar-content > button:last-child {
+        border-right: none !important;
       }
     }
   </style>
