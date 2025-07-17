@@ -962,21 +962,21 @@
     @media (min-width: 900px) {
       .bottom-toolbar, .toolbar-content, .button-group {
         flex-wrap: nowrap !important;
-        overflow-x: visible !important;
-        white-space: normal !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
       }
       .toolbar-content {
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
-        justify-content: center !important;
-        gap: 12px !important;
+        justify-content: flex-start !important;
+        gap: 8px !important;
       }
       .button-group {
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
-        gap: 12px !important;
+        gap: 8px !important;
       }
       .toolbar-button, .button-group > button, .toolbar-content > button {
         margin: 0 !important;
