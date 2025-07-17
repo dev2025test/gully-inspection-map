@@ -957,6 +957,29 @@
       display: none !important;
     }
   </style>
+  <style>
+    /* ... existing styles ... */
+    @media (min-width: 900px) {
+      .bottom-toolbar, .toolbar-content, .button-group {
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+      }
+      .toolbar-content {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 8px !important;
+      }
+      .button-group {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 8px !important;
+      }
+    }
+  </style>
 </head>
 <body>
 <div id="map" style="width:100vw; height:100vh; min-height:400px;"></div>
