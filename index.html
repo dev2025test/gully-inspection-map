@@ -38,11 +38,51 @@
     .position-relative { position: relative; }
     .error { color: #ff4444; }
     .success { color: #4CAF50; }
+    @media (max-width: 800px) {
+      .leaflet-popup-content {
+        min-width: 90vw !important;
+        max-width: 98vw !important;
+        padding: 0.5em !important;
+      }
+      .asset-popup form, .modal-content form {
+        font-size: 1.1em;
+      }
+      .asset-popup input, .asset-popup select, .asset-popup textarea, .asset-popup button,
+      .modal-content input, .modal-content select, .modal-content textarea, .modal-content button {
+        font-size: 1.1em !important;
+        min-height: 48px;
+        margin-bottom: 0.5em;
+      }
+      .leaflet-popup-content-wrapper {
+        overflow-x: hidden;
+        overflow-y: auto;
+        max-height: 80vh;
+      }
+      .modal-content {
+        font-size: 1.1em;
+      }
+      .modal-dialog {
+        max-width: 98vw;
+        margin: 0.5rem auto;
+      }
+      #functionToolbar {
+        flex-wrap: wrap;
+        font-size: 1.1em;
+        min-height: 60px;
+      }
+      .toolbar-button {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 1.1em;
+        padding: 0.5em 1em;
+      }
+    }
   </style>
 </head>
 <body>
   <!-- LOGIN PAGE HEADER -->
-  <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh;" id="loginContainer">
+  <div id="loginBg" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:url('cork_city_hall_night.jpg.jpg') center center/cover no-repeat; z-index:0;"></div>
+  <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh; position:relative; z-index:1;" id="loginContainer">
     <div class="login-card">
       <div class="login-header">
         <img src="cork-city-council-logo.jpg" alt="Cork City Council Logo">
@@ -58,9 +98,13 @@
             <label for="email" class="form-label">Username</label>
             <input type="email" id="email" class="form-control" required autocomplete="username">
           </div>
-          <div class="mb-3">
+          <div class="mb-3 position-relative">
             <label for="password" class="form-label">Password</label>
-            <input type="password" id="password" class="form-control" required autocomplete="current-password">
+            <input type="password" id="password" class="form-control pr-5" required autocomplete="current-password">
+            <button type="button" id="togglePassword" tabindex="-1" style="position:absolute;top:50%;right:10px;transform:translateY(-50%);background:transparent;border:none;outline:none;" aria-label="Show/Hide Password">
+              <i id="togglePasswordIcon" class="bi bi-eye"></i>
+            </button>
+            <a href="#" id="forgotPasswordLink" style="font-size:0.95em;position:absolute;right:0;top:100%;margin-top:2px;">Forgot Password?</a>
           </div>
           <div class="mb-3 form-check">
             <input type="checkbox" class="form-check-input" id="rememberMe">
@@ -69,6 +113,61 @@
           <div id="loginError" class="text-danger mb-2"></div>
           <button type="submit" class="btn btn-primary w-100">Sign In</button>
         </form>
+        <button id="registerBtn" class="btn btn-outline-secondary w-100 mt-2">Register</button>
+      </div>
+    </div>
+  </div>
+  <!-- Register Modal -->
+  <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="registerModalLabel">Register New Account</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="registerForm">
+            <div class="mb-2">
+              <label for="regName" class="form-label">Name</label>
+              <input type="text" class="form-control" id="regName" required>
+            </div>
+            <div class="mb-2">
+              <label for="regEmail" class="form-label">Email</label>
+              <input type="email" class="form-control" id="regEmail" required>
+            </div>
+            <div class="mb-2">
+              <label for="regPassword" class="form-label">Password</label>
+              <input type="password" class="form-control" id="regPassword" required>
+            </div>
+            <div class="mb-2">
+              <label for="regPassword2" class="form-label">Confirm Password</label>
+              <input type="password" class="form-control" id="regPassword2" required>
+            </div>
+            <div id="registerMsg" class="mb-2"></div>
+            <button type="submit" class="btn btn-success w-100">Register</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Forgot Password Modal -->
+  <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="forgotPasswordModalLabel">Reset Password</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="forgotPasswordForm">
+            <div class="mb-3">
+              <label for="forgotEmail" class="form-label">Enter your email address</label>
+              <input type="email" class="form-control" id="forgotEmail" required>
+            </div>
+            <div id="forgotPasswordMsg" class="mb-2"></div>
+            <button type="submit" class="btn btn-primary w-100">Send Reset Email</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -141,12 +240,114 @@
     </div>
   </div>
 
+  <!-- SUMMARY MODAL -->
+  <button id="summaryBtn" class="btn btn-warning" style="position:absolute;bottom:150px;right:20px;z-index:1100;">Summary</button>
+  <div class="modal fade" id="summaryModal" tabindex="-1" aria-labelledby="summaryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="summaryModalLabel">Gully Status Summary</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="summaryBody">
+          Loading summary...
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Leaflet CSS/JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- Leaflet Omnivore plugin for KML/GPX support -->
   <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- BOTTOM TOOLBAR (RIBBON) -->
+  <div id="functionToolbar" class="bottom-toolbar bg-light border-top d-flex align-items-center justify-content-between px-2" style="position:fixed;bottom:0;left:0;width:100vw;height:56px;z-index:1200;display:none;">
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-secondary toolbar-button" id="logoutBtn" title="Logout" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Logout</button>
+      <button class="btn btn-outline-secondary toolbar-button" id="usersBtn" title="User Management" onclick="showUserManagement()"><i class="bi bi-people"></i> Users</button>
+      <button class="btn btn-outline-secondary toolbar-button" id="resetBtn" title="Reset" onclick="resetMap()"><i class="bi bi-arrow-repeat"></i> Reset</button>
+      <button class="btn btn-outline-secondary toolbar-button" id="mapsBtn" title="Maps" onclick="showMapOptions()"><i class="bi bi-map"></i> Maps</button>
+      <button class="btn btn-outline-secondary toolbar-button" id="layersBtn" title="Layers" onclick="showLayerControl()"><i class="bi bi-layers"></i> Layers</button>
+      <button class="btn btn-outline-secondary toolbar-button" id="importBtn" title="Import" onclick="importData()"><i class="bi bi-upload"></i> Import</button>
+      <button class="btn btn-outline-secondary toolbar-button" id="exportBtn" title="Export Backup" onclick="exportData()"><i class="bi bi-download"></i> Export Backup</button>
+      <button class="btn btn-outline-secondary toolbar-button" id="editBtn" title="Edit" onclick="enableEditMode()"><i class="bi bi-pencil"></i> Edit</button>
+      <button class="btn btn-outline-secondary toolbar-button" id="deleteBtn" title="Delete" onclick="enableDeleteMode()"><i class="bi bi-trash"></i> Delete</button>
+      <button class="btn btn-outline-secondary toolbar-button" id="addBtn" title="Add" onclick="enableAddMode()"><i class="bi bi-plus"></i> Add</button>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span id="userInfo" class="fw-bold"></span>
+    </div>
+  </div>
+
+  <!-- LAYERS SELECTION MODAL -->
+  <div class="modal fade" id="layersModal" tabindex="-1" aria-labelledby="layersModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="layersModalLabel">Select Map Layers</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="layersForm">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" id="layerGullies" checked>
+              <label class="form-check-label" for="layerGullies">Gullies</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" id="layerParks" checked>
+              <label class="form-check-label" for="layerParks">Parks/Playgrounds</label>
+            </div>
+            <!-- Add more layers as needed -->
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAPS BASEMAP SELECTION MODAL -->
+  <div class="modal fade" id="mapsModal" tabindex="-1" aria-labelledby="mapsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="mapsModalLabel">Select Map Type</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="mapsForm">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="basemap" id="basemapStreet" value="street" checked>
+              <label class="form-check-label" for="basemapStreet">Street Map</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="basemap" id="basemapSatellite" value="satellite">
+              <label class="form-check-label" for="basemapSatellite">Satellite</label>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- USERS LIST MODAL (Admins only) -->
+  <div class="modal fade" id="usersModal" tabindex="-1" aria-labelledby="usersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="usersModalLabel">All Users</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <table class="table table-sm table-striped">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Last Login</th></tr></thead>
+            <tbody id="usersTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     const firebaseConfig = {
@@ -273,7 +474,7 @@
       }
     }
 
-    // Enhanced popup for KML/GPX features
+    // Enhanced popup for KML/GPX features (Gullies only)
     function assetPopupHtml(props, assetId) {
       let html = `<b>${props.name || 'Asset'}</b><br>`;
       if (props.description || props.desc) html += `${props.description || props.desc}<br>`;
@@ -327,12 +528,47 @@
               const props = feature.properties || {};
               const assetId = props.name || props.id || Math.random().toString(36).substr(2, 9);
               layer.bindPopup({
-                maxWidth: 320,
+                maxWidth: 340,
                 minWidth: 220,
                 autoPan: true,
                 closeButton: true,
                 className: 'asset-popup',
-                html: assetPopupHtml(props, assetId)
+                html: `<b>${props.name || 'Gully'}</b><br>
+                  <form id="inspectionForm_${assetId}" enctype="multipart/form-data" style="margin-top:8px;">
+                    <div class="mb-1">
+                      <label class="form-label mb-0">Date</label>
+                      <input type="date" name="date" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-1">
+                      <label class="form-label mb-0">Time</label>
+                      <input type="time" name="time" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-1">
+                      <label class="form-label mb-0">Status</label>
+                      <select name="status" class="form-select form-select-sm" required>
+                        <option value="">Select status</option>
+                        <option>Clear</option>
+                        <option>Blocked</option>
+                        <option>Broken</option>
+                        <option>Remediation</option>
+                        <option>Replacement</option>
+                      </select>
+                    </div>
+                    <div class="mb-1">
+                      <label class="form-label mb-0">Photo</label>
+                      <input type="file" name="photo" accept="image/*" class="form-control form-control-sm">
+                    </div>
+                    <div class="mb-1">
+                      <label class="form-label mb-0">Comment</label>
+                      <textarea name="comment" class="form-control form-control-sm" rows="2"></textarea>
+                    </div>
+                    <div class="form-check mb-1">
+                      <input class="form-check-input" type="checkbox" name="confirm" id="confirm_${assetId}" required>
+                      <label class="form-check-label" for="confirm_${assetId}">I confirm this inspection is accurate</label>
+                    </div>
+                    <div id="inspectionMsg_${assetId}" class="mb-1"></div>
+                    <button type="submit" class="btn btn-success btn-sm w-100">Save Inspection</button>
+                  </form>`
               });
               layer.on('popupopen', function(e) {
                 // Fetch and display logs
@@ -731,6 +967,76 @@
       }
     });
 
+    // SUMMARY MODAL
+    let summaryModal = null;
+    function showSummaryPopup() {
+      if (!summaryModal) {
+        summaryModal = new bootstrap.Modal(document.getElementById('summaryModal'));
+      }
+      loadGullySummary();
+      summaryModal.show();
+    }
+    function loadGullySummary() {
+      // Count gullies by status from KML and logs
+      const statusCounts = {
+        Clear: 0,
+        Blocked: 0,
+        Broken: 0,
+        Remediation: 0,
+        Replacement: 0,
+        Unmarked: 0
+      };
+      if (kmlLayer && kmlLayer.eachLayer) {
+        kmlLayer.eachLayer(function(l) {
+          let status = 'Unmarked';
+          if (l.feature && l.feature.properties && l.feature.properties.status) {
+            status = l.feature.properties.status.trim();
+          }
+          if (!statusCounts[status]) status = 'Unmarked';
+          statusCounts[status] = (statusCounts[status] || 0) + 1;
+        });
+      }
+      // Optionally, fetch latest status from logs in Firebase
+      firebase.database().ref('/assetLogs').once('value', function(snapshot) {
+        snapshot.forEach(assetSnap => {
+          let latestStatus = null;
+          let latestTime = 0;
+          assetSnap.forEach(logSnap => {
+            const log = logSnap.val();
+            if (log.status && log.timestamp > latestTime) {
+              latestStatus = log.status.trim();
+              latestTime = log.timestamp;
+            }
+          });
+          if (latestStatus && statusCounts[latestStatus] !== undefined) {
+            statusCounts[latestStatus]++;
+          }
+        });
+        // Render summary
+        let html = '<ul class="list-group">';
+        Object.keys(statusCounts).forEach(status => {
+          html += `<li class="list-group-item d-flex justify-content-between align-items-center">${status}<span class="badge bg-primary rounded-pill">${statusCounts[status]}</span></li>`;
+        });
+        html += '</ul>';
+        document.getElementById('summaryBody').innerHTML = html;
+      });
+    }
+    // Show summary button after login
+    function showSummaryButton(show) {
+      document.getElementById('summaryBtn').style.display = show ? 'block' : 'none';
+    }
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        showSummaryButton(true);
+      } else {
+        showSummaryButton(false);
+      }
+    });
+    const summaryBtn = document.getElementById('summaryBtn');
+    if (summaryBtn) {
+      summaryBtn.onclick = showSummaryPopup;
+    }
+
     // AUDIT TRAIL LOGIC
     function logAuditTrail(action, details) {
       const user = getCurrentUserInfo();
@@ -798,6 +1104,176 @@
     if (!err) {
       logAuditTrail('Task Updated', `Task: ${taskId}, Status: ${status}`);
       // ... existing code ...
+    }
+  </script>
+  <!-- Show/hide toolbar after login -->
+  <script>
+    function showToolbar(show) {
+      document.getElementById('functionToolbar').style.display = show ? 'flex' : 'none';
+    }
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        showToolbar(true);
+        updateUserInfoBar();
+      } else {
+        showToolbar(false);
+      }
+    });
+    // Update user info bar
+    function updateUserInfoBar() {
+      const user = firebase.auth().currentUser;
+      const role = window.currentUserRole || '';
+      let name = '';
+      if (user && user.uid) {
+        firebase.database().ref('/users/' + user.uid).once('value').then(function(snapshot) {
+          const data = snapshot.val();
+          name = data && data.name ? data.name : (user.email || '');
+          const approved = data && data.approved === false ? ' (Pending Approval)' : '';
+          document.getElementById('userInfo').textContent = `${name} [${role}]${approved}`;
+        });
+      }
+    }
+    // Placeholder functions for toolbar buttons
+    function showUserManagement() {
+      loadAllUsers();
+      new bootstrap.Modal(document.getElementById('usersModal')).show();
+    }
+    function resetMap() { alert('Reset map not implemented yet.'); }
+    function showMapOptions() {
+      new bootstrap.Modal(document.getElementById('mapsModal')).show();
+    }
+    function showLayerControl() {
+      new bootstrap.Modal(document.getElementById('layersModal')).show();
+    }
+    function importData() { alert('Import not implemented yet.'); }
+    function exportData() { alert('Export backup not implemented yet.'); }
+    function enableEditMode() { alert('Edit mode not implemented yet.'); }
+    function enableDeleteMode() { alert('Delete mode not implemented yet.'); }
+    function enableAddMode() { alert('Add mode not implemented yet.'); }
+  </script>
+  <!-- Layer toggle logic -->
+  <script>
+    function updateLayerVisibility() {
+      if (typeof mapInstance === 'undefined') return;
+      // Gullies
+      if (document.getElementById('layerGullies').checked) {
+        mapInstance.addLayer(kmlLayer);
+      } else {
+        mapInstance.removeLayer(kmlLayer);
+      }
+      // Parks/Playgrounds
+      if (document.getElementById('layerParks').checked) {
+        mapInstance.addLayer(gpxLayer);
+      } else {
+        mapInstance.removeLayer(gpxLayer);
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      if (document.getElementById('layersForm')) {
+        document.getElementById('layersForm').addEventListener('change', updateLayerVisibility);
+      }
+    });
+  </script>
+  <!-- Basemap switching logic -->
+  <script>
+    let streetLayer = null;
+    let satelliteLayer = null;
+    function setBasemap(type) {
+      if (!mapInstance) return;
+      if (!streetLayer) {
+        streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap contributors'
+        });
+      }
+      if (!satelliteLayer) {
+        satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Tiles © Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        });
+      }
+      if (type === 'satellite') {
+        if (mapInstance.hasLayer(streetLayer)) mapInstance.removeLayer(streetLayer);
+        if (!mapInstance.hasLayer(satelliteLayer)) mapInstance.addLayer(satelliteLayer);
+      } else {
+        if (mapInstance.hasLayer(satelliteLayer)) mapInstance.removeLayer(satelliteLayer);
+        if (!mapInstance.hasLayer(streetLayer)) mapInstance.addLayer(streetLayer);
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      // Set up basemap switching
+      if (document.getElementById('mapsForm')) {
+        document.getElementById('mapsForm').addEventListener('change', function(e) {
+          if (e.target.name === 'basemap') {
+            setBasemap(e.target.value);
+          }
+        });
+      }
+      // Ensure default basemap is street
+      setTimeout(function() { setBasemap('street'); }, 500);
+    });
+  </script>
+  <!-- User management modal logic -->
+  <script>
+    function loadAllUsers() {
+      const usersTable = document.getElementById('usersTable');
+      usersTable.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
+      firebase.database().ref('/users').once('value', function(snapshot) {
+        const users = [];
+        snapshot.forEach(child => {
+          const u = child.val();
+          u._uid = child.key;
+          users.push(u);
+        });
+        // Try to get last login from localStorage (if available)
+        users.forEach(u => {
+          u.lastLogin = localStorage.getItem('lastLogin_' + u.email) || '';
+        });
+        usersTable.innerHTML = users.map(u => `<tr><td>${u.name || ''}</td><td>${u.email || ''}</td><td>${u.role || ''}</td><td>${u.lastLogin}</td></tr>`).join('');
+      });
+    }
+    // Store last login time for current user
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user && user.email) {
+        localStorage.setItem('lastLogin_' + user.email, new Date().toLocaleString());
+      }
+    });
+  </script>
+  <!-- Show/hide Users button for Admins only -->
+  <script>
+    function showUsersButton(show) {
+      document.getElementById('usersBtn').style.display = show ? 'inline-block' : 'none';
+    }
+    const usersBtn = document.getElementById('usersBtn');
+    if (usersBtn) {
+      usersBtn.onclick = showUserManagement;
+    }
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user && window.currentUserRole === 'admin') {
+        showUsersButton(true);
+      } else {
+        showUsersButton(false);
+      }
+    });
+  </script>
+  <!-- Show/hide password toggle -->
+  <script>
+    const passwordInput = document.getElementById('password');
+    const togglePasswordBtn = document.getElementById('togglePassword');
+    const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+    if (togglePasswordBtn && passwordInput && togglePasswordIcon) {
+      togglePasswordBtn.onclick = function(e) {
+        e.preventDefault();
+        if (passwordInput.type === 'password') {
+          passwordInput.type = 'text';
+          togglePasswordIcon.classList.remove('bi-eye');
+          togglePasswordIcon.classList.add('bi-eye-slash');
+        } else {
+          passwordInput.type = 'password';
+          togglePasswordIcon.classList.remove('bi-eye-slash');
+          togglePasswordIcon.classList.add('bi-eye');
+        }
+      };
     }
   </script>
 </body>
