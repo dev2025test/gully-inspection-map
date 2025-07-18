@@ -1029,45 +1029,144 @@
 <div id="map" style="width:100vw; height:100vh; min-height:400px;"></div>
 
 <!-- LOGIN PAGE HEADER -->
-<div id="loginScreen" class="login-background" style="min-height:100vh;">
-  <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh;">
-    <div class="login-card">
-      <div class="login-header">
-        <img src="cork-city-council-logo.jpg" alt="Cork City Council Logo">
-        <div>
-          <div style="font-weight:700;">CORK CITY COUNCIL</div>
-          <div style="font-size:1.1em;font-weight:600;">Asset Management System (Roads)</div>
-        </div>
+<div class="container d-flex align-items-center justify-content-center" style="min-height:100vh;" id="loginContainer">
+  <div class="login-card">
+    <div class="login-header">
+      <img src="cork-city-council-logo.jpg" alt="Cork City Council Logo">
+      <div>
+        <div style="font-weight:700;">CORK CITY COUNCIL</div>
+        <div style="font-size:1.1em;font-weight:600;">Asset Management System (Roads)</div>
       </div>
-      <div class="login-title">Asset Management System (Roads)</div>
-      <div class="login-subtitle">Please sign in to continue.</div>
-      <form id="loginForm" autocomplete="on">
-        <div class="mb-3">
-          <label for="email" class="form-label" style="font-weight:500;">Username</label>
-          <input type="email" id="email" class="form-control" placeholder="Username" autocomplete="username" required>
-        </div>
-        <div class="mb-3 position-relative">
-          <label for="password" class="form-label" style="font-weight:500;">Password</label>
-          <input type="password" id="password" class="form-control" placeholder="Password" autocomplete="current-password" required>
-          <span class="password-toggle" id="togglePassword" title="Show or hide password">
-            <i class="bi bi-eye" id="passwordToggleIcon"></i>
-          </span>
-        </div>
-        <div class="form-check remember-me">
-          <input class="form-check-input" type="checkbox" id="rememberMe">
-          <label class="form-check-label" for="rememberMe">Remember Me</label>
-        </div>
-        <button type="submit" class="btn btn-primary login-btn w-100">Sign In</button>
-        <button type="button" class="btn btn-outline-primary register-btn" id="registerBtn">Register</button>
-        <div class="text-start">
-          <a class="forgot-link" id="forgotPasswordLink">Forgot password?</a>
-        </div>
-        <p id="loginError" style="color:red;margin-top:10px;"></p>
-      </form>
     </div>
+    <div class="login-title">Asset Management System (Roads)</div>
+    <div class="login-subtitle">Please sign in to continue.</div>
+    <form id="loginForm" autocomplete="on">
+      <div class="mb-3">
+        <label for="email" class="form-label" style="font-weight:500;">Username</label>
+        <input type="email" id="email" class="form-control" placeholder="Username" autocomplete="username" required>
+      </div>
+      <div class="mb-3 position-relative">
+        <label for="password" class="form-label" style="font-weight:500;">Password</label>
+        <input type="password" id="password" class="form-control" placeholder="Password" autocomplete="current-password" required>
+        <span class="password-toggle" id="togglePassword" title="Show or hide password">
+          <i class="bi bi-eye" id="passwordToggleIcon"></i>
+        </span>
+      </div>
+      <div class="form-check remember-me">
+        <input class="form-check-input" type="checkbox" id="rememberMe">
+        <label class="form-check-label" for="rememberMe">Remember Me</label>
+      </div>
+      <button type="submit" class="btn btn-primary login-btn w-100">Sign In</button>
+      <button type="button" class="btn btn-outline-primary register-btn" id="registerBtn">Register</button>
+      <div class="text-start">
+        <a class="forgot-link" id="forgotPasswordLink">Forgot password?</a>
+      </div>
+      <p id="loginError" style="color:red;margin-top:10px;"></p>
+    </form>
   </div>
 </div>
 <!-- END LOGIN PAGE HEADER -->
+
+<!-- Main App Container (hidden until login) -->
+<div id="mainApp" style="display:none;">
+  <!-- ... your map, toolbar, and main app content ... -->
+</div>
+
+<script>
+// Show/hide password
+document.getElementById('togglePassword').onclick = function() {
+  const pwd = document.getElementById('password');
+  const icon = document.getElementById('passwordToggleIcon');
+  if (pwd.type === 'password') {
+    pwd.type = 'text';
+    icon.classList.remove('bi-eye');
+    icon.classList.add('bi-eye-slash');
+  } else {
+    pwd.type = 'password';
+    icon.classList.remove('bi-eye-slash');
+    icon.classList.add('bi-eye');
+  }
+};
+
+// Remember Me functionality
+window.addEventListener('DOMContentLoaded', function() {
+  const savedEmail = localStorage.getItem('rememberedEmail');
+  if (savedEmail) {
+    document.getElementById('email').value = savedEmail;
+    document.getElementById('rememberMe').checked = true;
+  }
+});
+
+// Firebase login logic
+document.getElementById('loginForm').onsubmit = function(e) {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const rememberMe = document.getElementById('rememberMe').checked;
+  const loginError = document.getElementById('loginError');
+  loginError.textContent = '';
+
+  if (!email || !password) {
+    loginError.textContent = '❌ Please enter both email and password';
+    return;
+  }
+  // Save or clear remembered email
+  if (rememberMe) {
+    localStorage.setItem('rememberedEmail', email);
+  } else {
+    localStorage.removeItem('rememberedEmail');
+  }
+
+  // Firebase login
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    firebase.auth().signInWithEmailAndPassword(email, password)
+      .then(userCredential => {
+        // Success: handled by onAuthStateChanged
+      })
+      .catch(err => {
+        loginError.textContent = '❌ ' + (err.message || 'Login failed');
+      });
+  } else {
+    loginError.textContent = '❌ Firebase not initialized.';
+  }
+};
+
+// Register button handler
+document.getElementById('registerBtn').onclick = function() {
+  alert('Register functionality not implemented in this demo.');
+};
+
+// Forgot password handler
+document.getElementById('forgotPasswordLink').onclick = function() {
+  const email = document.getElementById('email').value.trim();
+  if (!email) {
+    alert('Please enter your email address first.');
+    return;
+  }
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    firebase.auth().sendPasswordResetEmail(email)
+      .then(() => {
+        alert('Password reset email sent.');
+      })
+      .catch(err => {
+        alert('Error: ' + (err.message || 'Could not send reset email.'));
+      });
+  } else {
+    alert('Firebase not initialized.');
+  }
+};
+
+// Show/hide login and main app based on auth state
+firebase.auth().onAuthStateChanged(function(user) {
+  if (user) {
+    document.getElementById('loginContainer').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+  } else {
+    document.getElementById('loginContainer').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+  }
+});
+</script>
 
 <div class="toggle-layers" onclick="toggleLayerControl()">🗺️ Show Layers</div>
 
@@ -2691,171 +2790,6 @@ window.onload = () => {
     console.error('window.onload: Error during initialization:', error);
   });
 };
-
-// Show/hide password
-document.getElementById('togglePassword').onclick = function() {
-  const pwd = document.getElementById('password');
-  const icon = document.getElementById('passwordToggleIcon');
-  if (pwd.type === 'password') {
-    pwd.type = 'text';
-    icon.classList.remove('bi-eye');
-    icon.classList.add('bi-eye-slash');
-  } else {
-    pwd.type = 'password';
-    icon.classList.remove('bi-eye-slash');
-    icon.classList.add('bi-eye');
-  }
-};
-
-// Remember Me functionality
-window.addEventListener('DOMContentLoaded', function() {
-  const savedEmail = localStorage.getItem('rememberedEmail');
-  if (savedEmail) {
-    document.getElementById('email').value = savedEmail;
-    document.getElementById('rememberMe').checked = true;
-  }
-});
-
-// Firebase login logic
-document.getElementById('loginForm').onsubmit = function(e) {
-  e.preventDefault();
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const rememberMe = document.getElementById('rememberMe').checked;
-  const loginError = document.getElementById('loginError');
-  loginError.textContent = '';
-
-  if (!email || !password) {
-    loginError.textContent = '❌ Please enter both email and password';
-    return;
-  }
-  // Save or clear remembered email
-  if (rememberMe) {
-    localStorage.setItem('rememberedEmail', email);
-  } else {
-    localStorage.removeItem('rememberedEmail');
-  }
-
-  // Firebase login
-  if (typeof firebase !== 'undefined' && firebase.auth) {
-    firebase.auth().signInWithEmailAndPassword(email, password)
-      .then(userCredential => {
-        // Success: reload or redirect
-        window.location.reload();
-      })
-      .catch(err => {
-        loginError.textContent = '❌ ' + (err.message || 'Login failed');
-      });
-  } else {
-    loginError.textContent = '❌ Firebase not initialized.';
-  }
-};
-
-// Register button handler
-document.getElementById('registerBtn').onclick = function() {
-  alert('Register functionality not implemented in this demo.');
-};
-
-// Forgot password handler
-document.getElementById('forgotPasswordLink').onclick = function() {
-  const email = document.getElementById('email').value.trim();
-  if (!email) {
-    alert('Please enter your email address first.');
-    return;
-  }
-  if (typeof firebase !== 'undefined' && firebase.auth) {
-    firebase.auth().sendPasswordResetEmail(email)
-      .then(() => {
-        alert('Password reset email sent.');
-      })
-      .catch(err => {
-        alert('Error: ' + (err.message || 'Could not send reset email.'));
-      });
-  } else {
-    alert('Firebase not initialized.');
-  }
-};
-
-function printMap() {
-  window.print();
-}
-window.printMap = printMap;
-
-function updateWelcomeMessage(email) {
-  const welcomeDiv = document.getElementById('welcomeMessage');
-  if (welcomeDiv) {
-    welcomeDiv.textContent = `Welcome ${email.split('@')[0]}!`;
-    welcomeDiv.style.padding = '10px';
-    welcomeDiv.style.background = 'white';
-    welcomeDiv.style.borderRadius = '4px';
-    welcomeDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-    welcomeDiv.style.position = 'absolute';
-    welcomeDiv.style.top = '10px';
-    welcomeDiv.style.right = '10px';
-    welcomeDiv.style.zIndex = '1000';
-    welcomeDiv.style.display = 'block';
-  }
-}
-
-// Update scale control
-function updateScaleControl() {
-  if (window.map.scale) window.map.scale.remove();
-  
-  window.map.scale = L.control.scale({
-    metric: true,
-    imperial: false,
-    maxWidth: 200,
-    position: 'bottomleft',
-    updateWhenIdle: true
-  }).addTo(window.map);
-  
-  // Custom scale factor to correct the scale
-  const scaleFactor = 0.333333; // 1km = 3000m correction
-  
-  const originalGetScaleText = window.map.scale._getScaleText;
-  window.map.scale._getScaleText = function(ratio, text) {
-    const distance = ratio * scaleFactor;
-    if (distance >= 1) {
-      return distance.toFixed(0) + ' km';
-    } else {
-      return (distance * 1000).toFixed(0) + ' m';
-    }
-  };
-}
-
-function toggleFunctionTabs() {
-  const tabs = document.getElementById('functionTabs');
-  const icon = document.getElementById('tabToggleIcon');
-  tabs.classList.toggle('minimized');
-  icon.textContent = tabs.classList.contains('minimized') ? '▲' : '▼';
-}
-
-// Add a function to check map status
-function checkMapStatus() {
-  console.log('checkMapStatus: Map container:', document.getElementById('map'));
-  console.log('checkMapStatus: Map instance:', window.map);
-  if (window.map instanceof L.Map) {
-    console.log('checkMapStatus: Map center:', window.map.getCenter());
-    console.log('checkMapStatus: Map zoom:', window.map.getZoom());
-  } else {
-    console.warn('checkMapStatus: window.map is not a Leaflet map instance.');
-  }
-}
-
-// Add a function to check if map needs reset
-function checkMapState() {
-  if (gullyData.length > 0) {
-    const resetButton = document.querySelector('button[onclick="resetMap()"]');
-    if (resetButton) {
-      resetButton.style.backgroundColor = '#ff9800';
-      resetButton.style.color = 'white';
-      setTimeout(() => {
-        resetButton.style.backgroundColor = '';
-        resetButton.style.color = '';
-      }, 2000);
-    }
-  }
-}
 
 // Add the delete and edit functions
 function enableDeleteMode() {
