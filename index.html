@@ -15,6 +15,7 @@
   <script src="https://unpkg.com/togeojson@0.16.0/togeojson.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
   <style>
     html, body {
       height: 100%;
@@ -1056,6 +1057,9 @@
                 <i id="passwordToggleIcon" class="bi bi-eye" style="margin-top:35px;"></i>
               </span>
             </div>
+            <div class="remember-me mb-2">
+              <input type="checkbox" id="rememberMe" style="margin-right:6px;"> <label for="rememberMe" style="font-size:1em;">Remember Me</label>
+            </div>
             <button type="submit" class="btn btn-primary btn-lg w-100 mb-2" style="font-weight:600;font-size:1.15rem;">Sign In</button>
             <button type="button" class="btn btn-outline-primary w-100 mt-2" onclick="showRegisterModal()">Register</button>
             <div class="text-start mt-2">
@@ -1118,6 +1122,9 @@
       <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" onclick="loadFromBackup()" title="Load data from a backup file"><i class="bi bi-folder"></i> <i class="bi bi-arrow-up"></i> <span>Load Backup</span></button>
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" id="toggleMapLayerBtn" onclick="toggleMapLayer()" title="Switch between Map and Satellite"><i class="bi bi-globe"></i> Satellite</button>
       <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSearchModal()" title="Filter by street or asset name"><i class="bi bi-search"></i> <span>Filter</span></button>
+      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" id="toggleElectoralBtn" onclick="toggleElectoralLayer()" title="Show/hide electoral areas">
+        <i class="bi bi-geo"></i> Electoral Areas
+      </button>
     </div>
   </div>
 </div>
@@ -1473,6 +1480,13 @@ function login(isAutoLogin = false) {
       // Clear URL parameters after auto-login
       if (isAutoLogin) {
         window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      // Remember Me logic
+      const rememberMe = document.getElementById('rememberMe');
+      if (rememberMe && rememberMe.checked) {
+        localStorage.setItem('rememberedEmail', email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
       }
     })
     .catch(error => {
@@ -2608,7 +2622,7 @@ function showSummaryPopup() {
     </div>
     <div class="summary-content">
       <div>
-        <div class="status-card card p-3 mb-2 text-center" style="cursor:pointer;" onclick="filterByStatus('All')">
+        <div class="status-card card p-3 mb-2 text-center" style="cursor:pointer;" data-status="All">
           <h3 class="mb-2">Total Gullies</h3>
           <div class="status-count">${summary.total}</div>
           <div class="status-description">Total number of gullies in the system</div>
@@ -2618,7 +2632,7 @@ function showSummaryPopup() {
         .filter(([status]) => status !== 'total')
         .map(([status, count]) => `
           <div>
-            <div class="status-card card p-3 mb-2 text-center" style="border-left: 4px solid ${getStatusColor(status)}; cursor:pointer;" onclick="filterByStatus('${status}')">
+            <div class="status-card card p-3 mb-2 text-center" style="border-left: 4px solid ${getStatusColor(status)}; cursor:pointer;" data-status="${status}">
               <h3 class="mb-2">${status}</h3>
               <div class="status-count">${count}</div>
               <div class="status-description">${{
@@ -2654,6 +2668,21 @@ function showSummaryPopup() {
 
   // Close helper
   window.closeModal = () => backdrop.remove();
+
+  // Add event listeners to status cards for filtering
+  modal.querySelectorAll('.status-card').forEach(card => {
+    card.addEventListener('click', function() {
+      const status = this.getAttribute('data-status');
+      filterByStatus(status);
+      // Update filter dropdown if present
+      const filterStatus = document.getElementById('filterStatus');
+      if (filterStatus) {
+        filterStatus.value = status;
+      }
+      // Close the summary popup after selection
+      backdrop.remove();
+    });
+  });
 }
 
 // Update the window.onload to include new initialization
@@ -2665,8 +2694,8 @@ window.onload = () => {
     ensureAllUsers()
   ]).then(() => {
     console.log('window.onload: User system initialized');
-    // Handle auto-login after initialization
-    handleAutoLogin();
+    // Do NOT auto-login or call handleAutoLogin here
+    // User must log in manually
   }).catch(error => {
     console.error('window.onload: Error during initialization:', error);
   });
@@ -2690,6 +2719,8 @@ window.addEventListener('load', function() {
   if (savedEmail) {
     document.getElementById('email').value = savedEmail;
     document.getElementById('rememberMe').checked = true;
+  } else {
+    document.getElementById('rememberMe').checked = false;
   }
 });
 
@@ -3366,6 +3397,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
       } else {
         const now = new Date();
         lastTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        
       }
       html += `<div class='mb-2'><label class='form-label'><b>Inspection Date & Time:</b></label><div style='display:flex;gap:8px;'><input type='date' id='inspection-date' class='form-control' max='${todayStr}' value='${lastDate}' required><input type='time' id='inspection-time' class='form-control' value='${lastTime}' required></div></div>`;
     } else {
@@ -4249,6 +4281,13 @@ if (forgotLink) {
           if (isAutoLogin) {
             window.history.replaceState({}, document.title, window.location.pathname);
           }
+          // Remember Me logic
+          const rememberMe = document.getElementById('rememberMe');
+          if (rememberMe && rememberMe.checked) {
+            localStorage.setItem('rememberedEmail', email);
+          } else {
+            localStorage.removeItem('rememberedEmail');
+          }
         })
         .catch(error => {
           console.error('Login error:', error);
@@ -4321,6 +4360,35 @@ if (forgotLink) {
         document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
       } else {
         errorDiv.textContent = 'No matching gully found.';
+      }
+    }
+
+    let electoralLayer = null;
+    let electoralLayerVisible = false;
+
+    function addElectoralLayer() {
+      if (!electoralLayer) {
+        electoralLayer = omnivore.kml('corkcitylea.kml')
+          .on('ready', function() {
+            electoralLayer.setStyle({
+              color: '#1976D2',
+              weight: 3,
+              fillOpacity: 0.1
+            });
+          });
+      }
+    }
+
+    function toggleElectoralLayer() {
+      addElectoralLayer();
+      if (electoralLayerVisible) {
+        window.map.removeLayer(electoralLayer);
+        electoralLayerVisible = false;
+        document.getElementById('toggleElectoralBtn').classList.remove('active');
+      } else {
+        electoralLayer.addTo(window.map);
+        electoralLayerVisible = true;
+        document.getElementById('toggleElectoralBtn').classList.add('active');
       }
     }
 
