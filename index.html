@@ -1528,6 +1528,7 @@ function logout() {
     alert('Error during logout: ' + error.message);
   });
 }
+window.logout = logout;
 
 function setupUIForRole(role, adminPrivileges = null) {
   const isAdmin = role === 'admin';
@@ -2478,6 +2479,7 @@ function exportData() {
     alert('Error exporting data: ' + error.message);
   }
 }
+window.exportData = exportData;
 
 function resetMap() {
   console.log('resetMap: Starting map reset...');
@@ -2597,6 +2599,7 @@ function resetMap() {
       alert('Password incorrect. Map reset cancelled.');
     });
 }
+window.resetMap = resetMap;
 
 function showSummaryPopup() {
   // Calculate summary data
@@ -2690,6 +2693,7 @@ function showSummaryPopup() {
     });
   });
 }
+window.showSummaryPopup = showSummaryPopup;
 
 // Update the window.onload to include new initialization
 window.onload = () => {
@@ -2733,6 +2737,7 @@ window.addEventListener('load', function() {
 function printMap() {
   window.print();
 }
+window.printMap = printMap;
 
 function updateWelcomeMessage(email) {
   const welcomeDiv = document.getElementById('welcomeMessage');
@@ -2840,6 +2845,7 @@ function enableDeleteMode() {
         }
     });
 }
+window.enableDeleteMode = enableDeleteMode;
 
 function enableEditMode() {
     if (!auth.currentUser || currentRole !== 'admin') {
@@ -2862,6 +2868,7 @@ function enableEditMode() {
         }
     }
 }
+window.enableEditMode = enableEditMode;
 
 async function handleGullyDelete(gullyId, marker, layerType) {
     if (!deleteMode || !auth.currentUser || currentRole !== 'admin') return;
@@ -2929,6 +2936,7 @@ function enableAddMode() {
         window.map.off('click', handleMapClick);
     }
 }
+window.enableAddMode = enableAddMode;
 
 async function handleMapClick(e) {
     if (!addMode || !auth.currentUser || currentRole !== 'admin') return;
@@ -3018,6 +3026,7 @@ function saveGullyData() {
     });
   });
 }
+window.saveGullyData = saveGullyData;
 
 // 2. User management modal
 function showUserManagement() {
@@ -3059,6 +3068,7 @@ function showUserManagement() {
     window.closeModal = () => backdrop.remove();
   });
 }
+window.showUserManagement = showUserManagement;
 
 // Layer management
 let mapLayers = {
