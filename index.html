@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     body { font-family: Arial, sans-serif; background: #222; color: #fff; }
     .login-card {
@@ -40,141 +41,765 @@
   </style>
 </head>
 <body>
-  <!-- Login Form -->
-  <div class="login-card" id="loginContainer">
-    <h2>Gully Inspection System</h2>
-    <form id="loginForm" autocomplete="on">
-      <div class="mb-3">
-        <label for="email" class="form-label">Username</label>
-        <input type="email" id="email" class="form-control" placeholder="Username" autocomplete="username" required>
+  <!-- LOGIN PAGE HEADER -->
+  <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh;" id="loginContainer">
+    <div class="login-card">
+      <div class="login-header">
+        <img src="cork-city-council-logo.jpg" alt="Cork City Council Logo">
+        <div>
+          <div style="font-weight:700;">CORK CITY COUNCIL</div>
+          <div style="font-size:1.1em;font-weight:600;">Asset Management System (Roads)</div>
+        </div>
       </div>
-      <div class="mb-3 position-relative">
-        <label for="password" class="form-label">Password</label>
-        <input type="password" id="password" class="form-control" placeholder="Password" autocomplete="current-password" required>
-        <span class="password-toggle" id="togglePassword" title="Show or hide password">
-          <i class="bi bi-eye" id="passwordToggleIcon"></i>
-        </span>
+      <div class="login-title">Asset Management System (Roads)</div>
+      <div class="login-form">
+        <form id="loginForm">
+          <div class="mb-3">
+            <label for="email" class="form-label">Username</label>
+            <input type="email" id="email" class="form-control" required autocomplete="username">
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" class="form-control" required autocomplete="current-password">
+          </div>
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="rememberMe">
+            <label class="form-check-label" for="rememberMe">Remember Me</label>
+          </div>
+          <div id="loginError" class="text-danger mb-2"></div>
+          <button type="submit" class="btn btn-primary w-100">Sign In</button>
+        </form>
       </div>
-      <div class="form-check mb-2">
-        <input class="form-check-input" type="checkbox" id="rememberMe">
-        <label class="form-check-label" for="rememberMe">Remember Me</label>
-      </div>
-      <button type="submit" class="btn btn-primary w-100">Sign In</button>
-      <div class="text-start mt-2">
-        <a href="#" id="forgotPasswordLink">Forgot password?</a>
-      </div>
-      <p id="loginError" class="error mt-2"></p>
-    </form>
+    </div>
   </div>
 
-  <!-- Main App Placeholder -->
-  <div class="main-app" id="mainApp">
-    <h1>Welcome to the Main App!</h1>
-    <p>You are logged in as <span id="userEmail"></span></p>
-    <button class="btn btn-danger" id="logoutBtn">Logout</button>
+  <!-- ASSET FILTER UI -->
+  <div id="assetFilterBar" style="display:none; position:absolute; top:10px; left:50%; transform:translateX(-50%); z-index:1000; background:#fff; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.15); padding:8px 16px;">
+    <label class="me-3"><input type="checkbox" id="filterGullies" checked> Gullies</label>
+    <label><input type="checkbox" id="filterParks" checked> Parks</label>
   </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <div id="mainApp" style="display:none; height:100vh; width:100vw; position:relative;">
+    <div id="map" style="height:100%; width:100%;"></div>
+  </div>
+
+  <!-- TASKS BUTTON AND MODAL -->
+  <button id="tasksBtn" class="btn btn-secondary" style="position:absolute;top:60px;right:20px;z-index:1100;display:none;">Tasks</button>
+  <div class="modal fade" id="tasksModal" tabindex="-1" aria-labelledby="tasksModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="tasksModalLabel">Tasks / Work Orders</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="tasksList"></div>
+          <div id="newTaskFormContainer" style="display:none;">
+            <hr>
+            <h6>Create New Task</h6>
+            <form id="newTaskForm">
+              <div class="mb-2">
+                <input type="text" class="form-control" name="assetId" placeholder="Asset ID (e.g., from map popup)" required>
+              </div>
+              <div class="mb-2">
+                <input type="text" class="form-control" name="assignedTo" placeholder="Assign to User UID" required>
+              </div>
+              <div class="mb-2">
+                <input type="text" class="form-control" name="description" placeholder="Task Description" required>
+              </div>
+              <div class="mb-2">
+                <select class="form-select" name="status" required>
+                  <option value="Assigned">Assigned</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary">Create Task</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORTING BUTTON AND MODAL -->
+  <button id="reportingBtn" class="btn btn-info" style="position:absolute;top:110px;right:20px;z-index:1100;display:none;">Reporting</button>
+  <div class="modal fade" id="reportingModal" tabindex="-1" aria-labelledby="reportingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="reportingModalLabel">Reporting & Analytics</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="assetCounts"></div>
+          <canvas id="assetChart" height="120"></canvas>
+          <button class="btn btn-outline-success mt-3" onclick="exportAssetsToCSV()">Export Assets to CSV</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet CSS/JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet Omnivore plugin for KML/GPX support -->
+  <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script>
-    // Your Firebase config
+    // TODO: Replace with your Firebase config
     const firebaseConfig = {
-      apiKey: "AIzaSyBsteq-tHQdiDcRk5UBg52AwAxpVcq67cw",
-      authDomain: "gullytest3.firebaseapp.com",
-      databaseURL: "https://gullytest3-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "gullytest3",
-      storageBucket: "gullytest3.appspot.com",
-      messagingSenderId: "876083677912",
-      appId: "1:876083677912:web:065de0c7cca446b78f65ad"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "YOUR_DATABASE_URL",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
     firebase.initializeApp(firebaseConfig);
 
-    // Show/hide password
-    document.getElementById('togglePassword').onclick = function() {
-      const pwd = document.getElementById('password');
-      const icon = document.getElementById('passwordToggleIcon');
-      if (pwd.type === 'password') {
-        pwd.type = 'text';
-        icon.classList.remove('bi-eye');
-        icon.classList.add('bi-eye-slash');
-      } else {
-        pwd.type = 'password';
-        icon.classList.remove('bi-eye-slash');
-        icon.classList.add('bi-eye');
-      }
-    };
+    window.currentUserRole = null;
 
-    // Remember Me functionality
-    window.addEventListener('DOMContentLoaded', function() {
-      const savedEmail = localStorage.getItem('rememberedEmail');
-      if (savedEmail) {
-        document.getElementById('email').value = savedEmail;
-        document.getElementById('rememberMe').checked = true;
-      }
-    });
+    // Show/hide UI based on role
+    function updateUIForRole(role) {
+      // Example: show/hide admin panel, operator tools, etc.
+      // document.getElementById('adminPanel').style.display = (role === 'admin') ? 'block' : 'none';
+      // document.getElementById('operatorTools').style.display = (role === 'operator') ? 'block' : 'none';
+      // document.getElementById('viewerPanel').style.display = (role === 'viewer') ? 'block' : 'none';
+      // document.getElementById('contractorPanel').style.display = (role === 'contractor') ? 'block' : 'none';
+      // Add your own logic for showing/hiding features
+    }
 
-    // Login form handler
-    document.getElementById('loginForm').onsubmit = function(e) {
-      e.preventDefault();
+    // Handle login form submit
+    function login() {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const rememberMe = document.getElementById('rememberMe').checked;
-      const loginError = document.getElementById('loginError');
-      loginError.textContent = '';
-
-      if (!email || !password) {
-        loginError.textContent = '❌ Please enter both email and password';
-        return;
-      }
-      // Save or clear remembered email
-      if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
-      } else {
-        localStorage.removeItem('rememberedEmail');
-      }
-
-      // Firebase login
-      firebase.auth().signInWithEmailAndPassword(email, password)
-        .then(userCredential => {
-          // Success: handled by onAuthStateChanged
-        })
-        .catch(err => {
-          loginError.textContent = '❌ ' + (err.message || 'Login failed');
-        });
-    };
-
-    // Forgot password handler
-    document.getElementById('forgotPasswordLink').onclick = function(e) {
-      e.preventDefault();
-      const email = document.getElementById('email').value.trim();
-      if (!email) {
-        alert('Please enter your email address first.');
-        return;
-      }
-      firebase.auth().sendPasswordResetEmail(email)
+      document.getElementById('loginError').textContent = '';
+      firebase.auth().setPersistence(rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION)
         .then(() => {
-          alert('Password reset email sent.');
+          return firebase.auth().signInWithEmailAndPassword(email, password);
         })
-        .catch(err => {
-          alert('Error: ' + (err.message || 'Could not send reset email.'));
+        .catch(error => {
+          document.getElementById('loginError').textContent = error.message;
+          throw error;
         });
-    };
+    }
+    window.login = login;
 
-    // Logout handler
-    document.getElementById('logoutBtn').onclick = function() {
-      firebase.auth().signOut();
-    };
-
-    // Show/hide login and main app based on auth state
-    firebase.auth().onAuthStateChanged(function(user) {
-      if (user) {
-        document.getElementById('loginContainer').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
-        document.getElementById('userEmail').textContent = user.email;
-      } else {
-        document.getElementById('loginContainer').style.display = 'block';
-        document.getElementById('mainApp').style.display = 'none';
-        document.getElementById('loginError').textContent = '';
+    document.addEventListener('DOMContentLoaded', function() {
+      // Attach login form handler
+      var loginForm = document.getElementById('loginForm');
+      if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          login();
+          return false;
+        });
       }
     });
+
+    // Auth state change handler
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        // Fetch user role from database
+        firebase.database().ref('/users/' + user.uid + '/role').once('value').then(function(snapshot) {
+          const role = snapshot.val() || 'viewer';
+          window.currentUserRole = role;
+          updateUIForRole(role);
+          document.getElementById('loginContainer').style.display = 'none';
+          document.getElementById('mainApp').style.display = 'block';
+        }).catch(function(error) {
+          document.getElementById('loginError').textContent = 'Could not fetch user role: ' + error.message;
+          firebase.auth().signOut();
+        });
+      } else {
+        window.currentUserRole = null;
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('loginContainer').style.display = 'flex';
+      }
+    });
+
+    // Logout function
+    function logout() {
+      firebase.auth().signOut();
+    }
+    window.logout = logout;
+
+    // Utility: get current user info
+    function getCurrentUserInfo() {
+      const user = firebase.auth().currentUser;
+      return {
+        uid: user ? user.uid : null,
+        email: user ? user.email : null,
+        role: window.currentUserRole || 'viewer'
+      };
+    }
+
+    // Utility: check if user can add logs
+    function canAddLogs() {
+      const role = (window.currentUserRole || '').toLowerCase();
+      return role === 'admin' || role === 'operator' || role === 'contractor';
+    }
+
+    // Fetch logs for an asset
+    function fetchAssetLogs(assetId, callback) {
+      firebase.database().ref('/assetLogs/' + assetId).orderByChild('timestamp').once('value', function(snapshot) {
+        const logs = [];
+        snapshot.forEach(child => logs.push(child.val()));
+        callback(logs.reverse()); // Most recent first
+      });
+    }
+
+    // Add a new log for an asset
+    function addAssetLog(assetId, log, file, callback) {
+      const newLogRef = firebase.database().ref('/assetLogs/' + assetId).push();
+      const logId = newLogRef.key;
+      if (file) {
+        const storageRef = firebase.storage().ref(`/assetLogs/${assetId}/${logId}`);
+        const uploadTask = storageRef.put(file);
+        uploadTask.on('state_changed', null, function(error) {
+          callback(error);
+        }, function() {
+          uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
+            log.photoUrl = downloadURL;
+            newLogRef.set(log, callback);
+          });
+        });
+      } else {
+        newLogRef.set(log, callback);
+      }
+    }
+
+    // Enhanced popup for KML/GPX features
+    function assetPopupHtml(props, assetId) {
+      let html = `<b>${props.name || 'Asset'}</b><br>`;
+      if (props.description || props.desc) html += `${props.description || props.desc}<br>`;
+      for (const key in props) {
+        if (key !== 'name' && key !== 'description' && key !== 'desc') {
+          html += `<b>${key}:</b> ${props[key]}<br>`;
+        }
+      }
+      html += `<hr><div id="logs_${assetId}">Loading logs...</div>`;
+      if (canAddLogs()) {
+        html += `<form id="logForm_${assetId}" style="margin-top:8px;" enctype="multipart/form-data">
+          <select name="status" class="form-select form-select-sm mb-1" required>
+            <option value="">Status</option>
+            <option>Inspected</option>
+            <option>Needs Maintenance</option>
+            <option>Completed</option>
+          </select>
+          <textarea name="notes" class="form-control form-control-sm mb-1" placeholder="Notes" rows="2"></textarea>
+          <input type="file" name="photo" accept="image/*" class="form-control form-control-sm mb-1">
+          <button type="submit" class="btn btn-sm btn-primary w-100">Add Log</button>
+        </form>`;
+      }
+      return html;
+    }
+
+    // Update log display to show photo if present
+    function renderLogs(logs) {
+      return logs.map(log => `<div class='border-bottom mb-1 pb-1'><b>${log.status}</b> <span style='font-size:0.9em;'>(${new Date(log.timestamp).toLocaleString()})</span><br>${log.notes ? log.notes : ''}<br>${log.photoUrl ? `<img src='${log.photoUrl}' style='max-width:100%;max-height:120px;margin:4px 0;border-radius:4px;'><br>` : ''}<span style='font-size:0.85em;color:#888;'>by ${log.userEmail || 'unknown'}</span></div>`).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Only initialize the map if the main app is visible
+      if (document.getElementById('mainApp')) {
+        // Wait for auth state to show mainApp
+        let mapInstance = null;
+        let kmlLayer = null;
+        let gpxLayer = null;
+        function showAssetFilterBar(show) {
+          document.getElementById('assetFilterBar').style.display = show ? 'block' : 'none';
+        }
+        function initMap() {
+          if (mapInstance) return; // Prevent double init
+          mapInstance = L.map('map').setView([51.8985, -8.4756], 13);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+          }).addTo(mapInstance);
+          // KML Layer (example: gullies.kml)
+          kmlLayer = omnivore.kml('gullies.kml', null, L.geoJson(null, {
+            onEachFeature: function(feature, layer) {
+              const props = feature.properties || {};
+              const assetId = props.name || props.id || Math.random().toString(36).substr(2, 9);
+              layer.bindPopup({
+                maxWidth: 320,
+                minWidth: 220,
+                autoPan: true,
+                closeButton: true,
+                className: 'asset-popup',
+                html: assetPopupHtml(props, assetId)
+              });
+              layer.on('popupopen', function(e) {
+                // Fetch and display logs
+                fetchAssetLogs(assetId, function(logs) {
+                  const logsDiv = document.getElementById('logs_' + assetId);
+                  if (logsDiv) {
+                    if (logs.length === 0) {
+                      logsDiv.innerHTML = '<i>No logs yet.</i>';
+                    } else {
+                      logsDiv.innerHTML = renderLogs(logs);
+                    }
+                  }
+                });
+                // Add log form handler
+                if (canAddLogs()) {
+                  const form = document.getElementById('logForm_' + assetId);
+                  if (form) {
+                    form.onsubmit = function(ev) {
+                      ev.preventDefault();
+                      const status = form.status.value;
+                      const notes = form.notes.value;
+                      const user = getCurrentUserInfo();
+                      const fileInput = form.photo;
+                      const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+                      const log = {
+                        status,
+                        notes,
+                        timestamp: Date.now(),
+                        userId: user.uid,
+                        userEmail: user.email
+                      };
+                      addAssetLog(assetId, log, file, function(err) {
+                        if (!err) {
+                          fetchAssetLogs(assetId, function(logs) {
+                            const logsDiv = document.getElementById('logs_' + assetId);
+                            if (logsDiv) {
+                              logsDiv.innerHTML = renderLogs(logs);
+                            }
+                          });
+                          form.reset();
+                        }
+                      });
+                    };
+                  }
+                }
+              });
+            }
+          })).on('ready', function() {
+            mapInstance.fitBounds(kmlLayer.getBounds());
+          }).addTo(mapInstance);
+          // GPX Layer (example: parks.gpx)
+          gpxLayer = omnivore.gpx('parks.gpx', null, L.geoJson(null, {
+            onEachFeature: function(feature, layer) {
+              const props = feature.properties || {};
+              const assetId = props.name || props.id || Math.random().toString(36).substr(2, 9);
+              layer.bindPopup({
+                maxWidth: 320,
+                minWidth: 220,
+                autoPan: true,
+                closeButton: true,
+                className: 'asset-popup',
+                html: assetPopupHtml(props, assetId)
+              });
+              layer.on('popupopen', function(e) {
+                // Fetch and display logs
+                fetchAssetLogs(assetId, function(logs) {
+                  const logsDiv = document.getElementById('logs_' + assetId);
+                  if (logsDiv) {
+                    if (logs.length === 0) {
+                      logsDiv.innerHTML = '<i>No logs yet.</i>';
+                    } else {
+                      logsDiv.innerHTML = renderLogs(logs);
+                    }
+                  }
+                });
+                // Add log form handler
+                if (canAddLogs()) {
+                  const form = document.getElementById('logForm_' + assetId);
+                  if (form) {
+                    form.onsubmit = function(ev) {
+                      ev.preventDefault();
+                      const status = form.status.value;
+                      const notes = form.notes.value;
+                      const user = getCurrentUserInfo();
+                      const fileInput = form.photo;
+                      const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+                      const log = {
+                        status,
+                        notes,
+                        timestamp: Date.now(),
+                        userId: user.uid,
+                        userEmail: user.email
+                      };
+                      addAssetLog(assetId, log, file, function(err) {
+                        if (!err) {
+                          fetchAssetLogs(assetId, function(logs) {
+                            const logsDiv = document.getElementById('logs_' + assetId);
+                            if (logsDiv) {
+                              logsDiv.innerHTML = renderLogs(logs);
+                            }
+                          });
+                          form.reset();
+                        }
+                      });
+                    };
+                  }
+                }
+              });
+            }
+          })).addTo(mapInstance);
+          // Layer control
+          const baseLayers = {};
+          const overlays = {
+            'Gullies (KML)': kmlLayer,
+            'Parks (GPX)': gpxLayer
+          };
+          L.control.layers(baseLayers, overlays).addTo(mapInstance);
+          // Asset filter UI logic
+          showAssetFilterBar(true);
+          document.getElementById('filterGullies').addEventListener('change', function() {
+            if (this.checked) {
+              mapInstance.addLayer(kmlLayer);
+            } else {
+              mapInstance.removeLayer(kmlLayer);
+            }
+          });
+          document.getElementById('filterParks').addEventListener('change', function() {
+            if (this.checked) {
+              mapInstance.addLayer(gpxLayer);
+            } else {
+              mapInstance.removeLayer(gpxLayer);
+            }
+          });
+        }
+        // Listen for mainApp becoming visible
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(m) {
+            if (m.target.style.display !== 'none') {
+              setTimeout(initMap, 100); // Delay to ensure DOM is ready
+            }
+          });
+        });
+        observer.observe(document.getElementById('mainApp'), { attributes: true, attributeFilter: ['style'] });
+        // If already visible (e.g., after login), init immediately
+        if (document.getElementById('mainApp').style.display !== 'none') {
+          setTimeout(initMap, 100);
+        }
+      }
+    });
+
+    // TASKS LOGIC
+    let tasksModal = null;
+    let highlightLayer = null;
+    function showTasksModal() {
+      if (!tasksModal) {
+        tasksModal = new bootstrap.Modal(document.getElementById('tasksModal'));
+      }
+      loadTasksForUser();
+      tasksModal.show();
+    }
+    function loadTasksForUser() {
+      const user = getCurrentUserInfo();
+      const isAdmin = user.role === 'admin';
+      firebase.database().ref('/tasks').once('value', function(snapshot) {
+        const tasks = [];
+        snapshot.forEach(child => {
+          const t = child.val();
+          t._id = child.key;
+          if (isAdmin || t.assignedTo === user.uid) tasks.push(t);
+        });
+        renderTasksList(tasks, isAdmin);
+      });
+    }
+    // Update renderTasksList to include photo upload in the update form and display photo if present
+    function renderTasksList(tasks, isAdmin) {
+      const listDiv = document.getElementById('tasksList');
+      if (!tasks.length) {
+        listDiv.innerHTML = '<i>No tasks found.</i>';
+        return;
+      }
+      listDiv.innerHTML = tasks.map(t => `
+        <div class='border-bottom mb-2 pb-2'>
+          <b>Asset:</b> ${t.assetId}<br>
+          <b>Assigned to:</b> ${t.assignedTo}<br>
+          <b>Description:</b> ${t.description}<br>
+          <b>Status:</b> <span id='taskStatus_${t._id}'>${t.status}</span><br>
+          <b>Notes:</b> <span id='taskNotes_${t._id}'>${t.notes || ''}</span><br>
+          ${t.photoUrl ? `<img src='${t.photoUrl}' style='max-width:100%;max-height:120px;margin:4px 0;border-radius:4px;'><br>` : ''}
+          <button class='btn btn-sm btn-outline-primary mt-1' onclick='highlightAssetOnMap("${t.assetId}")'>Show Asset</button>
+          ${isAdmin ? '' : `<form class='mt-2' onsubmit='updateTaskStatus(event, "${t._id}")' enctype='multipart/form-data'>
+            <select class='form-select form-select-sm mb-1' name='status' required>
+              <option value=''>Update Status</option>
+              <option>In Progress</option>
+              <option>Completed</option>
+            </select>
+            <input type='text' class='form-control form-control-sm mb-1' name='notes' placeholder='Notes'>
+            <input type='file' name='photo' accept='image/*' class='form-control form-control-sm mb-1'>
+            <button type='submit' class='btn btn-sm btn-success'>Update</button>
+          </form>`}
+        </div>
+      `).join('');
+      // Show new task form for admins
+      document.getElementById('newTaskFormContainer').style.display = isAdmin ? 'block' : 'none';
+    }
+    // Update updateTaskStatus to handle photo upload
+    function updateTaskStatus(ev, taskId) {
+      ev.preventDefault();
+      const form = ev.target;
+      const status = form.status.value;
+      const notes = form.notes.value;
+      const fileInput = form.photo;
+      const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      if (file) {
+        const storageRef = firebase.storage().ref(`/tasks/${taskId}/evidence`);
+        const uploadTask = storageRef.put(file);
+        uploadTask.on('state_changed', null, function(error) {
+          alert('Photo upload failed: ' + error.message);
+        }, function() {
+          uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
+            firebase.database().ref('/tasks/' + taskId).update({ status, notes, photoUrl: downloadURL }, function(err) {
+              if (!err) {
+                document.getElementById('taskStatus_' + taskId).textContent = status;
+                document.getElementById('taskNotes_' + taskId).textContent = notes;
+                loadTasksForUser();
+                form.reset();
+              }
+            });
+          });
+        });
+      } else {
+        firebase.database().ref('/tasks/' + taskId).update({ status, notes }, function(err) {
+          if (!err) {
+            document.getElementById('taskStatus_' + taskId).textContent = status;
+            document.getElementById('taskNotes_' + taskId).textContent = notes;
+            loadTasksForUser();
+            form.reset();
+          }
+        });
+      }
+    }
+    function highlightAssetOnMap(assetId) {
+      // Remove previous highlight
+      if (highlightLayer && mapInstance) {
+        mapInstance.removeLayer(highlightLayer);
+        highlightLayer = null;
+      }
+      // Try to find the asset marker by assetId (name property)
+      let found = false;
+      [kmlLayer, gpxLayer].forEach(layer => {
+        if (layer && layer.eachLayer) {
+          layer.eachLayer(function(l) {
+            if (l.feature && (l.feature.properties.name === assetId || l.feature.properties.id === assetId)) {
+              highlightLayer = L.circleMarker(l.getLatLng(), { radius: 18, color: 'red', weight: 3, fillOpacity: 0.1 }).addTo(mapInstance);
+              mapInstance.setView(l.getLatLng(), 16);
+              found = true;
+            }
+          });
+        }
+      });
+      if (!found) alert('Asset not found on map.');
+    }
+    // New task form handler
+    if (document.getElementById('newTaskForm')) {
+      document.getElementById('newTaskForm').onsubmit = function(ev) {
+        ev.preventDefault();
+        const assetId = this.assetId.value.trim();
+        const assignedTo = this.assignedTo.value.trim();
+        const description = this.description.value.trim();
+        const status = this.status.value;
+        const task = { assetId, assignedTo, description, status, created: Date.now() };
+        firebase.database().ref('/tasks').push(task, function(err) {
+          if (!err) {
+            loadTasksForUser();
+            document.getElementById('newTaskForm').reset();
+          }
+        });
+      };
+    }
+    // Show tasks button after login
+    function showTasksButton(show) {
+      document.getElementById('tasksBtn').style.display = show ? 'block' : 'none';
+    }
+    // Show tasks button when main app is visible
+    const tasksBtn = document.getElementById('tasksBtn');
+    if (tasksBtn) {
+      tasksBtn.onclick = showTasksModal;
+    }
+    // Show/hide tasks button on auth state change
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        showTasksButton(true);
+      } else {
+        showTasksButton(false);
+      }
+    });
+
+    // REPORTING LOGIC
+    let reportingModal = null;
+    function showReportingModal() {
+      if (!reportingModal) {
+        reportingModal = new bootstrap.Modal(document.getElementById('reportingModal'));
+      }
+      loadAssetCountsAndChart();
+      reportingModal.show();
+    }
+    function loadAssetCountsAndChart() {
+      // Count assets by type from KML/GPX layers
+      let gullyCount = 0, parkCount = 0;
+      let statusCounts = { 'Inspected': 0, 'Needs Maintenance': 0, 'Completed': 0 };
+      if (kmlLayer && kmlLayer.eachLayer) {
+        kmlLayer.eachLayer(function(l) { gullyCount++; });
+      }
+      if (gpxLayer && gpxLayer.eachLayer) {
+        gpxLayer.eachLayer(function(l) { parkCount++; });
+      }
+      // Count statuses from logs
+      firebase.database().ref('/assetLogs').once('value', function(snapshot) {
+        snapshot.forEach(assetSnap => {
+          assetSnap.forEach(logSnap => {
+            const log = logSnap.val();
+            if (log.status && statusCounts[log.status] !== undefined) {
+              statusCounts[log.status]++;
+            }
+          });
+        });
+        // Update UI
+        document.getElementById('assetCounts').innerHTML = `
+          <b>Asset Counts:</b><br>
+          Gullies: ${gullyCount}<br>
+          Parks: ${parkCount}<br>
+          <b>Status Counts:</b><br>
+          Inspected: ${statusCounts['Inspected']}<br>
+          Needs Maintenance: ${statusCounts['Needs Maintenance']}<br>
+          Completed: ${statusCounts['Completed']}<br>
+        `;
+        // Chart
+        const ctx = document.getElementById('assetChart').getContext('2d');
+        if (window.assetChartInstance) window.assetChartInstance.destroy();
+        window.assetChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Gullies', 'Parks', 'Inspected', 'Needs Maintenance', 'Completed'],
+            datasets: [{
+              label: 'Count',
+              data: [gullyCount, parkCount, statusCounts['Inspected'], statusCounts['Needs Maintenance'], statusCounts['Completed']],
+              backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8']
+            }]
+          },
+          options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+      });
+    }
+    function exportAssetsToCSV() {
+      let rows = [['Asset Type','Name','Lat','Lng']];
+      if (kmlLayer && kmlLayer.eachLayer) {
+        kmlLayer.eachLayer(function(l) {
+          if (l.feature && l.feature.geometry && l.feature.geometry.coordinates) {
+            const props = l.feature.properties || {};
+            const coords = l.getLatLng();
+            rows.push(['Gully', props.name || '', coords.lat, coords.lng]);
+          }
+        });
+      }
+      if (gpxLayer && gpxLayer.eachLayer) {
+        gpxLayer.eachLayer(function(l) {
+          if (l.feature && l.feature.geometry && l.feature.geometry.coordinates) {
+            const props = l.feature.properties || {};
+            const coords = l.getLatLng();
+            rows.push(['Park', props.name || '', coords.lat, coords.lng]);
+          }
+        });
+      }
+      let csv = rows.map(r => r.join(',')).join('\n');
+      let blob = new Blob([csv], { type: 'text/csv' });
+      let url = URL.createObjectURL(blob);
+      let a = document.createElement('a');
+      a.href = url;
+      a.download = 'assets.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    // Show reporting button after login
+    function showReportingButton(show) {
+      document.getElementById('reportingBtn').style.display = show ? 'block' : 'none';
+    }
+    const reportingBtn = document.getElementById('reportingBtn');
+    if (reportingBtn) {
+      reportingBtn.onclick = showReportingModal;
+    }
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        showReportingButton(true);
+      } else {
+        showReportingButton(false);
+      }
+    });
+
+    // AUDIT TRAIL LOGIC
+    function logAuditTrail(action, details) {
+      const user = getCurrentUserInfo();
+      firebase.database().ref('/auditTrail').push({
+        timestamp: Date.now(),
+        user: user.email || 'unknown',
+        role: user.role || 'unknown',
+        action,
+        details
+      });
+    }
+    let auditTrailModal = null;
+    function showAuditTrailModal() {
+      if (!auditTrailModal) {
+        auditTrailModal = new bootstrap.Modal(document.getElementById('auditTrailModal'));
+      }
+      loadAuditTrail();
+      auditTrailModal.show();
+    }
+    function loadAuditTrail() {
+      firebase.database().ref('/auditTrail').orderByChild('timestamp').limitToLast(100).once('value', function(snapshot) {
+        const rows = [];
+        snapshot.forEach(child => {
+          const entry = child.val();
+          rows.unshift(`<tr><td>${new Date(entry.timestamp).toLocaleString()}</td><td>${entry.user} (${entry.role})</td><td>${entry.action}</td><td>${entry.details}</td></tr>`);
+        });
+        document.getElementById('auditTrailTable').innerHTML = rows.join('');
+      });
+    }
+    // Show/hide audit trail button for Admins only
+    function showAuditTrailButton(show) {
+      document.getElementById('auditTrailBtn').style.display = show ? 'block' : 'none';
+    }
+    const auditTrailBtn = document.getElementById('auditTrailBtn');
+    if (auditTrailBtn) {
+      auditTrailBtn.onclick = showAuditTrailModal;
+    }
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user && window.currentUserRole === 'admin') {
+        showAuditTrailButton(true);
+      } else {
+        showAuditTrailButton(false);
+      }
+    });
+    // Hook audit logging into key actions
+    // After successful login
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        logAuditTrail('Login', 'User logged in');
+      }
+    });
+    // After adding asset log (in addAssetLog callback)
+    // ...inside addAssetLog...
+    if (!err) {
+      logAuditTrail('Asset Log Added', `Asset: ${assetId}, Status: ${log.status}`);
+      // ... existing code ...
+    }
+    // After creating/updating task (in newTaskForm and updateTaskStatus)
+    // ...inside newTaskForm submit...
+    if (!err) {
+      logAuditTrail('Task Created', `Asset: ${assetId}, Assigned to: ${assignedTo}`);
+      // ... existing code ...
+    }
+    // ...inside updateTaskStatus...
+    if (!err) {
+      logAuditTrail('Task Updated', `Task: ${taskId}, Status: ${status}`);
+      // ... existing code ...
+    }
   </script>
 </body>
 </html>
