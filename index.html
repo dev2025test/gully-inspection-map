@@ -19,7 +19,7 @@
     #loginBg {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
-      background: url('cork_city_hall_day.jpg') center center/cover no-repeat;
+      background: url('cork_city_hall_login.jpg') center center/cover no-repeat;
       z-index: 0;
       display: none;
     }
@@ -415,6 +415,28 @@
             <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Last Login</th></tr></thead>
             <tbody id="usersTable"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESET CONFIRMATION MODAL -->
+  <div class="modal fade" id="resetConfirmModal" tabindex="-1" aria-labelledby="resetConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="resetConfirmModalLabel">Confirm Reset</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="resetConfirmForm">
+            <div class="mb-3">
+              <label for="resetPassword" class="form-label">Enter your password to confirm reset:</label>
+              <input type="password" class="form-control" id="resetPassword" required autocomplete="current-password">
+            </div>
+            <div id="resetConfirmMsg" class="mb-2"></div>
+            <button type="submit" class="btn btn-danger w-100">Confirm Reset</button>
+          </form>
         </div>
       </div>
     </div>
@@ -1220,7 +1242,35 @@
       loadAllUsers();
       new bootstrap.Modal(document.getElementById('usersModal')).show();
     }
-    function resetMap() { alert('Reset map not implemented yet.'); }
+    // Reset button logic with password confirmation
+    function resetMap() {
+      document.getElementById('resetConfirmMsg').textContent = '';
+      document.getElementById('resetConfirmForm').reset();
+      new bootstrap.Modal(document.getElementById('resetConfirmModal')).show();
+    }
+    const resetConfirmForm = document.getElementById('resetConfirmForm');
+    if (resetConfirmForm) {
+      resetConfirmForm.onsubmit = function(e) {
+        e.preventDefault();
+        const password = document.getElementById('resetPassword').value;
+        const user = firebase.auth().currentUser;
+        const email = user ? user.email : '';
+        const msgDiv = document.getElementById('resetConfirmMsg');
+        msgDiv.textContent = '';
+        if (!user || !email) {
+          msgDiv.innerHTML = '<span class="text-danger">User not found.</span>';
+          return;
+        }
+        const cred = firebase.auth.EmailAuthProvider.credential(email, password);
+        user.reauthenticateWithCredential(cred).then(function() {
+          // Place your actual reset logic here
+          msgDiv.innerHTML = '<span class="text-success">Reset confirmed. (Add your reset logic here.)</span>';
+          setTimeout(() => { bootstrap.Modal.getInstance(document.getElementById('resetConfirmModal')).hide(); }, 1200);
+        }).catch(function(error) {
+          msgDiv.innerHTML = '<span class="text-danger">' + error.message + '</span>';
+        });
+      };
+    }
     function showMapOptions() {
       new bootstrap.Modal(document.getElementById('mapsModal')).show();
     }
@@ -1232,6 +1282,23 @@
     function enableEditMode() { alert('Edit mode not implemented yet.'); }
     function enableDeleteMode() { alert('Delete mode not implemented yet.'); }
     function enableAddMode() { alert('Add mode not implemented yet.'); }
+  </script>
+  <!-- Show/hide Reset button only for shane_dorgan@corkcity.ie -->
+  <script>
+    function updateResetButtonVisibility() {
+      const user = firebase.auth().currentUser;
+      const resetBtn = document.getElementById('resetBtn');
+      if (resetBtn) {
+        if (user && user.email && user.email.toLowerCase() === 'shane_dorgan@corkcity.ie') {
+          resetBtn.style.display = 'inline-block';
+        } else {
+          resetBtn.style.display = 'none';
+        }
+      }
+    }
+    firebase.auth().onAuthStateChanged(function(user) {
+      updateResetButtonVisibility();
+    });
   </script>
   <!-- Layer toggle logic -->
   <script>
@@ -1357,6 +1424,43 @@
         }
       };
     }
+  </script>
+  <!-- Inactivity timeout (10 minutes) -->
+  <script>
+    let inactivityTimeout = null;
+    let inactivityWarningShown = false;
+    function resetInactivityTimer() {
+      if (inactivityTimeout) clearTimeout(inactivityTimeout);
+      if (!firebase.auth().currentUser) return;
+      inactivityTimeout = setTimeout(function() {
+        inactivityWarningShown = true;
+        firebase.auth().signOut();
+        setTimeout(function() {
+          const loginError = document.getElementById('loginError');
+          if (loginError) {
+            loginError.innerHTML = '<span class="text-danger">You have been logged out due to inactivity.</span>';
+          }
+        }, 500);
+      }, 10 * 60 * 1000); // 10 minutes
+    }
+    function setupInactivityListeners() {
+      ['mousemove','keydown','mousedown','touchstart','scroll'].forEach(evt => {
+        window.addEventListener(evt, resetInactivityTimer, true);
+      });
+    }
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        resetInactivityTimer();
+        setupInactivityListeners();
+        inactivityWarningShown = false;
+      } else {
+        if (inactivityTimeout) clearTimeout(inactivityTimeout);
+        if (!inactivityWarningShown) {
+          const loginError = document.getElementById('loginError');
+          if (loginError) loginError.textContent = '';
+        }
+      }
+    });
   </script>
 </body>
 </html>
