@@ -10,78 +10,129 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; background: #222; color: #fff; }
+    body {
+      background: #232323;
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+    }
     .login-card {
       background: #fff;
-      color: #222;
-      padding: 32px;
-      border-radius: 16px;
-      max-width: 400px;
-      margin: 60px auto;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+      border-radius: 18px;
+      box-shadow: 0 6px 32px rgba(0,0,0,0.18), 0 1.5px 6px rgba(0,0,0,0.10);
+      padding: 2.5rem 2.2rem 2rem 2.2rem;
+      max-width: 410px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    .main-app {
-      display: none;
+    .login-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 1.2rem;
+    }
+    .login-header img {
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+      margin-bottom: 0.7rem;
+    }
+    .login-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 1.2rem;
       text-align: center;
-      margin-top: 80px;
     }
-    .password-toggle {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      cursor: pointer;
-      color: #888;
-      font-size: 1.2em;
-      z-index: 2;
+    .login-form label {
+      font-weight: 500;
+      color: #333;
     }
-    .position-relative { position: relative; }
-    .error { color: #ff4444; }
-    .success { color: #4CAF50; }
-    @media (max-width: 800px) {
-      .leaflet-popup-content {
-        min-width: 90vw !important;
-        max-width: 98vw !important;
-        padding: 0.5em !important;
-      }
-      .asset-popup form, .modal-content form {
-        font-size: 1.1em;
-      }
-      .asset-popup input, .asset-popup select, .asset-popup textarea, .asset-popup button,
-      .modal-content input, .modal-content select, .modal-content textarea, .modal-content button {
-        font-size: 1.1em !important;
-        min-height: 48px;
-        margin-bottom: 0.5em;
-      }
-      .leaflet-popup-content-wrapper {
-        overflow-x: hidden;
-        overflow-y: auto;
-        max-height: 80vh;
-      }
-      .modal-content {
-        font-size: 1.1em;
-      }
-      .modal-dialog {
+    .login-form input[type="email"],
+    .login-form input[type="password"],
+    .login-form input[type="text"],
+    .login-form input[type="date"],
+    .login-form input[type="time"],
+    .login-form select,
+    .login-form textarea {
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      margin-bottom: 0.7rem;
+      font-size: 1.08em;
+      padding: 0.7em 1em;
+      background: #f8fafc;
+      transition: border 0.2s;
+    }
+    .login-form input:focus,
+    .login-form select:focus,
+    .login-form textarea:focus {
+      border: 1.5px solid #007bff;
+      outline: none;
+      background: #fff;
+    }
+    .login-form .btn-primary {
+      background: #007bff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1.1em;
+      margin-top: 0.5em;
+      margin-bottom: 0.5em;
+      box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+      transition: background 0.2s;
+    }
+    .login-form .btn-primary:hover {
+      background: #0056b3;
+    }
+    .login-form .btn-outline-secondary {
+      border-radius: 8px;
+      font-size: 1.08em;
+      margin-bottom: 0.5em;
+    }
+    .login-form .form-check-label {
+      font-size: 1em;
+      color: #444;
+    }
+    .login-form .form-check-input {
+      margin-top: 0.2em;
+    }
+    .login-form .text-danger {
+      font-size: 0.98em;
+      margin-bottom: 0.5em;
+    }
+    .login-form .text-success {
+      font-size: 0.98em;
+      margin-bottom: 0.5em;
+    }
+    .login-form a {
+      color: #007bff;
+      text-decoration: none;
+      font-size: 0.98em;
+    }
+    .login-form a:hover {
+      text-decoration: underline;
+    }
+    @media (max-width: 600px) {
+      .login-card {
+        padding: 1.2rem 0.5rem 1.2rem 0.5rem;
         max-width: 98vw;
-        margin: 0.5rem auto;
       }
-      #functionToolbar {
-        flex-wrap: wrap;
-        font-size: 1.1em;
-        min-height: 60px;
+      .login-header img {
+        width: 90px;
+        height: 90px;
       }
-      .toolbar-button {
-        min-width: 44px;
-        min-height: 44px;
-        font-size: 1.1em;
-        padding: 0.5em 1em;
+      .login-title {
+        font-size: 1.1rem;
       }
     }
   </style>
 </head>
 <body>
   <!-- LOGIN PAGE HEADER -->
-  <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh; position:relative; z-index:1;" id="loginContainer">
+  <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh; position:relative; z-index:1; background:transparent;" id="loginContainer">
     <div class="login-card">
       <div class="login-header">
         <img src="cork-city-council-logo.jpg" alt="Cork City Council Logo">
