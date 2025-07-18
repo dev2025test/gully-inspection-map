@@ -1031,59 +1031,39 @@
 <!-- LOGIN PAGE HEADER -->
 <div id="loginScreen" class="login-background" style="min-height:100vh;">
   <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh;">
-    <div class="card shadow-lg p-0" style="max-width:700px;width:100%;border-radius:18px;overflow:hidden;">
-      <!-- Header Bar -->
-      <div class="d-flex align-items-center justify-content-between px-4 py-3" style="background:#fff;border-bottom:1px solid #eee;">
-        <div class="d-flex align-items-center gap-3">
-          <img src="cork-city-council-logo.jpg" alt="Cork City Council Logo" style="height:48px;width:auto;">
-          <span style="font-size:1.5rem;font-weight:700;letter-spacing:1px;">CORK CITY COUNCIL</span>
-        </div>
-        <span style="font-size:1.35rem;font-weight:600;">Asset Management System (Roads)</span>
-      </div>
-      <div class="d-flex flex-row">
-        <!-- Main Login Form -->
-        <div class="flex-grow-1 p-4" style="min-width:320px;">
-          <h2 class="mb-2" style="font-weight:700;">Asset Management System (Roads)</h2>
-          <div class="mb-3" style="font-size:1.1rem;color:#444;">Please sign in to continue.</div>
-          <form id="loginForm" autocomplete="on">
-            <div class="mb-3">
-              <label for="email" class="form-label" style="font-weight:500;">Username</label>
-              <input type="email" id="email" placeholder="Username" class="form-control form-control-lg" autocomplete="username" style="font-size:1.1rem;">
-            </div>
-            <div class="mb-3 position-relative" style="width:100%;">
-              <label for="password" class="form-label" style="font-weight:500;">Password</label>
-              <input type="password" id="password" placeholder="Password" class="form-control form-control-lg" autocomplete="current-password" style="font-size:1.1rem; padding-right: 2.5rem;">
-              <span class="password-toggle" onclick="togglePassword()" title="Show or hide password" style="position:absolute;right:18px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1.3rem;color:#888;z-index:2;display:flex;align-items:center;height:2.5rem;width:2.5rem;justify-content:center;">
-                <i id="passwordToggleIcon" class="bi bi-eye" style="margin-top:35px;"></i>
-              </span>
-            </div>
-            <div class="remember-me mb-2">
-              <input type="checkbox" id="rememberMe" style="margin-right:6px;"> <label for="rememberMe" style="font-size:1em;">Remember Me</label>
-            </div>
-            <button type="submit" class="btn btn-primary btn-lg w-100 mb-2" style="font-weight:600;font-size:1.15rem;">Sign In</button>
-            <button type="button" class="btn btn-outline-primary w-100 mt-2" onclick="showRegisterModal()">Register</button>
-            <div class="text-start mt-2">
-              <a href="#" id="forgotPasswordLink" style="color:#1976D2;text-decoration:underline;cursor:pointer;font-size:1rem;">Forgot password?</a>
-            </div>
-            <p id="loginError" style="color:red;margin-top:10px;"></p>
-          </form>
-        </div>
-        <!-- Sidebar Icons -->
-        <div class="d-flex flex-column align-items-center justify-content-center gap-3 p-4" style="background:#f8f9fa;min-width:90px;">
-          <div style="background:#1976d2;border-radius:12px;width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
-            <i class="bi bi-map" style="font-size:2rem;color:#fff;"></i>
-          </div>
-          <div style="background:#388e3c;border-radius:12px;width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
-            <i class="bi bi-wrench" style="font-size:2rem;color:#fff;"></i>
-          </div>
-          <div style="background:#fbc02d;border-radius:12px;width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
-            <i class="bi bi-archive" style="font-size:2rem;color:#fff;"></i>
-          </div>
-          <div style="background:#6c4eb6;border-radius:12px;width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
-            <i class="bi bi-bar-chart" style="font-size:2rem;color:#fff;"></i>
-          </div>
+    <div class="login-card">
+      <div class="login-header">
+        <img src="cork-city-council-logo.jpg" alt="Cork City Council Logo">
+        <div>
+          <div style="font-weight:700;">CORK CITY COUNCIL</div>
+          <div style="font-size:1.1em;font-weight:600;">Asset Management System (Roads)</div>
         </div>
       </div>
+      <div class="login-title">Asset Management System (Roads)</div>
+      <div class="login-subtitle">Please sign in to continue.</div>
+      <form id="loginForm" autocomplete="on">
+        <div class="mb-3">
+          <label for="email" class="form-label" style="font-weight:500;">Username</label>
+          <input type="email" id="email" class="form-control" placeholder="Username" autocomplete="username" required>
+        </div>
+        <div class="mb-3 position-relative">
+          <label for="password" class="form-label" style="font-weight:500;">Password</label>
+          <input type="password" id="password" class="form-control" placeholder="Password" autocomplete="current-password" required>
+          <span class="password-toggle" id="togglePassword" title="Show or hide password">
+            <i class="bi bi-eye" id="passwordToggleIcon"></i>
+          </span>
+        </div>
+        <div class="form-check remember-me">
+          <input class="form-check-input" type="checkbox" id="rememberMe">
+          <label class="form-check-label" for="rememberMe">Remember Me</label>
+        </div>
+        <button type="submit" class="btn btn-primary login-btn w-100">Sign In</button>
+        <button type="button" class="btn btn-outline-primary register-btn" id="registerBtn">Register</button>
+        <div class="text-start">
+          <a class="forgot-link" id="forgotPasswordLink">Forgot password?</a>
+        </div>
+        <p id="loginError" style="color:red;margin-top:10px;"></p>
+      </form>
     </div>
   </div>
 </div>
@@ -2711,28 +2691,89 @@ window.onload = () => {
   });
 };
 
-function togglePassword() {
-  const passwordInput = document.getElementById('password');
+// Show/hide password
+document.getElementById('togglePassword').onclick = function() {
+  const pwd = document.getElementById('password');
   const icon = document.getElementById('passwordToggleIcon');
-  if (passwordInput.type === 'password') {
-    passwordInput.type = 'text';
-    if (icon) { icon.classList.remove('bi-eye'); icon.classList.add('bi-eye-slash'); }
+  if (pwd.type === 'password') {
+    pwd.type = 'text';
+    icon.classList.remove('bi-eye');
+    icon.classList.add('bi-eye-slash');
   } else {
-    passwordInput.type = 'password';
-    if (icon) { icon.classList.remove('bi-eye-slash'); icon.classList.add('bi-eye'); }
+    pwd.type = 'password';
+    icon.classList.remove('bi-eye-slash');
+    icon.classList.add('bi-eye');
   }
-}
+};
 
-// Load saved email on page load
-window.addEventListener('load', function() {
+// Remember Me functionality
+window.addEventListener('DOMContentLoaded', function() {
   const savedEmail = localStorage.getItem('rememberedEmail');
   if (savedEmail) {
     document.getElementById('email').value = savedEmail;
     document.getElementById('rememberMe').checked = true;
-  } else {
-    document.getElementById('rememberMe').checked = false;
   }
 });
+
+// Firebase login logic
+document.getElementById('loginForm').onsubmit = function(e) {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const rememberMe = document.getElementById('rememberMe').checked;
+  const loginError = document.getElementById('loginError');
+  loginError.textContent = '';
+
+  if (!email || !password) {
+    loginError.textContent = '❌ Please enter both email and password';
+    return;
+  }
+  // Save or clear remembered email
+  if (rememberMe) {
+    localStorage.setItem('rememberedEmail', email);
+  } else {
+    localStorage.removeItem('rememberedEmail');
+  }
+
+  // Firebase login
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    firebase.auth().signInWithEmailAndPassword(email, password)
+      .then(userCredential => {
+        // Success: reload or redirect
+        window.location.reload();
+      })
+      .catch(err => {
+        loginError.textContent = '❌ ' + (err.message || 'Login failed');
+      });
+  } else {
+    loginError.textContent = '❌ Firebase not initialized.';
+  }
+};
+
+// Register button handler
+document.getElementById('registerBtn').onclick = function() {
+  alert('Register functionality not implemented in this demo.');
+};
+
+// Forgot password handler
+document.getElementById('forgotPasswordLink').onclick = function() {
+  const email = document.getElementById('email').value.trim();
+  if (!email) {
+    alert('Please enter your email address first.');
+    return;
+  }
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    firebase.auth().sendPasswordResetEmail(email)
+      .then(() => {
+        alert('Password reset email sent.');
+      })
+      .catch(err => {
+        alert('Error: ' + (err.message || 'Could not send reset email.'));
+      });
+  } else {
+    alert('Firebase not initialized.');
+  }
+};
 
 function printMap() {
   window.print();
