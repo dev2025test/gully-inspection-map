@@ -16,6 +16,20 @@
       min-height: 100vh;
       margin: 0;
     }
+    #loginBg {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: url('cork_city_hall_day.jpg') center center/cover no-repeat;
+      z-index: 0;
+    }
+    #loginBgOverlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(30,30,30,0.45);
+      z-index: 1;
+    }
     .login-card {
       background: #fff;
       border-radius: 18px;
@@ -27,6 +41,8 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      position: relative;
+      z-index: 2;
     }
     .login-header {
       display: flex;
@@ -132,7 +148,9 @@
 </head>
 <body>
   <!-- LOGIN PAGE HEADER -->
-  <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh; position:relative; z-index:1; background:transparent;" id="loginContainer">
+  <div id="loginBg"></div>
+  <div id="loginBgOverlay"></div>
+  <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh; position:relative; z-index:2; background:transparent;" id="loginContainer">
     <div class="login-card">
       <div class="login-header">
         <img src="cork-city-council-logo.jpg" alt="Cork City Council Logo">
@@ -1161,16 +1179,23 @@
     function showToolbar(show) {
       document.getElementById('functionToolbar').style.display = show ? 'flex' : 'none';
     }
+    // Show/hide login background image and overlay
+    function showLoginBg(show) {
+      document.getElementById('loginBg').style.display = show ? 'block' : 'none';
+      document.getElementById('loginBgOverlay').style.display = show ? 'block' : 'none';
+    }
     firebase.auth().onAuthStateChanged(function(user) {
       if (user) {
         showToolbar(true);
         updateUserInfoBar();
         document.getElementById('mainApp').style.display = 'block';
         document.getElementById('loginContainer').style.display = 'none';
+        showLoginBg(false);
       } else {
         showToolbar(false);
         document.getElementById('mainApp').style.display = 'none';
         document.getElementById('loginContainer').style.display = 'flex';
+        showLoginBg(true);
       }
     });
     // Update user info bar
