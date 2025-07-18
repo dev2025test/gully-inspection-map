@@ -1117,6 +1117,7 @@
       <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" onclick="saveGullyData()" title="Backup all gully data"><i class="bi bi-save"></i> <span>Backup</span></button>
       <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" onclick="loadFromBackup()" title="Load data from a backup file"><i class="bi bi-folder"></i> <i class="bi bi-arrow-up"></i> <span>Load Backup</span></button>
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" id="toggleMapLayerBtn" onclick="toggleMapLayer()" title="Switch between Map and Satellite"><i class="bi bi-globe"></i> Satellite</button>
+      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSearchModal()" title="Filter by street or asset name"><i class="bi bi-search"></i> <span>Filter</span></button>
     </div>
   </div>
 </div>
@@ -4255,6 +4256,72 @@ if (forgotLink) {
           const loginScreen = document.getElementById("loginScreen");
           if (loginScreen) loginScreen.style.opacity = "1";
         });
+    }
+
+    // Search/filter modal and logic
+    function showSearchModal() {
+      // Remove any existing modal
+      document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop-custom';
+      backdrop.onclick = function(e) { if (e.target === backdrop) backdrop.remove(); };
+      const modal = document.createElement('div');
+      modal.className = 'card shadow p-4';
+      modal.style.maxWidth = '400px';
+      modal.style.maxHeight = '90vh';
+      modal.style.overflowY = 'auto';
+      modal.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="m-0">Filter by Street or Asset Name</h3>
+          <button class="btn btn-secondary" onclick="this.closest('.card').parentElement.remove()">✖ Close</button>
+        </div>
+        <form id="searchForm">
+          <div class="mb-3">
+            <input type="text" id="searchInput" class="form-control" placeholder="Type street or asset name..." required autofocus>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Search</button>
+          <div id="searchError" style="color:red;margin-top:10px;"></div>
+        </form>
+      `;
+      backdrop.appendChild(modal);
+      document.body.appendChild(backdrop);
+      document.getElementById('searchForm').onsubmit = function(e) {
+        e.preventDefault();
+        searchAndZoom();
+      };
+    }
+
+    function searchAndZoom() {
+      const input = document.getElementById('searchInput').value.trim().toLowerCase();
+      const errorDiv = document.getElementById('searchError');
+      errorDiv.textContent = '';
+      if (!input) {
+        errorDiv.textContent = 'Please enter a street or asset name.';
+        return;
+      }
+      // Search gullies for a match in asset name or street (if available)
+      let found = null;
+      for (const gully of gullyData) {
+        if (gully.layer === 'gullies') {
+          // Try asset name
+          let assetName = '';
+          let streetName = '';
+          if (gully.id) assetName = gully.id.toLowerCase();
+          if (gully.assetName) assetName = gully.assetName.toLowerCase();
+          if (gully.street) streetName = gully.street.toLowerCase();
+          if (assetName.includes(input) || streetName.includes(input)) {
+            found = gully;
+            break;
+          }
+        }
+      }
+      if (found && found.marker) {
+        window.map.setView(found.marker.getLatLng(), 18, { animate: true });
+        found.marker.openPopup && found.marker.openPopup();
+        document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
+      } else {
+        errorDiv.textContent = 'No matching gully found.';
+      }
     }
 
 </script>
