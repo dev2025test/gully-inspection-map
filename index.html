@@ -1477,6 +1477,7 @@ function login(isAutoLogin = false) {
       if (loginScreen) loginScreen.style.opacity = "1";
     });
 }
+window.login = login;
 
 // Placeholder for setupInactivityTracking if not defined elsewhere
 function setupInactivityTracking() {
@@ -3273,7 +3274,11 @@ document.addEventListener('DOMContentLoaded', function() {
   if (loginForm) {
     loginForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      login();
+      if (typeof login === 'function') {
+        login();
+      } else {
+        document.getElementById('loginError').textContent = '❌ Login function not found.';
+      }
       return false;
     });
   }
