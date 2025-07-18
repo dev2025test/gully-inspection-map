@@ -2342,16 +2342,18 @@ function updateSummary() {
 }
 
 // Update the filter functionality
-function filterByStatus() {
-  const selectedStatus = document.getElementById('filterStatus').value;
-  
+function filterByStatus(statusArg) {
+  let selectedStatus = statusArg;
+  if (!selectedStatus) {
+    const filterStatus = document.getElementById('filterStatus');
+    selectedStatus = filterStatus ? filterStatus.value : 'All';
+  }
   // Hide all markers first
   gullyData.forEach(gully => {
     if (gully.layer === 'gullies') {
       gully.marker.setOpacity(0.2);
     }
   });
-  
   // Show markers that match the filter
   if (selectedStatus === 'All') {
     gullyData.forEach(gully => {
@@ -2365,6 +2367,11 @@ function filterByStatus() {
         gully.marker.setOpacity(1);
       }
     });
+  }
+  // If filter dropdown exists, update its value
+  const filterStatus = document.getElementById('filterStatus');
+  if (filterStatus && filterStatus.value !== selectedStatus) {
+    filterStatus.value = selectedStatus;
   }
 }
 
@@ -2576,7 +2583,7 @@ function showSummaryPopup() {
     </div>
     <div class="summary-content">
       <div>
-        <div class="status-card card p-3 mb-2 text-center">
+        <div class="status-card card p-3 mb-2 text-center" style="cursor:pointer;" onclick="filterByStatus('All')">
           <h3 class="mb-2">Total Gullies</h3>
           <div class="status-count">${summary.total}</div>
           <div class="status-description">Total number of gullies in the system</div>
@@ -2586,7 +2593,7 @@ function showSummaryPopup() {
         .filter(([status]) => status !== 'total')
         .map(([status, count]) => `
           <div>
-            <div class="status-card card p-3 mb-2 text-center" style="border-left: 4px solid ${getStatusColor(status)}">
+            <div class="status-card card p-3 mb-2 text-center" style="border-left: 4px solid ${getStatusColor(status)}; cursor:pointer;" onclick="filterByStatus('${status}')">
               <h3 class="mb-2">${status}</h3>
               <div class="status-count">${count}</div>
               <div class="status-description">${{
