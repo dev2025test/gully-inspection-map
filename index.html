@@ -999,6 +999,30 @@
 +     }
     }
   </style>
+  <style>
+    /* ... existing styles ... */
++   @media print {
++     body, html {
++       margin: 0 !important;
++       padding: 0 !important;
++     }
++     #map {
++       position: absolute !important;
++       top: 0 !important;
++       left: 0 !important;
++       width: 100vw !important;
++       height: 100vh !important;
++       z-index: 9999 !important;
++       display: block !important;
++     }
++     #loginScreen, .bottom-toolbar, .toolbar-content, .button-group, .toolbar-header, .toggle-layers, .summary-popup, .layer-control-card, .leaflet-control, .leaflet-top, .leaflet-bottom, .leaflet-control-attribution, .leaflet-control-zoom, .leaflet-control-layers, .modal-backdrop-custom, .user-info, .ribbon-bar, .function-tabs, .tab-header, .tab-content, .tab-group, .tab-group h4, .function-grid, .input-group, .bottom-controls, .toggle-controls, .toolbar-button, .btn, .layer-control, .layer-control-card, .layer-control select, .layer-content, .layer-header, .collapse-icon, .summary-header, .summary-content, .status-card, .status-count, .status-description, .loading-spinner, .spinner, .leaflet-popup, .leaflet-popup-content-wrapper, .leaflet-popup-tip {
++       display: none !important;
++     }
++     @page {
++       size: landscape;
++     }
++   }
+  </style>
 </head>
 <body>
 <div id="map" style="width:100vw; height:100vh; min-height:400px;"></div>
