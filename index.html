@@ -632,6 +632,11 @@
         window.initMap = function() {
           console.log("initMap called");
           if (window.mapInstance) return; // Prevent double init
+          document.getElementById('mainApp').style.display = 'block';
+          document.getElementById('mainApp').style.height = '90vh';
+          document.getElementById('mainApp').style.width = '100vw';
+          document.getElementById('map').style.height = '100%';
+          document.getElementById('map').style.width = '100%';
           document.getElementById('map').innerHTML = "";
           window.mapInstance = L.map('map').setView([51.8985, -8.4756], 13);
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
