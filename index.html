@@ -629,7 +629,7 @@
         function showAssetFilterBar(show) {
           document.getElementById('assetFilterBar').style.display = show ? 'block' : 'none';
         }
-        function initMap() {
+        window.initMap = function() {
           console.log("initMap called");
           if (window.mapInstance) return; // Prevent double init
           window.mapInstance = L.map('map').setView([51.8985, -8.4756], 13);
