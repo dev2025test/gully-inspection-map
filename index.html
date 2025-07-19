@@ -155,18 +155,22 @@
       z-index: 1200;
     }
     #mainApp {
-      display: none;
+      height: 90vh !important;
+      width: 100vw !important;
+      display: block !important;
       position: fixed;
       top: 0;
       left: 0;
-      width: 100vw;
-      height: calc(100vh - 56px);
       z-index: 1;
       overflow: hidden;
     }
     #map {
-      height: 100%;
-      width: 100%;
+      height: 100% !important;
+      width: 100% !important;
+      min-height: 400px !important;
+      min-width: 400px !important;
+      background: #eee;
+      display: block !important;
     }
     .hide {
       display: none !important;
@@ -643,11 +647,6 @@
         window.initMap = function() {
           console.log("initMap called");
           if (window.mapInstance) return; // Prevent double init
-          document.getElementById('mainApp').classList.remove('hide'); // Show the map
-          document.getElementById('mainApp').style.height = '90vh';
-          document.getElementById('mainApp').style.width = '100vw';
-          document.getElementById('map').style.height = '100%';
-          document.getElementById('map').style.width = '100%';
           document.getElementById('map').innerHTML = "";
           window.mapInstance = L.map('map').setView([51.8985, -8.4756], 13);
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
