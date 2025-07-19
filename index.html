@@ -1236,6 +1236,14 @@
         document.getElementById('mainApp').style.display = 'block';
         document.getElementById('loginContainer').style.display = 'none';
         showLoginBg(false);
+        // Hide asset filter bar if visible on login screen
+        if (document.getElementById('assetFilterBar')) {
+          document.getElementById('assetFilterBar').style.display = 'block';
+        }
+        // Force map resize in case it was hidden
+        if (window.mapInstance && window.mapInstance.invalidateSize) {
+          setTimeout(function() { window.mapInstance.invalidateSize(); }, 300);
+        }
       } else {
         showToolbar(false);
         document.getElementById('mainApp').style.display = 'none';
