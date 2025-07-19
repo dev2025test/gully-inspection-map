@@ -528,6 +528,14 @@
           updateUIForRole(role);
           document.getElementById('loginContainer').style.display = 'none';
           document.getElementById('mainApp').classList.remove('hide'); // Show the map
+          setTimeout(function() {
+            initMap();
+            setTimeout(function() {
+              if (window.mapInstance && window.mapInstance.invalidateSize) {
+                window.mapInstance.invalidateSize();
+              }
+            }, 300);
+          }, 300);
         }).catch(function(error) {
           document.getElementById('loginError').textContent = 'Could not fetch user role: ' + error.message;
           firebase.auth().signOut();
