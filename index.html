@@ -638,26 +638,7 @@
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
           }).addTo(window.mapInstance);
-          // Load markers from Firebase database
-          firebase.database().ref('/gullies').once('value', function(snapshot) {
-            snapshot.forEach(function(child) {
-              var gully = child.val();
-              if (gully.location && gully.location.lat && gully.location.lng) {
-                var marker = L.marker([gully.location.lat, gully.location.lng]).addTo(window.mapInstance);
-                marker.bindPopup(`<b>${gully.name || 'Gully'}</b><br>Status: ${gully.status || 'Unknown'}`);
-              }
-            });
-          });
-          // Optionally, load parks/playgrounds from /parks in the database
-          firebase.database().ref('/parks').once('value', function(snapshot) {
-            snapshot.forEach(function(child) {
-              var park = child.val();
-              if (park.location && park.location.lat && park.location.lng) {
-                var marker = L.marker([park.location.lat, park.location.lng], {icon: L.icon({iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png'})}).addTo(window.mapInstance);
-                marker.bindPopup(`<b>${park.name || 'Park'}</b>`);
-              }
-            });
-          });
+          window.mapInstance.invalidateSize();
         }
         // Listen for mainApp becoming visible
         // const observer = new MutationObserver(function(mutations) {
