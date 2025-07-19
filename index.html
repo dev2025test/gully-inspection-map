@@ -632,6 +632,7 @@
         window.initMap = function() {
           console.log("initMap called");
           if (window.mapInstance) return; // Prevent double init
+          document.getElementById('map').innerHTML = "";
           window.mapInstance = L.map('map').setView([51.8985, -8.4756], 13);
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -839,18 +840,18 @@
           });
         }
         // Listen for mainApp becoming visible
-        const observer = new MutationObserver(function(mutations) {
-          mutations.forEach(function(m) {
-            if (m.target.style.display !== 'none') {
-              setTimeout(initMap, 100); // Delay to ensure DOM is ready
-            }
-          });
-        });
-        observer.observe(document.getElementById('mainApp'), { attributes: true, attributeFilter: ['style'] });
+        // const observer = new MutationObserver(function(mutations) {
+        //   mutations.forEach(function(m) {
+        //     if (m.target.style.display !== 'none') {
+        //       setTimeout(initMap, 100); // Delay to ensure DOM is ready
+        //     }
+        //   });
+        // });
+        // observer.observe(document.getElementById('mainApp'), { attributes: true, attributeFilter: ['style'] });
         // If already visible (e.g., after login), init immediately
-        if (document.getElementById('mainApp').style.display !== 'none') {
-          setTimeout(initMap, 100);
-        }
+        // if (document.getElementById('mainApp').style.display !== 'none') {
+        //   setTimeout(initMap, 100);
+        // }
       }
     });
 
@@ -1396,7 +1397,7 @@
         });
       }
       // Ensure default basemap is street
-      setTimeout(function() { setBasemap('street'); }, 500);
+      // setTimeout(function() { setBasemap('street'); }, 500);
     });
   </script>
   <!-- User management modal logic -->
