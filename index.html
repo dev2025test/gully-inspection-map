@@ -636,163 +636,183 @@
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
           }).addTo(window.mapInstance);
-          // KML Layer (example: gullies.kml)
-          window.kmlLayer = omnivore.kml('gullies.kml', null, L.geoJson(null, {
-            onEachFeature: function(feature, layer) {
-              const props = feature.properties || {};
-              const assetId = props.name || props.id || Math.random().toString(36).substr(2, 9);
-              layer.bindPopup({
-                maxWidth: 340,
-                minWidth: 220,
-                autoPan: true,
-                closeButton: true,
-                className: 'asset-popup',
-                html: `<b>${props.name || 'Gully'}</b><br>
-                  <form id="inspectionForm_${assetId}" enctype="multipart/form-data" style="margin-top:8px;">
-                    <div class="mb-1">
-                      <label class="form-label mb-0">Date</label>
-                      <input type="date" name="date" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="mb-1">
-                      <label class="form-label mb-0">Time</label>
-                      <input type="time" name="time" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="mb-1">
-                      <label class="form-label mb-0">Status</label>
-                      <select name="status" class="form-select form-select-sm" required>
-                        <option value="">Select status</option>
-                        <option>Clear</option>
-                        <option>Blocked</option>
-                        <option>Broken</option>
-                        <option>Remediation</option>
-                        <option>Replacement</option>
-                      </select>
-                    </div>
-                    <div class="mb-1">
-                      <label class="form-label mb-0">Photo</label>
-                      <input type="file" name="photo" accept="image/*" class="form-control form-control-sm">
-                    </div>
-                    <div class="mb-1">
-                      <label class="form-label mb-0">Comment</label>
-                      <textarea name="comment" class="form-control form-control-sm" rows="2"></textarea>
-                    </div>
-                    <div class="form-check mb-1">
-                      <input class="form-check-input" type="checkbox" name="confirm" id="confirm_${assetId}" required>
-                      <label class="form-check-label" for="confirm_${assetId}">I confirm this inspection is accurate</label>
-                    </div>
-                    <div id="inspectionMsg_${assetId}" class="mb-1"></div>
-                    <button type="submit" class="btn btn-success btn-sm w-100">Save Inspection</button>
-                  </form>`
-              });
-              layer.on('popupopen', function(e) {
-                // Fetch and display logs
-                fetchAssetLogs(assetId, function(logs) {
-                  const logsDiv = document.getElementById('logs_' + assetId);
-                  if (logsDiv) {
-                    if (logs.length === 0) {
-                      logsDiv.innerHTML = '<i>No logs yet.</i>';
-                    } else {
-                      logsDiv.innerHTML = renderLogs(logs);
+          // Try to load KML, but don't break if missing
+          try {
+            window.kmlLayer = omnivore.kml('gullies.kml', null, L.geoJson(null, {
+              onEachFeature: function(feature, layer) {
+                const props = feature.properties || {};
+                const assetId = props.name || props.id || Math.random().toString(36).substr(2, 9);
+                layer.bindPopup({
+                  maxWidth: 340,
+                  minWidth: 220,
+                  autoPan: true,
+                  closeButton: true,
+                  className: 'asset-popup',
+                  html: `<b>${props.name || 'Gully'}</b><br>
+                    <form id="inspectionForm_${assetId}" enctype="multipart/form-data" style="margin-top:8px;">
+                      <div class="mb-1">
+                        <label class="form-label mb-0">Date</label>
+                        <input type="date" name="date" class="form-control form-control-sm" required>
+                      </div>
+                      <div class="mb-1">
+                        <label class="form-label mb-0">Time</label>
+                        <input type="time" name="time" class="form-control form-control-sm" required>
+                      </div>
+                      <div class="mb-1">
+                        <label class="form-label mb-0">Status</label>
+                        <select name="status" class="form-select form-select-sm" required>
+                          <option value="">Select status</option>
+                          <option>Clear</option>
+                          <option>Blocked</option>
+                          <option>Broken</option>
+                          <option>Remediation</option>
+                          <option>Replacement</option>
+                        </select>
+                      </div>
+                      <div class="mb-1">
+                        <label class="form-label mb-0">Photo</label>
+                        <input type="file" name="photo" accept="image/*" class="form-control form-control-sm">
+                      </div>
+                      <div class="mb-1">
+                        <label class="form-label mb-0">Comment</label>
+                        <textarea name="comment" class="form-control form-control-sm" rows="2"></textarea>
+                      </div>
+                      <div class="form-check mb-1">
+                        <input class="form-check-input" type="checkbox" name="confirm" id="confirm_${assetId}" required>
+                        <label class="form-check-label" for="confirm_${assetId}">I confirm this inspection is accurate</label>
+                      </div>
+                      <div id="inspectionMsg_${assetId}" class="mb-1"></div>
+                      <button type="submit" class="btn btn-success btn-sm w-100">Save Inspection</button>
+                    </form>`
+                });
+                layer.on('popupopen', function(e) {
+                  // Fetch and display logs
+                  fetchAssetLogs(assetId, function(logs) {
+                    const logsDiv = document.getElementById('logs_' + assetId);
+                    if (logsDiv) {
+                      if (logs.length === 0) {
+                        logsDiv.innerHTML = '<i>No logs yet.</i>';
+                      } else {
+                        logsDiv.innerHTML = renderLogs(logs);
+                      }
+                    }
+                  });
+                  // Add log form handler
+                  if (canAddLogs()) {
+                    const form = document.getElementById('logForm_' + assetId);
+                    if (form) {
+                      form.onsubmit = function(ev) {
+                        ev.preventDefault();
+                        const status = form.status.value;
+                        const notes = form.notes.value;
+                        const user = getCurrentUserInfo();
+                        const fileInput = form.photo;
+                        const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+                        const log = {
+                          status,
+                          notes,
+                          timestamp: Date.now(),
+                          userId: user.uid,
+                          userEmail: user.email
+                        };
+                        addAssetLog(assetId, log, file, function(error) {
+                          if (!error) {
+                            fetchAssetLogs(assetId, function(logs) {
+                              const logsDiv = document.getElementById('logs_' + assetId);
+                              if (logsDiv) {
+                                logsDiv.innerHTML = renderLogs(logs);
+                              }
+                            });
+                            form.reset();
+                          }
+                        });
+                      };
                     }
                   }
                 });
-                // Add log form handler
-                if (canAddLogs()) {
-                  const form = document.getElementById('logForm_' + assetId);
-                  if (form) {
-                    form.onsubmit = function(ev) {
-                      ev.preventDefault();
-                      const status = form.status.value;
-                      const notes = form.notes.value;
-                      const user = getCurrentUserInfo();
-                      const fileInput = form.photo;
-                      const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
-                      const log = {
-                        status,
-                        notes,
-                        timestamp: Date.now(),
-                        userId: user.uid,
-                        userEmail: user.email
+              }
+            })).on('ready', function() {
+              window.mapInstance.addLayer(window.kmlLayer);
+              if (window.kmlLayer.getLayers().length) {
+                window.mapInstance.fitBounds(window.kmlLayer.getBounds());
+              }
+            }).on('error', function() {
+              console.warn('KML file not found or failed to load.');
+            }).addTo(window.mapInstance);
+          } catch (e) {
+            console.warn('KML layer error:', e);
+          }
+          // Try to load GPX, but don't break if missing
+          try {
+            window.gpxLayer = omnivore.gpx('parks.gpx', null, L.geoJson(null, {
+              onEachFeature: function(feature, layer) {
+                const props = feature.properties || {};
+                const assetId = props.name || props.id || Math.random().toString(36).substr(2, 9);
+                layer.bindPopup({
+                  maxWidth: 320,
+                  minWidth: 220,
+                  autoPan: true,
+                  closeButton: true,
+                  className: 'asset-popup',
+                  html: assetPopupHtml(props, assetId)
+                });
+                layer.on('popupopen', function(e) {
+                  // Fetch and display logs
+                  fetchAssetLogs(assetId, function(logs) {
+                    const logsDiv = document.getElementById('logs_' + assetId);
+                    if (logsDiv) {
+                      if (logs.length === 0) {
+                        logsDiv.innerHTML = '<i>No logs yet.</i>';
+                      } else {
+                        logsDiv.innerHTML = renderLogs(logs);
+                      }
+                    }
+                  });
+                  // Add log form handler
+                  if (canAddLogs()) {
+                    const form = document.getElementById('logForm_' + assetId);
+                    if (form) {
+                      form.onsubmit = function(ev) {
+                        ev.preventDefault();
+                        const status = form.status.value;
+                        const notes = form.notes.value;
+                        const user = getCurrentUserInfo();
+                        const fileInput = form.photo;
+                        const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+                        const log = {
+                          status,
+                          notes,
+                          timestamp: Date.now(),
+                          userId: user.uid,
+                          userEmail: user.email
+                        };
+                        addAssetLog(assetId, log, file, function(error) {
+                         if (!error) {
+                            fetchAssetLogs(assetId, function(logs) {
+                              const logsDiv = document.getElementById('logs_' + assetId);
+                              if (logsDiv) {
+                                logsDiv.innerHTML = renderLogs(logs);
+                              }
+                            });
+                            form.reset();
+                          }
+                        });
                       };
-                      addAssetLog(assetId, log, file, function(error) {
-                        if (!error) {
-                          fetchAssetLogs(assetId, function(logs) {
-                            const logsDiv = document.getElementById('logs_' + assetId);
-                            if (logsDiv) {
-                              logsDiv.innerHTML = renderLogs(logs);
-                            }
-                          });
-                          form.reset();
-                        }
-                      });
-                    };
-                  }
-                }
-              });
-            }
-          })).on('ready', function() {
-            window.mapInstance.fitBounds(window.kmlLayer.getBounds());
-          }).addTo(window.mapInstance);
-          // GPX Layer (example: parks.gpx)
-          window.gpxLayer = omnivore.gpx('parks.gpx', null, L.geoJson(null, {
-            onEachFeature: function(feature, layer) {
-              const props = feature.properties || {};
-              const assetId = props.name || props.id || Math.random().toString(36).substr(2, 9);
-              layer.bindPopup({
-                maxWidth: 320,
-                minWidth: 220,
-                autoPan: true,
-                closeButton: true,
-                className: 'asset-popup',
-                html: assetPopupHtml(props, assetId)
-              });
-              layer.on('popupopen', function(e) {
-                // Fetch and display logs
-                fetchAssetLogs(assetId, function(logs) {
-                  const logsDiv = document.getElementById('logs_' + assetId);
-                  if (logsDiv) {
-                    if (logs.length === 0) {
-                      logsDiv.innerHTML = '<i>No logs yet.</i>';
-                    } else {
-                      logsDiv.innerHTML = renderLogs(logs);
                     }
                   }
                 });
-                // Add log form handler
-                if (canAddLogs()) {
-                  const form = document.getElementById('logForm_' + assetId);
-                  if (form) {
-                    form.onsubmit = function(ev) {
-                      ev.preventDefault();
-                      const status = form.status.value;
-                      const notes = form.notes.value;
-                      const user = getCurrentUserInfo();
-                      const fileInput = form.photo;
-                      const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
-                      const log = {
-                        status,
-                        notes,
-                        timestamp: Date.now(),
-                        userId: user.uid,
-                        userEmail: user.email
-                      };
-                      addAssetLog(assetId, log, file, function(error) {
-                       if (!error) {
-                          fetchAssetLogs(assetId, function(logs) {
-                            const logsDiv = document.getElementById('logs_' + assetId);
-                            if (logsDiv) {
-                              logsDiv.innerHTML = renderLogs(logs);
-                            }
-                          });
-                          form.reset();
-                        }
-                      });
-                    };
-                  }
-                }
-              });
-            }
-          })).addTo(window.mapInstance);
+              }
+            })).on('ready', function() {
+              window.mapInstance.addLayer(window.gpxLayer);
+              if (window.gpxLayer.getLayers().length) {
+                window.mapInstance.fitBounds(window.gpxLayer.getBounds());
+              }
+            }).on('error', function() {
+              console.warn('GPX file not found or failed to load.');
+            }).addTo(window.mapInstance);
+          } catch (e) {
+            console.warn('GPX layer error:', e);
+          }
           // Layer control
           const baseLayers = {};
           const overlays = {
