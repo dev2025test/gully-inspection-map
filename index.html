@@ -777,7 +777,7 @@
                         userEmail: user.email
                       };
                       addAssetLog(assetId, log, file, function(error) {
-                        if (!error) {
+                       if (!error) {
                           fetchAssetLogs(assetId, function(logs) {
                             const logsDiv = document.getElementById('logs_' + assetId);
                             if (logsDiv) {
@@ -1205,21 +1205,7 @@
     });
     // After adding asset log (in addAssetLog callback)
     // ...inside addAssetLog...
-    if (!error) {
-      logAuditTrail('Asset Log Added', `Asset: ${assetId}, Status: ${log.status}`);
-      // ... existing code ...
-    }
-    // After creating/updating task (in newTaskForm and updateTaskStatus)
-    // ...inside newTaskForm submit...
-    if (!err) {
-      logAuditTrail('Task Created', `Asset: ${assetId}, Assigned to: ${assignedTo}`);
-      // ... existing code ...
-    }
-    // ...inside updateTaskStatus...
-    if (!err) {
-      logAuditTrail('Task Updated', `Task: ${taskId}, Status: ${status}`);
-      // ... existing code ...
-    }
+   
   </script>
   <!-- Show/hide toolbar after login -->
   <script>
