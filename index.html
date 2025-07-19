@@ -15,6 +15,7 @@
       font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
       min-height: 100vh;
       margin: 0;
+      overflow: hidden;
     }
     #loginBg {
       position: fixed;
@@ -146,6 +147,26 @@
     }
     #functionToolbar {
       display: none !important;
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 56px;
+      z-index: 1200;
+    }
+    #mainApp {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: calc(100vh - 56px);
+      z-index: 1;
+      overflow: hidden;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
     }
   </style>
 </head>
@@ -169,7 +190,7 @@
           <div class="mb-3 position-relative">
             <label for="password" class="form-label">Password</label>
             <input type="password" id="password" class="form-control pr-5" required autocomplete="current-password">
-            <button type="button" id="togglePassword" tabindex="-1" style="position:absolute;top:calc(50% + 8px);right:10px;transform:translateY(-50%);background:transparent;border:none;outline:none;" aria-label="Show/Hide Password">
+            <button type="button" id="togglePassword" tabindex="-1" style="position:absolute;top:calc(50% + 16px);right:10px;transform:translateY(-50%);background:transparent;border:none;outline:none;" aria-label="Show/Hide Password">
               <i id="togglePasswordIcon" class="bi bi-eye"></i>
             </button>
           </div>
