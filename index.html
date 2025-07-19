@@ -622,21 +622,22 @@
       // Only initialize the map if the main app is visible
       if (document.getElementById('mainApp')) {
         // Wait for auth state to show mainApp
-        let mapInstance = null;
-        let kmlLayer = null;
-        let gpxLayer = null;
+        // Make mapInstance global
+        window.mapInstance = null;
+        window.kmlLayer = null;
+        window.gpxLayer = null;
         function showAssetFilterBar(show) {
           document.getElementById('assetFilterBar').style.display = show ? 'block' : 'none';
         }
         function initMap() {
-          if (mapInstance) return; // Prevent double init
-          mapInstance = L.map('map').setView([51.8985, -8.4756], 13);
+          if (window.mapInstance) return; // Prevent double init
+          window.mapInstance = L.map('map').setView([51.8985, -8.4756], 13);
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
-          }).addTo(mapInstance);
+          }).addTo(window.mapInstance);
           // KML Layer (example: gullies.kml)
-          kmlLayer = omnivore.kml('gullies.kml', null, L.geoJson(null, {
+          window.kmlLayer = omnivore.kml('gullies.kml', null, L.geoJson(null, {
             onEachFeature: function(feature, layer) {
               const props = feature.properties || {};
               const assetId = props.name || props.id || Math.random().toString(36).substr(2, 9);
@@ -730,10 +731,10 @@
               });
             }
           })).on('ready', function() {
-            mapInstance.fitBounds(kmlLayer.getBounds());
-          }).addTo(mapInstance);
+            window.mapInstance.fitBounds(window.kmlLayer.getBounds());
+          }).addTo(window.mapInstance);
           // GPX Layer (example: parks.gpx)
-          gpxLayer = omnivore.gpx('parks.gpx', null, L.geoJson(null, {
+          window.gpxLayer = omnivore.gpx('parks.gpx', null, L.geoJson(null, {
             onEachFeature: function(feature, layer) {
               const props = feature.properties || {};
               const assetId = props.name || props.id || Math.random().toString(36).substr(2, 9);
@@ -791,28 +792,28 @@
                 }
               });
             }
-          })).addTo(mapInstance);
+          })).addTo(window.mapInstance);
           // Layer control
           const baseLayers = {};
           const overlays = {
-            'Gullies (KML)': kmlLayer,
-            'Parks (GPX)': gpxLayer
+            'Gullies (KML)': window.kmlLayer,
+            'Parks (GPX)': window.gpxLayer
           };
-          L.control.layers(baseLayers, overlays).addTo(mapInstance);
+          L.control.layers(baseLayers, overlays).addTo(window.mapInstance);
           // Asset filter UI logic
           showAssetFilterBar(true);
           document.getElementById('filterGullies').addEventListener('change', function() {
             if (this.checked) {
-              mapInstance.addLayer(kmlLayer);
+              window.mapInstance.addLayer(window.kmlLayer);
             } else {
-              mapInstance.removeLayer(kmlLayer);
+              window.mapInstance.removeLayer(window.kmlLayer);
             }
           });
           document.getElementById('filterParks').addEventListener('change', function() {
             if (this.checked) {
-              mapInstance.addLayer(gpxLayer);
+              window.mapInstance.addLayer(window.gpxLayer);
             } else {
-              mapInstance.removeLayer(gpxLayer);
+              window.mapInstance.removeLayer(window.gpxLayer);
             }
           });
         }
@@ -924,18 +925,18 @@
     }
     function highlightAssetOnMap(assetId) {
       // Remove previous highlight
-      if (highlightLayer && mapInstance) {
-        mapInstance.removeLayer(highlightLayer);
+      if (highlightLayer && window.mapInstance) {
+        window.mapInstance.removeLayer(highlightLayer);
         highlightLayer = null;
       }
       // Try to find the asset marker by assetId (name property)
       let found = false;
-      [kmlLayer, gpxLayer].forEach(layer => {
+      [window.kmlLayer, window.gpxLayer].forEach(layer => {
         if (layer && layer.eachLayer) {
           layer.eachLayer(function(l) {
             if (l.feature && (l.feature.properties.name === assetId || l.feature.properties.id === assetId)) {
-              highlightLayer = L.circleMarker(l.getLatLng(), { radius: 18, color: 'red', weight: 3, fillOpacity: 0.1 }).addTo(mapInstance);
-              mapInstance.setView(l.getLatLng(), 16);
+              highlightLayer = L.circleMarker(l.getLatLng(), { radius: 18, color: 'red', weight: 3, fillOpacity: 0.1 }).addTo(window.mapInstance);
+              window.mapInstance.setView(l.getLatLng(), 16);
               found = true;
             }
           });
@@ -991,11 +992,11 @@
       // Count assets by type from KML/GPX layers
       let gullyCount = 0, parkCount = 0;
       let statusCounts = { 'Inspected': 0, 'Needs Maintenance': 0, 'Completed': 0 };
-      if (kmlLayer && kmlLayer.eachLayer) {
-        kmlLayer.eachLayer(function(l) { gullyCount++; });
+      if (window.kmlLayer && window.kmlLayer.eachLayer) {
+        window.kmlLayer.eachLayer(function(l) { gullyCount++; });
       }
-      if (gpxLayer && gpxLayer.eachLayer) {
-        gpxLayer.eachLayer(function(l) { parkCount++; });
+      if (window.gpxLayer && window.gpxLayer.eachLayer) {
+        window.gpxLayer.eachLayer(function(l) { parkCount++; });
       }
       // Count statuses from logs
       firebase.database().ref('/assetLogs').once('value', function(snapshot) {
@@ -1036,8 +1037,8 @@
     }
     function exportAssetsToCSV() {
       let rows = [['Asset Type','Name','Lat','Lng']];
-      if (kmlLayer && kmlLayer.eachLayer) {
-        kmlLayer.eachLayer(function(l) {
+      if (window.kmlLayer && window.kmlLayer.eachLayer) {
+        window.kmlLayer.eachLayer(function(l) {
           if (l.feature && l.feature.geometry && l.feature.geometry.coordinates) {
             const props = l.feature.properties || {};
             const coords = l.getLatLng();
@@ -1045,8 +1046,8 @@
           }
         });
       }
-      if (gpxLayer && gpxLayer.eachLayer) {
-        gpxLayer.eachLayer(function(l) {
+      if (window.gpxLayer && window.gpxLayer.eachLayer) {
+        window.gpxLayer.eachLayer(function(l) {
           if (l.feature && l.feature.geometry && l.feature.geometry.coordinates) {
             const props = l.feature.properties || {};
             const coords = l.getLatLng();
@@ -1099,8 +1100,8 @@
         Replacement: 0,
         Unmarked: 0
       };
-      if (kmlLayer && kmlLayer.eachLayer) {
-        kmlLayer.eachLayer(function(l) {
+      if (window.kmlLayer && window.kmlLayer.eachLayer) {
+        window.kmlLayer.eachLayer(function(l) {
           let status = 'Unmarked';
           if (l.feature && l.feature.properties && l.feature.properties.status) {
             status = l.feature.properties.status.trim();
@@ -1222,7 +1223,8 @@
   <!-- Show/hide toolbar after login -->
   <script>
     function showToolbar(show) {
-      document.getElementById('functionToolbar').style.display = show ? 'flex' : 'none';
+      var el = document.getElementById('functionToolbar');
+      if (el) el.style.display = show ? 'flex' : 'none';
     }
     // Show/hide login background image and overlay
     function showLoginBg(show) {
@@ -1327,18 +1329,18 @@
   <!-- Layer toggle logic -->
   <script>
     function updateLayerVisibility() {
-      if (typeof mapInstance === 'undefined') return;
+      if (typeof window.mapInstance === 'undefined') return;
       // Gullies
       if (document.getElementById('layerGullies').checked) {
-        mapInstance.addLayer(kmlLayer);
+        window.mapInstance.addLayer(window.kmlLayer);
       } else {
-        mapInstance.removeLayer(kmlLayer);
+        window.mapInstance.removeLayer(window.kmlLayer);
       }
       // Parks/Playgrounds
       if (document.getElementById('layerParks').checked) {
-        mapInstance.addLayer(gpxLayer);
+        window.mapInstance.addLayer(window.gpxLayer);
       } else {
-        mapInstance.removeLayer(gpxLayer);
+        window.mapInstance.removeLayer(window.gpxLayer);
       }
     }
     document.addEventListener('DOMContentLoaded', function() {
@@ -1352,7 +1354,7 @@
     let streetLayer = null;
     let satelliteLayer = null;
     function setBasemap(type) {
-      if (!mapInstance) return;
+      if (!window.mapInstance) return;
       if (!streetLayer) {
         streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
@@ -1366,11 +1368,11 @@
         });
       }
       if (type === 'satellite') {
-        if (mapInstance.hasLayer(streetLayer)) mapInstance.removeLayer(streetLayer);
-        if (!mapInstance.hasLayer(satelliteLayer)) mapInstance.addLayer(satelliteLayer);
+        if (window.mapInstance.hasLayer(streetLayer)) window.mapInstance.removeLayer(streetLayer);
+        if (!window.mapInstance.hasLayer(satelliteLayer)) window.mapInstance.addLayer(satelliteLayer);
       } else {
-        if (mapInstance.hasLayer(satelliteLayer)) mapInstance.removeLayer(satelliteLayer);
-        if (!mapInstance.hasLayer(streetLayer)) mapInstance.addLayer(streetLayer);
+        if (window.mapInstance.hasLayer(satelliteLayer)) window.mapInstance.removeLayer(satelliteLayer);
+        if (!window.mapInstance.hasLayer(streetLayer)) window.mapInstance.addLayer(streetLayer);
       }
     }
     document.addEventListener('DOMContentLoaded', function() {
