@@ -168,6 +168,9 @@
       height: 100%;
       width: 100%;
     }
+    .hide {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -270,7 +273,7 @@
   </div>
 
   <!-- MAIN APP CONTAINER -->
-  <div id="mainApp" style="display:none; height:calc(100vh - 56px); width:100vw; position:relative; overflow:hidden;">
+  <div id="mainApp" class="hide" style="height:calc(100vh - 56px); width:100vw; position:relative; overflow:hidden;">
     <div id="map" style="height:100%; width:100%;"></div>
   </div>
 
@@ -524,14 +527,14 @@
           window.currentUserRole = role;
           updateUIForRole(role);
           document.getElementById('loginContainer').style.display = 'none';
-          document.getElementById('mainApp').style.display = 'block';
+          document.getElementById('mainApp').classList.remove('hide'); // Show the map
         }).catch(function(error) {
           document.getElementById('loginError').textContent = 'Could not fetch user role: ' + error.message;
           firebase.auth().signOut();
         });
       } else {
         window.currentUserRole = null;
-        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('mainApp').classList.add('hide'); // Hide the map
         document.getElementById('loginContainer').style.display = 'flex';
       }
     });
@@ -632,7 +635,7 @@
         window.initMap = function() {
           console.log("initMap called");
           if (window.mapInstance) return; // Prevent double init
-          document.getElementById('mainApp').style.display = 'block';
+          document.getElementById('mainApp').classList.remove('hide'); // Show the map
           document.getElementById('mainApp').style.height = '90vh';
           document.getElementById('mainApp').style.width = '100vw';
           document.getElementById('map').style.height = '100%';
@@ -1050,7 +1053,7 @@
       if (user) {
         showToolbar(true); // Show the ribbon
         updateUserInfoBar();
-        document.getElementById('mainApp').style.display = 'block'; // Show the map
+        document.getElementById('mainApp').classList.remove('hide'); // Show the map
         document.getElementById('loginContainer').style.display = 'none'; // Hide login
         showLoginBg(false);
         // Force map resize in case it was hidden
@@ -1062,7 +1065,7 @@
         }, 100);
       } else {
         showToolbar(false);
-        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('mainApp').classList.add('hide'); // Hide the map
         document.getElementById('loginContainer').style.display = 'flex';
         showLoginBg(true);
       }
