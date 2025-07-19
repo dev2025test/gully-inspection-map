@@ -19,7 +19,7 @@
     #loginBg {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
-      background: url('cork_city_hall_login.jpg') center center/cover no-repeat;
+      background: url('cork_city_hall_night.jpg') center center/cover no-repeat;
       z-index: 0;
       display: none;
     }
@@ -157,10 +157,7 @@
     <div class="login-card">
       <div class="login-header">
         <img src="cork-city-council-logo.jpg" alt="Cork City Council Logo">
-        <div>
-          <div style="font-weight:700;">CORK CITY COUNCIL</div>
-          <div style="font-size:1.1em;font-weight:600;">Asset Management System (Roads)</div>
-        </div>
+        <div style="font-weight:700; text-align:center; width:100%;">CORK CITY COUNCIL</div>
       </div>
       <div class="login-title">Asset Management System (Roads)</div>
       <div class="login-form">
@@ -172,14 +169,16 @@
           <div class="mb-3 position-relative">
             <label for="password" class="form-label">Password</label>
             <input type="password" id="password" class="form-control pr-5" required autocomplete="current-password">
-            <button type="button" id="togglePassword" tabindex="-1" style="position:absolute;top:50%;right:10px;transform:translateY(-50%);background:transparent;border:none;outline:none;" aria-label="Show/Hide Password">
+            <button type="button" id="togglePassword" tabindex="-1" style="position:absolute;top:calc(50% + 8px);right:10px;transform:translateY(-50%);background:transparent;border:none;outline:none;" aria-label="Show/Hide Password">
               <i id="togglePasswordIcon" class="bi bi-eye"></i>
             </button>
-            <a href="#" id="forgotPasswordLink" style="font-size:0.95em;position:absolute;right:0;top:100%;margin-top:2px;">Forgot Password?</a>
           </div>
           <div class="mb-3 form-check">
             <input type="checkbox" class="form-check-input" id="rememberMe">
             <label class="form-check-label" for="rememberMe">Remember Me</label>
+          </div>
+          <div class="mb-2">
+            <a href="#" id="forgotPasswordLink" style="font-size:0.95em;">Forgot Password?</a>
           </div>
           <div id="loginError" class="text-danger mb-2"></div>
           <button type="submit" class="btn btn-primary w-100">Sign In</button>
