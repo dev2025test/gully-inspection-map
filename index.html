@@ -1246,9 +1246,12 @@
         document.getElementById('loginContainer').style.display = 'none'; // Hide login
         showLoginBg(false);
         // Force map resize in case it was hidden
-        if (window.mapInstance && window.mapInstance.invalidateSize) {
-          setTimeout(function() { window.mapInstance.invalidateSize(); }, 300);
-        }
+        setTimeout(function() {
+          initMap();
+          if (window.mapInstance && window.mapInstance.invalidateSize) {
+            window.mapInstance.invalidateSize();
+          }
+        }, 100);
       } else {
         showToolbar(false);
         document.getElementById('mainApp').style.display = 'none';
