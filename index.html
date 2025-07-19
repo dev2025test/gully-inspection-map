@@ -630,6 +630,7 @@
           document.getElementById('assetFilterBar').style.display = show ? 'block' : 'none';
         }
         function initMap() {
+          console.log("initMap called");
           if (window.mapInstance) return; // Prevent double init
           window.mapInstance = L.map('map').setView([51.8985, -8.4756], 13);
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
