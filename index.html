@@ -739,7 +739,7 @@
               }
             }).on('error', function() {
               console.warn('KML file not found or failed to load.');
-            }).addTo(window.mapInstance);
+            });
           } catch (e) {
             console.warn('KML layer error:', e);
           }
@@ -810,7 +810,7 @@
               }
             }).on('error', function() {
               console.warn('GPX file not found or failed to load.');
-            }).addTo(window.mapInstance);
+            });
           } catch (e) {
             console.warn('GPX layer error:', e);
           }
