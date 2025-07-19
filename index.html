@@ -714,8 +714,8 @@
                         userId: user.uid,
                         userEmail: user.email
                       };
-                      addAssetLog(assetId, log, file, function(err) {
-                        if (!err) {
+                      addAssetLog(assetId, log, file, function(error) {
+                        if (!error) {
                           fetchAssetLogs(assetId, function(logs) {
                             const logsDiv = document.getElementById('logs_' + assetId);
                             if (logsDiv) {
@@ -776,8 +776,8 @@
                         userId: user.uid,
                         userEmail: user.email
                       };
-                      addAssetLog(assetId, log, file, function(err) {
-                        if (!err) {
+                      addAssetLog(assetId, log, file, function(error) {
+                        if (!error) {
                           fetchAssetLogs(assetId, function(logs) {
                             const logsDiv = document.getElementById('logs_' + assetId);
                             if (logsDiv) {
@@ -1182,7 +1182,8 @@
     }
     // Show/hide audit trail button for Admins only
     function showAuditTrailButton(show) {
-      document.getElementById('auditTrailBtn').style.display = show ? 'block' : 'none';
+      var el = document.getElementById('auditTrailBtn');
+      if (el) el.style.display = show ? 'block' : 'none';
     }
     const auditTrailBtn = document.getElementById('auditTrailBtn');
     if (auditTrailBtn) {
@@ -1204,7 +1205,7 @@
     });
     // After adding asset log (in addAssetLog callback)
     // ...inside addAssetLog...
-    if (!err) {
+    if (!error) {
       logAuditTrail('Asset Log Added', `Asset: ${assetId}, Status: ${log.status}`);
       // ... existing code ...
     }
