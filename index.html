@@ -1490,5 +1490,14 @@
       }
     });
   </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Fallback: Show login background if not logged in
+      if (!firebase.auth().currentUser) {
+        document.getElementById('loginBg').style.display = 'block';
+        document.getElementById('loginBgOverlay').style.display = 'block';
+      }
+    });
+  </script>
 </body>
 </html>
