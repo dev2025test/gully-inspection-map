@@ -1340,7 +1340,9 @@
       // Fallback: Show login background if not logged in
       if (!firebase.auth().currentUser) {
         document.getElementById('loginBg').style.display = 'block';
-        document.getElementById('loginBgOverlay').style.display = 'block';
+        document.getElementById('loginBg').style.zIndex = '-1';
+        document.getElementById('loginBg').style.opacity = '1';
+        document.getElementById('loginBg').style.background = "url('cork_city_hall_night.jpg') center center/cover no-repeat";
       }
     });
   </script>
