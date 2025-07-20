@@ -10,14 +10,18 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    html, body, .container {
+    html, body {
       margin: 0 !important;
       padding: 0 !important;
       background: none !important;
       background-color: transparent !important;
       height: 100vh !important;
-      min-height: 0 !important;
+      min-height: 100vh !important;
+      width: 100vw !important;
       box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #loginBg, #loginBgOverlay {
       position: fixed;
@@ -27,12 +31,28 @@
       z-index: -1;
       display: block !important;
       opacity: 1 !important;
+      pointer-events: none;
     }
     #loginBg {
-      background: url('cork_city_hall_night.jpg') center center/cover no-repeat;
+      background-image: url('cork_city_hall_night.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
     }
     #loginBgOverlay {
       background: rgba(30,30,30,0.25);
+    }
+    .container#loginContainer {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-height: 0 !important;
+      height: auto !important;
+      width: 100%;
+      background: transparent !important;
+      box-shadow: none !important;
+      position: relative;
+      z-index: 2;
     }
     .login-card {
       background: #fff;
