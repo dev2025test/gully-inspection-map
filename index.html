@@ -19,9 +19,8 @@
       min-height: 100vh !important;
       width: 100vw !important;
       box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      /* Remove flexbox for layout */
+      display: block !important;
     }
     #loginBg, #loginBgOverlay {
       position: fixed;
@@ -43,15 +42,16 @@
       background: rgba(30,30,30,0.25);
     }
     .container#loginContainer {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      min-height: 0 !important;
+      position: absolute !important;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: block !important;
+      min-height: unset !important;
       height: auto !important;
       width: 100%;
       background: transparent !important;
       box-shadow: none !important;
-      position: relative;
       z-index: 2;
     }
     .login-card {
