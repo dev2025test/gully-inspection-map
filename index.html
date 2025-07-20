@@ -21,9 +21,11 @@
     #loginBg {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
-      background: url('cork_city_hall_night.jpg') center center/cover no-repeat;
+      background: red !important;
       z-index: -1;
-      display: block;
+      display: block !important;
+      opacity: 1 !important;
+      border: 5px solid yellow !important;
     }
     #loginBgOverlay {
       position: fixed;
@@ -185,7 +187,7 @@
 </head>
 <body>
   <!-- LOGIN PAGE HEADER -->
-  <div id="loginBg"></div>
+  <div id="loginBg" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;background:red !important;opacity:1;display:block !important;border:5px solid yellow;"></div>
   <div id="loginBgOverlay"></div>
   <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh; position:relative; z-index:2; background:transparent;" id="loginContainer">
     <div class="login-card">
@@ -278,7 +280,7 @@
 
   <!-- ASSET FILTER UI -->
   <div id="assetFilterBar" style="display:none; position:absolute; top:10px; left:50%; transform:translateX(-50%); z-index:1000; background:#fff; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.15); padding:8px 16px;">
-    <label class="me-3"><input type="checkbox" id="filterGullies" checked> Gullies</label>
+    <label class="me-3"><input type="checkbox" id="filterGullies" chec#loginBgked> Gullies</label>
     <label><input type="checkbox" id="filterParks" checked> Parks</label>
   </div>
 
@@ -1347,7 +1349,7 @@
         document.getElementById('loginBg').style.display = 'block';
         document.getElementById('loginBg').style.zIndex = '-1';
         document.getElementById('loginBg').style.opacity = '1';
-        document.getElementById('loginBg').style.background = "url('cork_city_hall_night.jpg') center center/cover no-repeat";
+        document.getElementById('loginBg').style.background = 'red'; // Force red for debug
       }
     });
   </script>
