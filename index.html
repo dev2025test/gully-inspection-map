@@ -558,41 +558,35 @@
     // Auth state change handler
     firebase.auth().onAuthStateChanged(function(user) {
       if (user) {
-        showToolbar(true); // Show the ribbon
-        // Fetch user role from database
-        firebase.database().ref('/users/' + user.uid + '/role').once('value').then(function(snapshot) {
-          const role = snapshot.val() || 'viewer';
-          window.currentUserRole = role;
-          updateUIForRole(role);
-          var loginContainer = document.getElementById('loginContainer');
-          loginContainer.style.display = 'none';
-          loginContainer.style.visibility = 'hidden';
-          loginContainer.style.pointerEvents = 'none';
-          document.getElementById('mainApp').classList.remove('hide'); // Show the map
-          showLoginBg(false); // Hide login background after login
-          setTimeout(function() {
-            if (!window.mapInstance) {
-              initMap();
-              setTimeout(function() {
-                if (window.mapInstance && window.mapInstance.invalidateSize) {
-                  window.mapInstance.invalidateSize();
-                }
-              }, 300);
-            }
-          }, 300);
-        }).catch(function(error) {
-          document.getElementById('loginError').textContent = 'Could not fetch user role: ' + error.message;
-          firebase.auth().signOut();
-        });
+        showToolbar(true); // Always show the ribbon after login
+        updateUserInfoBar && updateUserInfoBar();
+        document.getElementById('mainApp').classList.remove('hide'); // Show the map
+        var loginContainer = document.getElementById('loginContainer');
+        loginContainer.style.display = 'none';
+        loginContainer.style.visibility = 'hidden';
+        loginContainer.style.pointerEvents = 'none';
+        showLoginBg && showLoginBg(false);
+        // Force map resize in case it was hidden
+        setTimeout(function() {
+          initMap && initMap();
+          if (window.mapInstance && window.mapInstance.invalidateSize) {
+            window.mapInstance.invalidateSize();
+          }
+        }, 100);
+        // Ensure toolbar is visible
+        var toolbar = document.getElementById('functionToolbar');
+        if (toolbar) toolbar.style.display = 'flex';
       } else {
-        showToolbar(false); // Hide the ribbon
-        window.currentUserRole = null;
+        showToolbar(false);
         document.getElementById('mainApp').classList.add('hide'); // Hide the map
         var loginContainer = document.getElementById('loginContainer');
         loginContainer.style.display = 'flex';
         loginContainer.style.visibility = 'visible';
         loginContainer.style.pointerEvents = 'auto';
-        showLoginBg(true); // Show login background before login
+        showLoginBg && showLoginBg(true);
+        // Hide toolbar
+        var toolbar = document.getElementById('functionToolbar');
+        if (toolbar) toolbar.style.display = 'none';
       }
     });
 
