@@ -532,7 +532,10 @@
           const role = snapshot.val() || 'viewer';
           window.currentUserRole = role;
           updateUIForRole(role);
-          document.getElementById('loginContainer').style.display = 'none';
+          var loginContainer = document.getElementById('loginContainer');
+          loginContainer.style.display = 'none';
+          loginContainer.style.visibility = 'hidden';
+          loginContainer.style.pointerEvents = 'none';
           document.getElementById('mainApp').classList.remove('hide'); // Show the map
           showLoginBg(false); // Hide login background after login
           setTimeout(function() {
@@ -553,7 +556,10 @@
         showToolbar(false); // Hide the ribbon
         window.currentUserRole = null;
         document.getElementById('mainApp').classList.add('hide'); // Hide the map
-        document.getElementById('loginContainer').style.display = 'flex';
+        var loginContainer = document.getElementById('loginContainer');
+        loginContainer.style.display = 'flex';
+        loginContainer.style.visibility = 'visible';
+        loginContainer.style.pointerEvents = 'auto';
         showLoginBg(true); // Show login background before login
       }
     });
@@ -1068,7 +1074,10 @@
         showToolbar(true); // Show the ribbon
         updateUserInfoBar();
         document.getElementById('mainApp').classList.remove('hide'); // Show the map
-        document.getElementById('loginContainer').style.display = 'none'; // Hide login
+        var loginContainer = document.getElementById('loginContainer');
+        loginContainer.style.display = 'none';
+        loginContainer.style.visibility = 'hidden';
+        loginContainer.style.pointerEvents = 'none';
         showLoginBg(false);
         // Force map resize in case it was hidden
         setTimeout(function() {
@@ -1080,7 +1089,10 @@
       } else {
         showToolbar(false);
         document.getElementById('mainApp').classList.add('hide'); // Hide the map
-        document.getElementById('loginContainer').style.display = 'flex';
+        var loginContainer = document.getElementById('loginContainer');
+        loginContainer.style.display = 'flex';
+        loginContainer.style.visibility = 'visible';
+        loginContainer.style.pointerEvents = 'auto';
         showLoginBg(true);
       }
     });
