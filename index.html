@@ -10,28 +10,29 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    body {
+    html, body, .container {
+      margin: 0 !important;
+      padding: 0 !important;
       background: none !important;
       background-color: transparent !important;
-      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-      min-height: 100vh;
-      margin: 0;
-      overflow: hidden;
+      height: 100vh !important;
+      min-height: 0 !important;
+      box-sizing: border-box;
     }
-    #loginBg {
+    #loginBg, #loginBgOverlay {
       position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: url('cork_city_hall_night.jpg') center center/cover no-repeat;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
       z-index: -1;
       display: block !important;
       opacity: 1 !important;
     }
+    #loginBg {
+      background: url('cork_city_hall_night.jpg') center center/cover no-repeat;
+    }
     #loginBgOverlay {
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(30,30,30,0.45);
-      z-index: -1;
-      display: block;
+      background: rgba(30,30,30,0.25);
     }
     .login-card {
       background: #fff;
@@ -178,9 +179,9 @@
     .hide {
       display: none !important;
     }
-    body, .container {
-      background: none !important;
-      background-color: transparent !important;
+    body {
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+      /* Remove min-height and overflow */
     }
   </style>
 </head>
