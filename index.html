@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     body {
-      background: #232323;
+      background: none !important;
       font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
       min-height: 100vh;
       margin: 0;
@@ -21,14 +21,14 @@
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
       background: url('cork_city_hall_night.jpg') center center/cover no-repeat;
-      z-index: 0;
+      z-index: -1;
       display: block;
     }
     #loginBgOverlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(30,30,30,0.45);
-      z-index: 1;
+      z-index: -1;
       display: block;
     }
     .login-card {
