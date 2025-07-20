@@ -526,6 +526,7 @@
     // Auth state change handler
     firebase.auth().onAuthStateChanged(function(user) {
       if (user) {
+        showToolbar(true); // Show the ribbon
         // Fetch user role from database
         firebase.database().ref('/users/' + user.uid + '/role').once('value').then(function(snapshot) {
           const role = snapshot.val() || 'viewer';
@@ -533,7 +534,7 @@
           updateUIForRole(role);
           document.getElementById('loginContainer').style.display = 'none';
           document.getElementById('mainApp').classList.remove('hide'); // Show the map
-          // Only call initMap once after login
+          showLoginBg(false); // Hide login background after login
           setTimeout(function() {
             if (!window.mapInstance) {
               initMap();
@@ -549,9 +550,11 @@
           firebase.auth().signOut();
         });
       } else {
+        showToolbar(false); // Hide the ribbon
         window.currentUserRole = null;
         document.getElementById('mainApp').classList.add('hide'); // Hide the map
         document.getElementById('loginContainer').style.display = 'flex';
+        showLoginBg(true); // Show login background before login
       }
     });
 
