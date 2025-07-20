@@ -22,6 +22,8 @@
       /* Remove flexbox for layout */
       display: block !important;
     }
+    /* Remove or comment out #loginBg and #loginBgOverlay CSS */
+    /*
     #loginBg, #loginBgOverlay {
       position: fixed;
       top: 0; left: 0;
@@ -32,15 +34,7 @@
       opacity: 1 !important;
       pointer-events: none;
     }
-    #loginBg {
-      background-image: url('cork_city_hall_night.jpg');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-    }
-    #loginBgOverlay {
-      background: rgba(30,30,30,0.25);
-    }
+    */
     .container#loginContainer {
       position: absolute !important;
       top: 50%;
@@ -200,15 +194,24 @@
       display: none !important;
     }
     body {
+      background: url('cork_city_hall_night.jpg') center center/cover no-repeat !important;
+      background-color: #000 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      height: 100vh !important;
+      min-height: 100vh !important;
+      width: 100vw !important;
+      box-sizing: border-box;
       font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-      /* Remove min-height and overflow */
+      /* Remove flex and overflow */
+      display: block !important;
     }
   </style>
 </head>
 <body>
   <!-- LOGIN PAGE HEADER -->
-  <div id="loginBg"></div>
-  <div id="loginBgOverlay"></div>
+  <!-- <div id="loginBg"></div>
+  <div id="loginBgOverlay"></div> -->
   <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh; position:relative; z-index:2; background:transparent;" id="loginContainer">
     <div class="login-card">
       <div class="login-header">
@@ -1093,8 +1096,8 @@
     }
     // Show/hide login background image and overlay
     function showLoginBg(show) {
-      document.getElementById('loginBg').style.display = show ? 'block' : 'none';
-      document.getElementById('loginBgOverlay').style.display = show ? 'block' : 'none';
+      // document.getElementById('loginBg').style.display = show ? 'block' : 'none';
+      // document.getElementById('loginBgOverlay').style.display = show ? 'block' : 'none';
     }
     firebase.auth().onAuthStateChanged(function(user) {
       if (user) {
@@ -1366,9 +1369,9 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Fallback: Show login background if not logged in
       if (!firebase.auth().currentUser) {
-        document.getElementById('loginBg').style.display = 'block';
-        document.getElementById('loginBg').style.zIndex = '-1';
-        document.getElementById('loginBg').style.opacity = '1';
+        // document.getElementById('loginBg').style.display = 'block';
+        // document.getElementById('loginBg').style.zIndex = '-1';
+        // document.getElementById('loginBg').style.opacity = '1';
       }
     });
   </script>
