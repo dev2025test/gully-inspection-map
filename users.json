@@ -1,12 +1,40 @@
-[
-  {"email": "aman_kushwaha@corkcity.ie", "role": "admin", "approved": true},
-  {"email": "richard_daly@corkcity.ie", "role": "admin", "approved": true},
-  {"email": "johnp_treacy@corkcity.ie", "role": "operator", "approved": true},
-  {"email": "flor_crowley@corkcity.ie", "role": "operator", "approved": true},
-  {"email": "viewer@corkcity.ie", "role": "operator", "approved": true},
-  {"email": "martin_mccormick@corkcity.ie", "role": "operator", "approved": true},
-  {"email": "dan_corcoran@corkcity.ie", "role": "operator", "approved": true},
-  {"email": "eoin_doyle@corkcity.ie", "role": "operator", "approved": true},
-  {"email": "ronan_oconnor@corkcity.ie", "role": "operator", "approved": true},
-  {"email": "john_ocallaghan@corkcity.ie", "role": "operator", "approved": true}
-] 
+{
+  "users": [
+    {
+      "email": "shane_dorgan@corkcity.ie",
+      "password": "TestAdmin123!@#",
+      "role": "admin",
+      "initials": "SD"
+    },
+    {
+      "email": "aman_kushwaha@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "admin",
+      "initials": "AK"
+    },
+    {
+      "email": "richard_daly@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "operator",
+      "initials": "RD"
+    },
+    {
+      "email": "john_ocallaghan@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "operator",
+      "initials": "JO"
+    },
+    {
+      "email": "ronan_oconnor@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "operator",
+      "initials": "RO"
+    },
+    {
+      "email": "viewer@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "viewer",
+      "initials": "VW"
+    }
+  ]
+} 
