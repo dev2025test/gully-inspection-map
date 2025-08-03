@@ -485,6 +485,14 @@
         padding: 15px;
         border-radius: 6px;
         border-left: 4px solid;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+    }
+
+    .status-card:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        border-color: #007bff;
     }
 
     .status-count {
@@ -2628,10 +2636,25 @@ function updateSummary() {
   }
 }
 
-// Update the filter functionality
-function filterByStatus() {
-  const selectedStatus = document.getElementById('filterStatus').value;
+// Function to filter from summary popup
+function filterFromSummary(status) {
+  console.log('filterFromSummary: Filtering by status:', status);
   
+  // Close the summary popup
+  const backdrop = document.querySelector('.modal-backdrop-custom');
+  if (backdrop) {
+    backdrop.remove();
+  }
+  
+  // Apply the filter
+  applyStatusFilter(status);
+  
+  // Show a brief notification
+  showFilterNotification(status);
+}
+
+// Function to apply status filter
+function applyStatusFilter(selectedStatus) {
   // Hide all markers first
   gullyData.forEach(gully => {
     if (gully.layer === 'gullies') {
@@ -2653,6 +2676,57 @@ function filterByStatus() {
       }
     });
   }
+  
+  // Update any existing filter dropdown
+  const filterStatus = document.getElementById('filterStatus');
+  if (filterStatus) {
+    filterStatus.value = selectedStatus;
+  }
+  
+  console.log(`applyStatusFilter: Applied filter for status: ${selectedStatus}`);
+}
+
+// Function to show filter notification
+function showFilterNotification(status) {
+  const notification = document.createElement('div');
+  notification.className = 'alert alert-info';
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    min-width: 200px;
+    padding: 10px 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  `;
+  
+  const filterText = status === 'All' ? 'All gullies' : `${status} gullies`;
+  notification.innerHTML = `
+    <strong>Filter Applied:</strong> ${filterText}
+    <button type="button" class="btn-close ms-2" onclick="this.parentElement.remove()"></button>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Auto-remove after 3 seconds
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 3000);
+}
+
+// Function to clear current filter
+function clearFilter() {
+  applyStatusFilter('All');
+  showFilterNotification('All');
+}
+
+// Update the filter functionality (for dropdown)
+function filterByStatus() {
+  const selectedStatus = document.getElementById('filterStatus').value;
+  applyStatusFilter(selectedStatus);
 }
 
 // Fix the export CSV function
@@ -2862,6 +2936,11 @@ function showSummaryPopup() {
       <button class="btn btn-secondary" onclick="closeModal()">✖ Close</button>
     </div>
     <div class="summary-content">
+      <div class="mb-3">
+        <button class="btn btn-primary w-100" onclick="filterFromSummary('All')">
+          <i class="bi bi-eye"></i> Show All Gullies
+        </button>
+      </div>
       <div>
         <div class="status-card card p-3 mb-2 text-center">
           <h3 class="mb-2">Total Gullies</h3>
@@ -2873,7 +2952,11 @@ function showSummaryPopup() {
         .filter(([status]) => status !== 'total')
         .map(([status, count]) => `
           <div>
-            <div class="status-card card p-3 mb-2 text-center" style="border-left: 4px solid ${getStatusColor(status)}">
+            <div class="status-card card p-3 mb-2 text-center" 
+                 style="border-left: 4px solid ${getStatusColor(status)}; cursor: pointer; transition: all 0.2s ease;"
+                 onclick="filterFromSummary('${status}')"
+                 onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.2)'"
+                 onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">
               <h3 class="mb-2">${status}</h3>
               <div class="status-count">${count}</div>
               <div class="status-description">${{
@@ -2884,6 +2967,9 @@ function showSummaryPopup() {
                 Replacement: 'Gullies that need to be completely replaced',
                 Unmarked: 'Gullies that have not been inspected yet'
               }[status] || ''}</div>
+              <div class="mt-2">
+                <small class="text-muted">Click to filter map</small>
+              </div>
             </div>
           </div>
         `).join('')}
