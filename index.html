@@ -1279,22 +1279,47 @@ function validateAndNormalizeEmail(email) {
   };
 }
 
-// Function to handle automatic login from URL
+// Function to handle URL parameters - only pre-fill email, no auto-login
 function handleAutoLogin() {
   const urlParams = new URLSearchParams(window.location.search);
   const email = urlParams.get('email');
   const autoLogin = urlParams.get('autologin');
   
-  if (email && autoLogin === 'true') {
+  // Only pre-fill email if provided, regardless of autologin parameter
+  if (email) {
     const validation = validateAndNormalizeEmail(email);
     if (validation.isValid) {
       document.getElementById('email').value = validation.normalizedEmail;
-      // Do not autofill password
-      // document.getElementById('password').value = USER_CONFIG.defaultPassword;
-      // Prompt user to enter their password
+      // Clear any existing error messages
+      document.getElementById('loginError').textContent = '';
     } else {
       document.getElementById('loginError').textContent = `❌ ${validation.message}`;
     }
+  }
+  
+  // Always ensure login screen is visible when URL parameters are present
+  // This prevents automatic login from remembered sessions
+  if (email || autoLogin) {
+    // Force logout if user is already logged in
+    if (auth.currentUser) {
+      console.log('handleAutoLogin: Forcing logout due to URL parameters');
+      auth.signOut();
+    }
+    
+    // Clear any existing authentication state from localStorage
+    localStorage.removeItem('rememberedEmail');
+    sessionStorage.clear();
+    
+    // Ensure login screen is visible
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('map').style.display = 'none';
+    document.getElementById('functionToolbar').style.display = 'none';
+    document.getElementById('summary').style.display = 'none';
+    
+    // Clear URL parameters to prevent future auto-login attempts
+    window.history.replaceState({}, document.title, window.location.pathname);
+    
+    console.log('handleAutoLogin: Login screen forced visible due to URL parameters');
   }
 }
 
@@ -1896,6 +1921,14 @@ async function handleImportFile(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    // Check file size before processing
+    const maxFileSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxFileSize) {
+        alert(`File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Please use a file smaller than 50MB.`);
+        event.target.value = '';
+        return;
+    }
+
     let selectedLayer = currentActiveLayer; // Use currentActiveLayer
     if (!selectedLayer) {
       alert('Please select a layer (e.g., Gullies, Playgrounds) before importing data.');
@@ -1911,6 +1944,16 @@ async function handleImportFile(event) {
 
     try {
         console.log('handleImportFile: Starting file import...');
+        
+        // Check if required libraries are loaded
+        if (typeof toGeoJSON === 'undefined') {
+            throw new Error('KML parsing library not loaded. Please refresh the page and try again.');
+        }
+        
+        if (typeof JSZip === 'undefined') {
+            throw new Error('ZIP processing library not loaded. Please refresh the page and try again.');
+        }
+        
         let geojson;
         const extension = file.name.split('.').pop().toLowerCase();
 
@@ -1934,36 +1977,112 @@ async function handleImportFile(event) {
         progressBackdrop.appendChild(progressDiv);
         document.body.appendChild(progressBackdrop);
 
-        // Parse file
+        // Parse file with timeout and error handling
         document.getElementById('import-status').textContent = 'Parsing file...';
-        if (extension === 'kml') {
-            const text = await file.text();
-            const kml = new DOMParser().parseFromString(text, 'text/xml');
-            geojson = toGeoJSON.kml(kml);
-        } else if (extension === 'kmz') {
-            console.log('handleImportFile: Detected KMZ file, decompressing...');
-            document.getElementById('import-status').textContent = 'Decompressing KMZ file...';
-            const zip = await JSZip.loadAsync(file);
-            let kmlFile = null;
+        
+        // Update progress bar to show parsing is happening
+        const progressBar = document.getElementById('import-progress-bar');
+        progressBar.style.width = '10%';
+        progressBar.textContent = '10%';
+        
+        // Add timeout protection for file parsing
+        const parseTimeout = 30000; // 30 seconds timeout
+        const parsePromise = new Promise(async (resolve, reject) => {
+            try {
+                if (extension === 'kml') {
+                    console.log('handleImportFile: Parsing KML file...');
+                    document.getElementById('import-status').textContent = 'Reading KML file...';
+                    progressBar.style.width = '20%';
+                    progressBar.textContent = '20%';
+                    
+                    const text = await file.text();
+                    console.log('handleImportFile: File text loaded, length:', text.length);
+                    
+                    if (text.length > 50 * 1024 * 1024) { // 50MB limit
+                        throw new Error('File too large. Please use a file smaller than 50MB.');
+                    }
+                    
+                    document.getElementById('import-status').textContent = 'Parsing KML structure...';
+                    progressBar.style.width = '40%';
+                    progressBar.textContent = '40%';
+                    
+                    const kml = new DOMParser().parseFromString(text, 'text/xml');
+                    console.log('handleImportFile: KML DOM parsed');
+                    
+                    if (kml.getElementsByTagName('parsererror').length > 0) {
+                        throw new Error('Invalid KML file format. Please check your file.');
+                    }
+                    
+                    document.getElementById('import-status').textContent = 'Converting to GeoJSON...';
+                    progressBar.style.width = '60%';
+                    progressBar.textContent = '60%';
+                    
+                    geojson = toGeoJSON.kml(kml);
+                    console.log('handleImportFile: KML converted to GeoJSON');
+                    
+                } else if (extension === 'kmz') {
+                    console.log('handleImportFile: Detected KMZ file, decompressing...');
+                    document.getElementById('import-status').textContent = 'Decompressing KMZ file...';
+                    progressBar.style.width = '30%';
+                    progressBar.textContent = '30%';
+                    
+                    const zip = await JSZip.loadAsync(file);
+                    console.log('handleImportFile: KMZ loaded');
+                    
+                    let kmlFile = null;
+                    let kmlFileName = '';
 
-            // Find the KML file inside the KMZ (usually doc.kml or a .kml in the root)
-            zip.forEach((relativePath, zipEntry) => {
-                if (relativePath.toLowerCase().endsWith('.kml')) {
-                    kmlFile = zipEntry;
-                    return false; // Stop iteration
+                    // Find the KML file inside the KMZ (usually doc.kml or a .kml in the root)
+                    zip.forEach((relativePath, zipEntry) => {
+                        if (relativePath.toLowerCase().endsWith('.kml')) {
+                            kmlFile = zipEntry;
+                            kmlFileName = relativePath;
+                            return false; // Stop iteration
+                        }
+                    });
+
+                    if (!kmlFile) {
+                        throw new Error('No KML file found inside the KMZ archive.');
+                    }
+                    
+                    console.log('handleImportFile: Found KML file in KMZ:', kmlFileName);
+                    document.getElementById('import-status').textContent = 'Extracting KML from KMZ...';
+                    progressBar.style.width = '50%';
+                    progressBar.textContent = '50%';
+                    
+                    const kmlText = await kmlFile.async('text');
+                    console.log('handleImportFile: KML text extracted, length:', kmlText.length);
+                    
+                    document.getElementById('import-status').textContent = 'Parsing KML from KMZ...';
+                    progressBar.style.width = '70%';
+                    progressBar.textContent = '70%';
+                    
+                    const kml = new DOMParser().parseFromString(kmlText, 'text/xml');
+                    console.log('handleImportFile: KML DOM parsed from KMZ');
+                    
+                    if (kml.getElementsByTagName('parsererror').length > 0) {
+                        throw new Error('Invalid KML file format inside KMZ. Please check your file.');
+                    }
+                    
+                    geojson = toGeoJSON.kml(kml);
+                    console.log('handleImportFile: KMZ decompressed and KML parsed.');
+                } else {
+                    throw new Error('Unsupported file format. Please import .kml or .kmz files.');
                 }
-            });
-
-            if (!kmlFile) {
-                throw new Error('No KML file found inside the KMZ archive.');
+                
+                resolve(geojson);
+            } catch (error) {
+                reject(error);
             }
-            const kmlText = await kmlFile.async('text');
-            const kml = new DOMParser().parseFromString(kmlText, 'text/xml');
-            geojson = toGeoJSON.kml(kml);
-            console.log('handleImportFile: KMZ decompressed and KML parsed.');
-        } else {
-            throw new Error('Unsupported file format. Please import .kml or .kmz files.');
-        }
+        });
+
+        // Add timeout
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('File parsing timed out. Please try with a smaller file or check your file format.')), parseTimeout);
+        });
+
+        // Race between parsing and timeout
+        geojson = await Promise.race([parsePromise, timeoutPromise]);
 
         console.log('handleImportFile: Parsed GeoJSON:', geojson);
 
@@ -2119,7 +2238,30 @@ async function handleImportFile(event) {
         
     } catch (error) {
         console.error('handleImportFile: Import error:', error);
-        alert('Error importing file: ' + error.message);
+        
+        // Clean up progress modal
+        try {
+            const progressDiv = document.querySelector('.modal-backdrop-custom');
+            if (progressDiv) {
+                progressDiv.remove();
+            }
+        } catch (cleanupError) {
+            console.warn('Error cleaning up progress modal:', cleanupError);
+        }
+        
+        // Show detailed error message
+        let errorMessage = 'Error importing file: ' + error.message;
+        
+        // Provide specific guidance for common errors
+        if (error.message.includes('timeout')) {
+            errorMessage += '\n\nTry:\n- Using a smaller file\n- Checking your internet connection\n- Ensuring the file is a valid KML/KMZ format';
+        } else if (error.message.includes('too large')) {
+            errorMessage += '\n\nTry:\n- Splitting your file into smaller parts\n- Compressing your KMZ file\n- Using a file under 50MB';
+        } else if (error.message.includes('Invalid KML')) {
+            errorMessage += '\n\nTry:\n- Opening the file in Google Earth to verify it works\n- Re-exporting from your source application\n- Checking for special characters in place names';
+        }
+        
+        alert(errorMessage);
     } finally {
         // Clear the file input
         event.target.value = '';
@@ -2273,6 +2415,11 @@ auth.onAuthStateChanged(user => {
       const userData = snapshot.val();
       if (!userData) {
         console.error('Auth state changed: No user data found');
+        // Show login screen if no user data
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('map').style.display = 'none';
+        document.getElementById('functionToolbar').style.display = 'none';
+        document.getElementById('summary').style.display = 'none';
         return;
       }
       console.log('Auth state changed: User data retrieved, handling login success...');
@@ -2280,12 +2427,20 @@ auth.onAuthStateChanged(user => {
       
       // Check map status after a moment
       setTimeout(checkMapStatus, 1000);
+    }).catch(error => {
+      console.error('Auth state changed: Error getting user data:', error);
+      // Show login screen on error
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('map').style.display = 'none';
+      document.getElementById('functionToolbar').style.display = 'none';
+      document.getElementById('summary').style.display = 'none';
     });
   } else {
     console.log('Auth state changed: No user logged in, showing login screen');
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('map').style.display = 'none';
     document.getElementById('functionToolbar').style.display = 'none';
+    document.getElementById('summary').style.display = 'none';
   }
 });
 
@@ -2686,12 +2841,18 @@ function togglePassword() {
   }
 }
 
-// Load saved email on page load
+// Load saved email on page load (only if no URL parameters)
 window.addEventListener('load', function() {
-  const savedEmail = localStorage.getItem('rememberedEmail');
-  if (savedEmail) {
-    document.getElementById('email').value = savedEmail;
-    document.getElementById('rememberMe').checked = true;
+  const urlParams = new URLSearchParams(window.location.search);
+  const emailFromUrl = urlParams.get('email');
+  
+  // Only load saved email if no email is provided in URL
+  if (!emailFromUrl) {
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    if (savedEmail) {
+      document.getElementById('email').value = savedEmail;
+      document.getElementById('rememberMe').checked = true;
+    }
   }
 });
 
