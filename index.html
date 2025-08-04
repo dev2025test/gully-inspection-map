@@ -1319,10 +1319,15 @@ function handleAutoLogin() {
     sessionStorage.clear();
     
     // Ensure login screen is visible
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('map').style.display = 'none';
-    document.getElementById('functionToolbar').style.display = 'none';
-    document.getElementById('summary').style.display = 'none';
+    const loginScreen = document.getElementById('loginScreen');
+    const map = document.getElementById('map');
+    const functionToolbar = document.getElementById('functionToolbar');
+    const summary = document.getElementById('summary');
+    
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (map) map.style.display = 'none';
+    if (functionToolbar) functionToolbar.style.display = 'none';
+    if (summary) summary.style.display = 'none';
     
     // Clear URL parameters to prevent future auto-login attempts
     window.history.replaceState({}, document.title, window.location.pathname);
@@ -1339,8 +1344,8 @@ async function ensureAllUsers() {
       // Check if user exists
       const methods = await auth.fetchSignInMethodsForEmail(user.email);
       if (methods.length === 0) {
+        console.log(`Creating new user: ${user.email}`);
         // Create new user with a random temporary password
-        // (Admins: Prefer to create users in Firebase Console and send password reset email)
         const tempPassword = Math.random().toString(36) + 'Aa!';
         const userCredential = await auth.createUserWithEmailAndPassword(
           user.email,
@@ -1354,24 +1359,21 @@ async function ensureAllUsers() {
           created: firebase.database.ServerValue.TIMESTAMP,
           lastUpdated: firebase.database.ServerValue.TIMESTAMP
         });
+        console.log(`Successfully created user: ${user.email}`);
       } else {
-        // Update existing user
-        const userCredential = await auth.signInWithEmailAndPassword(
-          user.email,
-          // No default password used
-          Math.random().toString(36) + 'Aa!'
-        );
-        await db.ref(`users/${userCredential.user.uid}`).update({
-          ...user,
-          lastUpdated: firebase.database.ServerValue.TIMESTAMP
-        });
-        // Sign out after update
-        await auth.signOut();
+        console.log(`User already exists: ${user.email}`);
+        // Don't try to update existing users - this requires authentication
+        // Users should be updated through the Firebase Console or admin panel
       }
     } catch (error) {
-      console.error(`Error setting up user ${user.email}:`, error);
+      if (error.code === 'auth/email-already-in-use') {
+        console.log(`User ${user.email} already exists (auth error)`);
+      } else {
+        console.error(`Error setting up user ${user.email}:`, error);
+      }
     }
   }
+  console.log('User setup complete');
 }
 
 // Update login function
@@ -1730,10 +1732,12 @@ function handleLoginSuccess(userData) {
   console.log('handleLoginSuccess: Current window.map state before setTimeout:', window.map);
 
   // Hide login screen
-  document.getElementById('loginScreen').style.display = 'none';
+  const loginScreen = document.getElementById('loginScreen');
+  if (loginScreen) loginScreen.style.display = 'none';
   
   // Show toolbar
-  document.getElementById('functionToolbar').style.display = 'block';
+  const functionToolbar = document.getElementById('functionToolbar');
+  if (functionToolbar) functionToolbar.style.display = 'block';
   
   // Make map container visible immediately
   const mapDiv = document.getElementById('map');
@@ -2522,10 +2526,15 @@ auth.onAuthStateChanged(user => {
       if (!userData) {
         console.error('Auth state changed: No user data found');
         // Show login screen if no user data
-        document.getElementById('loginScreen').style.display = 'flex';
-        document.getElementById('map').style.display = 'none';
-        document.getElementById('functionToolbar').style.display = 'none';
-        document.getElementById('summary').style.display = 'none';
+        const loginScreen = document.getElementById('loginScreen');
+        const map = document.getElementById('map');
+        const functionToolbar = document.getElementById('functionToolbar');
+        const summary = document.getElementById('summary');
+        
+        if (loginScreen) loginScreen.style.display = 'flex';
+        if (map) map.style.display = 'none';
+        if (functionToolbar) functionToolbar.style.display = 'none';
+        if (summary) summary.style.display = 'none';
         return;
       }
       console.log('Auth state changed: User data retrieved, handling login success...');
@@ -2536,17 +2545,29 @@ auth.onAuthStateChanged(user => {
     }).catch(error => {
       console.error('Auth state changed: Error getting user data:', error);
       // Show login screen on error
-      document.getElementById('loginScreen').style.display = 'flex';
-      document.getElementById('map').style.display = 'none';
-      document.getElementById('functionToolbar').style.display = 'none';
-      document.getElementById('summary').style.display = 'none';
+      const loginScreen = document.getElementById('loginScreen');
+      const map = document.getElementById('map');
+      const functionToolbar = document.getElementById('functionToolbar');
+      const summary = document.getElementById('summary');
+      
+      if (loginScreen) loginScreen.style.display = 'flex';
+      if (map) map.style.display = 'none';
+      if (functionToolbar) functionToolbar.style.display = 'none';
+      if (summary) summary.style.display = 'none';
     });
   } else {
     console.log('Auth state changed: No user logged in, showing login screen');
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('map').style.display = 'none';
-    document.getElementById('functionToolbar').style.display = 'none';
-    document.getElementById('summary').style.display = 'none';
+    
+    // Add null checks for DOM elements
+    const loginScreen = document.getElementById('loginScreen');
+    const map = document.getElementById('map');
+    const functionToolbar = document.getElementById('functionToolbar');
+    const summary = document.getElementById('summary');
+    
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (map) map.style.display = 'none';
+    if (functionToolbar) functionToolbar.style.display = 'none';
+    if (summary) summary.style.display = 'none';
   }
 });
 
@@ -2657,22 +2678,34 @@ function filterFromSummary(status) {
 function applyStatusFilter(selectedStatus) {
   // Hide all markers first
   gullyData.forEach(gully => {
-    if (gully.layer === 'gullies') {
-      gully.marker.setOpacity(0.2);
+    if (gully.layer === 'gullies' && gully.marker && typeof gully.marker.setOpacity === 'function') {
+      try {
+        gully.marker.setOpacity(0.2);
+      } catch (error) {
+        console.warn('Error setting marker opacity:', error);
+      }
     }
   });
   
   // Show markers that match the filter
   if (selectedStatus === 'All') {
     gullyData.forEach(gully => {
-      if (gully.layer === 'gullies') {
-        gully.marker.setOpacity(1);
+      if (gully.layer === 'gullies' && gully.marker && typeof gully.marker.setOpacity === 'function') {
+        try {
+          gully.marker.setOpacity(1);
+        } catch (error) {
+          console.warn('Error setting marker opacity:', error);
+        }
       }
     });
   } else {
     gullyData.forEach(gully => {
-      if (gully.layer === 'gullies' && gully.status === selectedStatus) {
-        gully.marker.setOpacity(1);
+      if (gully.layer === 'gullies' && gully.status === selectedStatus && gully.marker && typeof gully.marker.setOpacity === 'function') {
+        try {
+          gully.marker.setOpacity(1);
+        } catch (error) {
+          console.warn('Error setting marker opacity:', error);
+        }
       }
     });
   }
@@ -2999,7 +3032,8 @@ function showSummaryPopup() {
 
 // Update the window.onload to include new initialization
 window.onload = () => {
-  document.getElementById("loginScreen").style.display = "block";
+  const loginScreen = document.getElementById("loginScreen");
+  if (loginScreen) loginScreen.style.display = "block";
   
   // Initialize users
   Promise.all([
