@@ -1215,6 +1215,7 @@
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="resetMap()" title="Reset the map to its default state"><i class="bi bi-arrow-repeat"></i> <span>Reset</span></button>
       <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSummaryPopup()" title="Show summary statistics"><i class="bi bi-bar-chart"></i> <span>Summary</span></button>
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="showLayerControl()" title="Show or hide map layers"><i class="bi bi-layers"></i> <span>Layers</span></button>
+      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSearchPopup()" title="Search for gullies, parks, or assets"><i class="bi bi-search"></i> <span>Search</span></button>
       <label for="importFile" class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" title="Import data from a file"><i class="bi bi-upload"></i> <span>Import</span></label>
       <input type="file" id="importFile" onchange="handleImportFile(event)" style="display: none;">
       <button class="btn btn-outline-success toolbar-button d-inline-flex align-items-center" onclick="exportData()" title="Export data as CSV file"><i class="bi bi-download"></i> <span>Export CSV</span></button>
@@ -3250,6 +3251,257 @@ function showSummaryPopup() {
 
   // Close helper
   window.closeModal = () => backdrop.remove();
+}
+
+function showSearchPopup() {
+  console.log('showSearchPopup: Opening search popup');
+  
+  // Remove any existing search popup
+  const existingPopup = document.getElementById('searchPopupContainer');
+  if (existingPopup) {
+    existingPopup.remove();
+  }
+  
+  // Create search popup container
+  const container = document.createElement('div');
+  container.id = 'searchPopupContainer';
+  container.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    border: 1px solid #e0e0e0;
+    z-index: 3001;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow: hidden;
+  `;
+
+  container.innerHTML = `
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center;">
+        <i class="bi bi-search" style="font-size: 1.2rem; margin-right: 12px;"></i>
+        <span style="font-size: 1.1rem; font-weight: 600;">Search Assets</span>
+      </div>
+      <button onclick="document.getElementById('searchPopupContainer').remove()" style="background: none; border: none; color: white; font-size: 1.1rem; cursor: pointer;">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div style="padding: 20px;">
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">Search for gullies, parks, or assets:</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="searchInput" placeholder="Enter name, estate, or location..." 
+                 style="flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none;"
+                 onkeyup="handleSearchInput(event)">
+          <button onclick="performSearch()" style="padding: 12px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+            <i class="bi bi-search"></i> Search
+          </button>
+        </div>
+      </div>
+      
+      <div id="searchResults" style="max-height: 400px; overflow-y: auto;">
+        <div style="text-align: center; color: #6c757d; padding: 20px;">
+          <i class="bi bi-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+          Enter a search term to find gullies, parks, or other assets
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(container);
+  
+  // Focus on search input
+  setTimeout(() => {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.focus();
+    }
+  }, 100);
+}
+
+function handleSearchInput(event) {
+  if (event.key === 'Enter') {
+    performSearch();
+  }
+}
+
+function performSearch() {
+  const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+  const resultsContainer = document.getElementById('searchResults');
+  
+  if (!searchTerm) {
+    resultsContainer.innerHTML = `
+      <div style="text-align: center; color: #6c757d; padding: 20px;">
+        <i class="bi bi-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+        Enter a search term to find gullies, parks, or other assets
+      </div>
+    `;
+    return;
+  }
+  
+  console.log('performSearch: Searching for:', searchTerm);
+  
+  // Search through gully data
+  const results = [];
+  
+  if (window.gullyData && Array.isArray(window.gullyData)) {
+    window.gullyData.forEach((gully, index) => {
+      const searchableText = [
+        gully.name || '',
+        gully.estate || '',
+        gully.location || '',
+        gully.description || '',
+        gully.status || '',
+        gully.layer || ''
+      ].join(' ').toLowerCase();
+      
+      if (searchableText.includes(searchTerm)) {
+        results.push({
+          type: 'gully',
+          data: gully,
+          index: index,
+          matchText: gully.name || gully.estate || 'Unnamed Gully'
+        });
+      }
+    });
+  }
+  
+  // Display results
+  if (results.length === 0) {
+    resultsContainer.innerHTML = `
+      <div style="text-align: center; color: #6c757d; padding: 20px;">
+        <i class="bi bi-exclamation-circle" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+        No results found for "${searchTerm}"
+        <br><small>Try searching for a different term</small>
+      </div>
+    `;
+  } else {
+    const resultsHTML = results.map(result => `
+      <div onclick="zoomToAsset('${result.type}', ${result.index})" 
+           style="display: flex; align-items: center; padding: 12px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef; transition: all 0.2s ease;"
+           onmouseover="this.style.background='#e9ecef'"
+           onmouseout="this.style.background='#f8f9fa'">
+        <div style="width: 24px; height: 24px; background: #2196F3; border-radius: 6px; margin-right: 12px; display: flex; align-items: center; justify-content: center;">
+          <i class="bi bi-geo-alt-fill" style="color: white; font-size: 0.8rem;"></i>
+        </div>
+        <div style="flex: 1;">
+          <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">${result.matchText}</div>
+          <div style="font-size: 0.8rem; color: #6c757d;">
+            ${result.data.estate ? 'Estate: ' + result.data.estate : ''} 
+            ${result.data.status ? '• Status: ' + result.data.status : ''}
+            ${result.data.layer ? '• Type: ' + result.data.layer : ''}
+          </div>
+        </div>
+        <div style="color: #6c757d; font-size: 0.9rem;">
+          <i class="bi bi-arrow-right"></i>
+        </div>
+      </div>
+    `).join('');
+    
+    resultsContainer.innerHTML = `
+      <div style="margin-bottom: 12px; padding: 8px 12px; background: #e3f2fd; border-radius: 6px; border-left: 4px solid #2196F3;">
+        <strong>${results.length}</strong> result${results.length === 1 ? '' : 's'} found
+      </div>
+      ${resultsHTML}
+    `;
+  }
+}
+
+function zoomToAsset(type, index) {
+  console.log('zoomToAsset: Zooming to', type, 'at index', index);
+  
+  if (type === 'gully' && window.gullyData && window.gullyData[index]) {
+    const gully = window.gullyData[index];
+    
+    if (gully.lat && gully.lng) {
+      // Close search popup
+      const searchPopup = document.getElementById('searchPopupContainer');
+      if (searchPopup) {
+        searchPopup.remove();
+      }
+      
+      // Zoom to the gully location
+      window.map.setView([gully.lat, gully.lng], 18);
+      
+      // Highlight the gully marker if it exists
+      if (gully.marker) {
+        // Flash the marker
+        const originalStyle = gully.marker.options;
+        gully.marker.setStyle({
+          radius: 12,
+          weight: 3,
+          color: '#ff0000',
+          fillColor: '#ff0000',
+          fillOpacity: 0.8
+        });
+        
+        setTimeout(() => {
+          if (gully.marker) {
+            gully.marker.setStyle(originalStyle);
+          }
+        }, 3000);
+      }
+      
+      // Show a brief notification
+      showNotification(`Zoomed to ${gully.name || 'Gully'}`, 'success');
+    } else {
+      showNotification('Location data not available for this asset', 'error');
+    }
+  }
+}
+
+function showNotification(message, type = 'info') {
+  // Remove any existing notifications
+  const existingNotification = document.getElementById('notification');
+  if (existingNotification) {
+    existingNotification.remove();
+  }
+  
+  const notification = document.createElement('div');
+  notification.id = 'notification';
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    z-index: 3002;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+  `;
+  
+  // Set color based on type
+  switch (type) {
+    case 'success':
+      notification.style.background = '#4CAF50';
+      break;
+    case 'error':
+      notification.style.background = '#F44336';
+      break;
+    case 'warning':
+      notification.style.background = '#FF9800';
+      break;
+    default:
+      notification.style.background = '#2196F3';
+  }
+  
+  notification.textContent = message;
+  document.body.appendChild(notification);
+  
+  // Auto-remove after 3 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.remove();
+    }
+  }, 3000);
 }
 
 // Update the window.onload to include new initialization
