@@ -2107,7 +2107,7 @@ function cancelImport() {
     alert('Import cancelled. Any partially imported data may need to be cleaned up.');
 }
 
-// Enhanced handleImportFile function with batch processing for large files
+// Optimized handleImportFile function for reliable imports
 async function handleImportFile(event) {
     if (!auth.currentUser || currentRole !== 'admin') {
         alert('Only administrators can import files');
@@ -2185,8 +2185,8 @@ async function handleImportFile(event) {
         progressBar.style.width = '10%';
         progressBar.textContent = '10%';
         
-        // Add timeout protection for file parsing
-        const parseTimeout = 30000; // 30 seconds timeout
+        // Add timeout protection for file parsing (reduced for small files)
+        const parseTimeout = file.size < 1024 * 1024 ? 15000 : 30000; // 15 seconds for files < 1MB, 30 seconds for larger files
         const parsePromise = new Promise(async (resolve, reject) => {
             try {
                 if (extension === 'kml') {
@@ -2200,6 +2200,11 @@ async function handleImportFile(event) {
                     
                     if (text.length > 50 * 1024 * 1024) { // 50MB limit
                         throw new Error('File too large. Please use a file smaller than 50MB.');
+                    }
+                    
+                    // Quick validation for small files
+                    if (text.length < 100) {
+                        throw new Error('File appears to be empty or invalid. Please check your KML file.');
                     }
                     
                     document.getElementById('import-status').textContent = 'Parsing KML structure...';
@@ -2313,10 +2318,10 @@ async function handleImportFile(event) {
             return;
         }
 
-        // Enhanced batch processing configuration
-        const BATCH_SIZE = 25; // Reduced batch size for better reliability
-        const BATCH_DELAY = 200; // Increased delay to avoid rate limiting
-        const IMPORT_TIMEOUT = 300000; // 5 minutes total timeout
+        // Optimized batch processing configuration for small files
+        const BATCH_SIZE = validFeatures.length <= 100 ? 50 : 25; // Larger batches for small files
+        const BATCH_DELAY = validFeatures.length <= 100 ? 50 : 100; // Faster for small files
+        const IMPORT_TIMEOUT = 120000; // 2 minutes total timeout (reduced for small files)
         const timestamp = Date.now();
         const currentLayer = selectedLayer;
 
@@ -2324,7 +2329,6 @@ async function handleImportFile(event) {
         let duplicateCount = totalFeatures - validFeatures.length;
         let skippedCount = 0;
         const startTime = Date.now();
-        let lastProgressUpdate = Date.now();
 
         document.getElementById('import-status').textContent = 'Importing to database...';
         document.getElementById('import-progress-text').textContent = `0/${validFeatures.length}`;
@@ -2332,7 +2336,7 @@ async function handleImportFile(event) {
         // Add overall timeout protection
         const importTimeout = setTimeout(() => {
             console.error('Import timeout reached');
-            alert('Import timed out after 5 minutes. Please try with a smaller file or check your connection.');
+            alert('Import timed out after 2 minutes. Please try again or check your connection.');
             // Clean up progress modal
             try {
                 const progressDiv = document.querySelector('.modal-backdrop-custom');
@@ -2342,136 +2346,101 @@ async function handleImportFile(event) {
         }, IMPORT_TIMEOUT);
 
         try {
-            // Process features in batches
-            for (let i = 0; i < validFeatures.length; i += BATCH_SIZE) {
-                // Check for timeout or cancellation
-                if (Date.now() - startTime > IMPORT_TIMEOUT) {
-                    throw new Error('Import timeout reached');
-                }
-                
+            // Use Firebase batch writes for better performance
+            const batchRef = db.ref().child(currentLayer);
+            const batchData = {};
+            
+            // Prepare all data first (much faster than individual writes)
+            for (let i = 0; i < validFeatures.length; i++) {
                 if (window.importCancelled) {
                     throw new Error('Import cancelled by user');
                 }
-
-                const batch = validFeatures.slice(i, i + BATCH_SIZE);
-                const batchPromises = [];
-                const batchMarkers = [];
-
-                // Process each feature in the batch
-                for (let j = 0; j < batch.length; j++) {
-                    const { feature, lat, lng } = batch[j];
-                    const id = `${currentLayer}_${timestamp}_${importCount + j}`;
+                
+                const { feature, lat, lng } = validFeatures[i];
+                const id = `${currentLayer}_${timestamp}_${i}`;
+                
+                batchData[id] = {
+                    location: { lat, lng },
+                    status: 'Unmarked',
+                    created: firebase.database.ServerValue.TIMESTAMP,
+                    createdBy: auth.currentUser.uid,
+                    sourceFile: file.name
+                };
+                
+                importedPositions.add(`${lat.toFixed(5)},${lng.toFixed(5)}`);
+                importCount++;
+                
+                // Update progress every 10 features for small files
+                if (i % 10 === 0 || i === validFeatures.length - 1) {
+                    const progress = Math.round((importCount / validFeatures.length) * 80); // Reserve 20% for marker creation
+                    const progressBar = document.getElementById('import-progress-bar');
+                    const progressText = document.getElementById('import-progress-text');
+                    const speedText = document.getElementById('import-speed');
                     
-                    // Prepare Firebase data first
-                    const gullyData = {
-                        location: { lat, lng },
-                        status: 'Unmarked',
-                        created: firebase.database.ServerValue.TIMESTAMP,
-                        createdBy: auth.currentUser.uid,
-                        sourceFile: file.name
-                    };
-
-                    // Add to batch promises for Firebase
-                    batchPromises.push(
-                        db.ref(`${currentLayer}/${id}`).set(gullyData)
-                            .then(() => ({ success: true, id, lat, lng }))
-                            .catch(error => {
-                                console.error('Failed to save gully to Firebase:', error);
-                                return { success: false, error };
-                            })
-                    );
-                }
-
-                // Wait for batch to complete with timeout
-                const batchTimeout = 30000; // 30 seconds per batch
-                const batchPromise = Promise.all(batchPromises);
-                const batchTimeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Batch timeout')), batchTimeout)
-                );
-
-                const batchResults = await Promise.race([batchPromise, batchTimeoutPromise]);
-                
-                // Process successful results (defer marker creation)
-                const successfulResults = [];
-                for (const result of batchResults) {
-                    if (result.success) {
-                        successfulResults.push(result);
-                        importedPositions.add(`${result.lat.toFixed(5)},${result.lng.toFixed(5)}`);
-                        importCount++;
-                    } else {
-                        skippedCount++;
-                    }
-                }
-                
-                // Store successful results for later marker creation
-                if (!window.pendingMarkers) window.pendingMarkers = [];
-                window.pendingMarkers.push(...successfulResults);
-                
-                // Update progress more frequently
-                const progress = Math.round((importCount / validFeatures.length) * 100);
-                const progressBar = document.getElementById('import-progress-bar');
-                const progressText = document.getElementById('import-progress-text');
-                const speedText = document.getElementById('import-speed');
-                
-                progressBar.style.width = `${progress}%`;
-                progressBar.textContent = `${progress}%`;
-                progressText.textContent = `${importCount}/${validFeatures.length}`;
-                
-                // Calculate speed
-                const elapsed = (Date.now() - startTime) / 1000;
-                const speed = Math.round(importCount / elapsed);
-                speedText.textContent = `${speed} features/second`;
-                
-                // Update status with current batch info
-                document.getElementById('import-status').textContent = 
-                    `Importing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(validFeatures.length / BATCH_SIZE)}...`;
-                
-                // Allow UI to update more frequently
-                await new Promise(resolve => setTimeout(resolve, 50));
-                
-                // Delay between batches to avoid rate limiting
-                if (i + BATCH_SIZE < validFeatures.length) {
-                    await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.textContent = `${progress}%`;
+                    progressText.textContent = `${importCount}/${validFeatures.length}`;
+                    
+                    // Calculate speed
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const speed = Math.round(importCount / elapsed);
+                    speedText.textContent = `${speed} features/second`;
+                    
+                    document.getElementById('import-status').textContent = 
+                        `Preparing data... (${importCount}/${validFeatures.length})`;
+                    
+                    // Allow UI to update
+                    await new Promise(resolve => setTimeout(resolve, 10));
                 }
             }
+            
+            // Single batch write to Firebase (much faster than individual writes)
+            document.getElementById('import-status').textContent = 'Saving to database...';
+            const progressBar = document.getElementById('import-progress-bar');
+            progressBar.style.width = '85%';
+            progressBar.textContent = '85%';
+            
+            await batchRef.update(batchData);
+            
+            console.log(`handleImportFile: Successfully imported ${importCount} features in single batch`);
+            
         } finally {
             // Clear timeout
             clearTimeout(importTimeout);
         }
 
-        // Add markers to map in chunks to prevent UI freezing
-        if (window.pendingMarkers && window.pendingMarkers.length > 0) {
-            document.getElementById('import-status').textContent = 'Adding markers to map...';
-            progressBar.style.width = '90%';
-            progressBar.textContent = '90%';
-            
-            const MARKER_BATCH_SIZE = 100;
-            for (let i = 0; i < window.pendingMarkers.length; i += MARKER_BATCH_SIZE) {
-                if (window.importCancelled) {
-                    throw new Error('Import cancelled by user');
-                }
-                
-                const markerBatch = window.pendingMarkers.slice(i, i + MARKER_BATCH_SIZE);
-                
-                for (const result of markerBatch) {
-                    try {
-                        addGullyToMap({ lat: result.lat, lng: result.lng }, result.id, currentLayer);
-                    } catch (error) {
-                        console.warn('Failed to add marker to map:', error);
-                    }
-                }
-                
-                // Update progress for marker creation
-                const markerProgress = Math.round(((i + markerBatch.length) / window.pendingMarkers.length) * 10) + 90;
-                progressBar.style.width = `${markerProgress}%`;
-                progressBar.textContent = `${markerProgress}%`;
-                
-                // Allow UI to update
-                await new Promise(resolve => setTimeout(resolve, 10));
+        // Optimized marker creation for small files
+        document.getElementById('import-status').textContent = 'Adding markers to map...';
+        const progressBar = document.getElementById('import-progress-bar');
+        progressBar.style.width = '90%';
+        progressBar.textContent = '90%';
+        
+        // Create markers efficiently for small files
+        const markerPromises = [];
+        for (let i = 0; i < validFeatures.length; i++) {
+            if (window.importCancelled) {
+                throw new Error('Import cancelled by user');
             }
             
-            // Clear pending markers
-            window.pendingMarkers = [];
+            const { lat, lng } = validFeatures[i];
+            const id = `${currentLayer}_${timestamp}_${i}`;
+            
+            try {
+                addGullyToMap({ lat, lng }, id, currentLayer);
+                
+                // Update progress every 20 markers for small files
+                if (i % 20 === 0 || i === validFeatures.length - 1) {
+                    const markerProgress = Math.round(((i + 1) / validFeatures.length) * 10) + 90;
+                    progressBar.style.width = `${markerProgress}%`;
+                    progressBar.textContent = `${markerProgress}%`;
+                    
+                    // Allow UI to update
+                    await new Promise(resolve => setTimeout(resolve, 5));
+                }
+            } catch (error) {
+                console.warn('Failed to add marker to map:', error);
+                skippedCount++;
+            }
         }
 
         // Remove progress indicator
@@ -2503,7 +2472,7 @@ async function handleImportFile(event) {
             window.map.invalidateSize();
             console.log('handleImportFile: Map invalidated size after import.');
             
-            const message = `Successfully imported ${importCount} features.\n${duplicateCount} duplicate positions were skipped.\n${skippedCount} features failed to import.`;
+            const message = `Successfully imported ${importCount} features.\n${duplicateCount} duplicate positions were skipped.\n${skippedCount} features failed to import.\n\nImport completed in ${Math.round((Date.now() - startTime) / 1000)} seconds.`;
             alert(message);
         } else {
             alert('No valid Point features were imported. All positions were duplicates, invalid, or failed to import.');
