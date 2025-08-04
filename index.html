@@ -4577,95 +4577,62 @@ if (forgotLink) {
       container.id = 'layerControlContainer';
       container.className = 'layer-control-card card shadow';
       container.style.display = 'block';
-        container.innerHTML = `
-    <div class="layer-header">
-      <div class="layer-header-content">
-        <div class="drag-handle" title="Drag to move">
-          <i class="bi bi-grip-vertical"></i>
+
+      // Build the layer list HTML
+      let layerListHTML = '';
+      const layers = [
+        { key: 'gullies', name: 'Gullies', desc: 'Drainage inspection points', iconClass: 'gully-icon' },
+        { key: 'playgrounds', name: 'Playgrounds', desc: 'Recreational areas', iconClass: 'playground-icon' },
+        { key: 'walkways', name: 'Walkways', desc: 'Pedestrian paths', iconClass: 'walkway-icon' },
+        { key: 'signage', name: 'Signage', desc: 'Information signs', iconClass: 'signage-icon' },
+        { key: 'lining', name: 'Road Lining', desc: 'Road markings', iconClass: 'lining-icon' }
+      ];
+      layers.forEach(layer => {
+        layerListHTML += `
+          <div class="layer-item" onclick="toggleLayer('${layer.key}')">
+            <div class="layer-checkbox">
+              <input class="form-check-input" type="checkbox" id="${layer.key}Layer" ${window.map && window.dataLayers[layer.key] && window.map.hasLayer(window.dataLayers[layer.key]) ? 'checked' : ''}>
+            </div>
+            <div class="layer-icon-container">
+              <div class="layer-icon ${layer.iconClass}"></div>
+            </div>
+            <div class="layer-info">
+              <div class="layer-name">${layer.name}</div>
+              <div class="layer-description">${layer.desc}</div>
+            </div>
+          </div>
+        `;
+      });
+
+      if (!layerListHTML) {
+        layerListHTML = `<div class="text-muted text-center py-3">No layers available</div>`;
+      }
+
+      container.innerHTML = `
+        <div class="layer-header">
+          <div class="layer-header-content">
+            <div class="drag-handle" title="Drag to move">
+              <i class="bi bi-grip-vertical"></i>
+            </div>
+            <div class="layer-title">
+              <i class="bi bi-layers-fill me-2"></i>
+              <span>Map Layers</span>
+            </div>
+          </div>
+          <button type="button" class="layer-close-btn" aria-label="Close" id="closeLayerControlBtn">
+            <i class="bi bi-x-lg"></i>
+          </button>
         </div>
-        <div class="layer-title">
-          <i class="bi bi-layers-fill me-2"></i>
-          <span>Map Layers</span>
-        </div>
-      </div>
-      <button type="button" class="layer-close-btn" aria-label="Close" id="closeLayerControlBtn">
-        <i class="bi bi-x-lg"></i>
-      </button>
-    </div>
-    
-    <div class="layer-content">
-      <div class="layer-description">
-        <small class="text-muted">Select which layers to display on the map</small>
-      </div>
-      
-      <div class="layer-list">
-        <div class="layer-item" onclick="toggleLayer('gullies')">
-          <div class="layer-checkbox">
-            <input class="form-check-input" type="checkbox" id="gulliesLayer" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''}>
+        <div class="layer-content">
+          <div class="layer-description">
+            <small class="text-muted">Select which layers to display on the map</small>
           </div>
-          <div class="layer-icon-container">
-            <div class="layer-icon gully-icon"></div>
-          </div>
-          <div class="layer-info">
-            <div class="layer-name">Gullies</div>
-            <div class="layer-description">Drainage inspection points</div>
-          </div>
-        </div>
-        
-        <div class="layer-item" onclick="toggleLayer('playgrounds')">
-          <div class="layer-checkbox">
-            <input class="form-check-input" type="checkbox" id="playgroundsLayer" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''}>
-          </div>
-          <div class="layer-icon-container">
-            <div class="layer-icon playground-icon"></div>
-          </div>
-          <div class="layer-info">
-            <div class="layer-name">Playgrounds</div>
-            <div class="layer-description">Recreational areas</div>
-          </div>
-        </div>
-        
-        <div class="layer-item" onclick="toggleLayer('walkways')">
-          <div class="layer-checkbox">
-            <input class="form-check-input" type="checkbox" id="walkwaysLayer" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''}>
-          </div>
-          <div class="layer-icon-container">
-            <div class="layer-icon walkway-icon"></div>
-          </div>
-          <div class="layer-info">
-            <div class="layer-name">Walkways</div>
-            <div class="layer-description">Pedestrian paths</div>
+          <div class="layer-list">
+            ${layerListHTML}
           </div>
         </div>
-        
-        <div class="layer-item" onclick="toggleLayer('signage')">
-          <div class="layer-checkbox">
-            <input class="form-check-input" type="checkbox" id="signageLayer" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''}>
-          </div>
-          <div class="layer-icon-container">
-            <div class="layer-icon signage-icon"></div>
-          </div>
-          <div class="layer-info">
-            <div class="layer-name">Signage</div>
-            <div class="layer-description">Information signs</div>
-          </div>
-        </div>
-        
-        <div class="layer-item" onclick="toggleLayer('lining')">
-          <div class="layer-checkbox">
-            <input class="form-check-input" type="checkbox" id="liningLayer" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''}>
-          </div>
-          <div class="layer-icon-container">
-            <div class="layer-icon lining-icon"></div>
-          </div>
-          <div class="layer-info">
-            <div class="layer-name">Road Lining</div>
-            <div class="layer-description">Road markings</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+      `;
+
       document.body.appendChild(container);
       updateLayerButtonStates();
       setTimeout(() => {
