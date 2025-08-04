@@ -1148,7 +1148,7 @@
         <div class="flex-grow-1 p-4" style="min-width:320px;">
           <h2 class="mb-2" style="font-weight:700;">Asset Management System (Roads)</h2>
           <div class="mb-3" style="font-size:1.1rem;color:#444;">Please sign in to continue.</div>
-          <form id="loginForm" autocomplete="on">
+          <form id="loginForm" autocomplete="on" onsubmit="event.preventDefault(); login();">
             <div class="mb-3">
               <label for="email" class="form-label" style="font-weight:500;">Username</label>
               <input type="email" id="email" placeholder="Username" class="form-control form-control-lg" autocomplete="username" style="font-size:1.1rem;">
@@ -1160,7 +1160,7 @@
                 <i id="passwordToggleIcon" class="bi bi-eye" style="margin-top:35px;"></i>
               </span>
             </div>
-            <button type="submit" class="btn btn-primary btn-lg w-100 mb-2" style="font-weight:600;font-size:1.15rem;">Sign In</button>
+            <button type="button" class="btn btn-primary btn-lg w-100 mb-2" onclick="login()" style="font-weight:600;font-size:1.15rem;">Sign In</button>
             <button type="button" class="btn btn-outline-primary w-100 mt-2" onclick="showRegisterModal()">Register</button>
             <div class="text-start mt-2">
               <a href="#" id="forgotPasswordLink" style="color:#1976D2;text-decoration:underline;cursor:pointer;font-size:1rem;">Forgot password?</a>
@@ -1539,71 +1539,113 @@ async function ensureAllUsers() {
   console.log('User setup complete');
 }
 
-// Update login function
+// Update login function with better error handling
 function login(isAutoLogin = false) {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+  console.log('login: Starting login process...', new Date().toISOString());
+  console.log('login: isAutoLogin =', isAutoLogin);
   
-  if (!email || !password) {
-    document.getElementById("loginError").textContent = "❌ Please enter both email and password";
+  try {
+    // Check if required elements exist
+    const emailElement = document.getElementById("email");
+    const passwordElement = document.getElementById("password");
+    const errorElement = document.getElementById("loginError");
+    
+    if (!emailElement || !passwordElement || !errorElement) {
+      console.error('login: Required DOM elements not found');
+      alert('Login form elements not found. Please refresh the page.');
+      return;
+    }
+    
+    const email = emailElement.value;
+    const password = passwordElement.value;
+    
+    console.log('login: Email and password retrieved');
+    
+    if (!email || !password) {
+      document.getElementById("loginError").textContent = "❌ Please enter both email and password";
+      const loginScreen = document.getElementById("loginScreen");
+      if (loginScreen) loginScreen.style.opacity = "1";
+      return;
+    }
+
+    const validation = validateAndNormalizeEmail(email);
+    if (!validation.isValid) {
+      document.getElementById("loginError").textContent = `❌ ${validation.message}`;
+      const loginScreen = document.getElementById("loginScreen");
+      if (loginScreen) loginScreen.style.opacity = "1";
+      return;
+    }
+
+    console.log('login: Email validation passed, attempting Firebase sign in...');
+    
+    document.getElementById("loginError").textContent = "Logging in...";
     const loginScreen = document.getElementById("loginScreen");
-    if (loginScreen) loginScreen.style.opacity = "1";
-    return;
-  }
+    if (loginScreen) loginScreen.style.opacity = "0.5";
 
-  const validation = validateAndNormalizeEmail(email);
-  if (!validation.isValid) {
-    document.getElementById("loginError").textContent = `❌ ${validation.message}`;
-    const loginScreen = document.getElementById("loginScreen");
-    if (loginScreen) loginScreen.style.opacity = "1";
-    return;
-  }
+    // Check if Firebase auth is available
+    if (!auth || typeof auth.signInWithEmailAndPassword !== 'function') {
+      console.error('login: Firebase auth not available');
+      console.error('login: auth object:', auth);
+      console.error('login: typeof auth.signInWithEmailAndPassword:', typeof auth.signInWithEmailAndPassword);
+      document.getElementById("loginError").textContent = "❌ Authentication service not available. Please refresh the page.";
+      if (loginScreen) loginScreen.style.opacity = "1";
+      return;
+    }
+    
+    console.log('login: Firebase auth is available, proceeding with sign in...');
 
-  document.getElementById("loginError").textContent = "Logging in...";
-  const loginScreen = document.getElementById("loginScreen");
-  if (loginScreen) loginScreen.style.opacity = "0.5";
-
-  auth.signInWithEmailAndPassword(validation.normalizedEmail, password)
+    auth.signInWithEmailAndPassword(validation.normalizedEmail, password)
     .then(async userCredential => {
-      const userRef = db.ref(`users/${userCredential.user.uid}`);
-      let snapshot = await userRef.once('value');
-      if (!snapshot.exists()) {
-        // Try to find user config for this email
-        const userConfig = USER_CONFIG.users.find(u => u.email.toLowerCase() === validation.normalizedEmail.toLowerCase());
-        if (userConfig) {
-          // Create user data in DB
-          await userRef.set({
-            ...userConfig,
-            created: firebase.database.ServerValue.TIMESTAMP,
-            lastUpdated: firebase.database.ServerValue.TIMESTAMP
-          });
-          // Re-fetch snapshot
-          snapshot = await userRef.once('value');
-        } else {
-          throw new Error('No user data found and no config for this user');
+      console.log('login: Firebase sign in successful, getting user data...');
+      
+      try {
+        const userRef = db.ref(`users/${userCredential.user.uid}`);
+        let snapshot = await userRef.once('value');
+        
+        if (!snapshot.exists()) {
+          console.log('login: No user data found, checking USER_CONFIG...');
+          // Try to find user config for this email
+          const userConfig = USER_CONFIG.users.find(u => u.email.toLowerCase() === validation.normalizedEmail.toLowerCase());
+          if (userConfig) {
+            console.log('login: User config found, creating user data...');
+            // Create user data in DB
+            await userRef.set({
+              ...userConfig,
+              created: firebase.database.ServerValue.TIMESTAMP,
+              lastUpdated: firebase.database.ServerValue.TIMESTAMP
+            });
+            // Re-fetch snapshot
+            snapshot = await userRef.once('value');
+          } else {
+            throw new Error('No user data found and no config for this user');
+          }
         }
-      }
-      if (!snapshot.exists()) {
-        throw new Error('No user data found');
-      }
-      const userData = snapshot.val();
-      if (userData.approved === false) {
-        throw new Error('Your account is pending admin approval. Please contact an administrator.');
-      }
-      window.currentUserData = userData;
-      currentRole = userData.role;
-      // Update UI
-      const loginScreen = document.getElementById('loginScreen');
-      if (loginScreen) loginScreen.style.display = 'none';
-      const mapDiv = document.getElementById('map');
-      if (mapDiv) mapDiv.style.display = 'block';
-      const summaryDiv = document.getElementById('summary');
-      if (summaryDiv) summaryDiv.style.display = 'block';
-      // Setup UI with proper privileges
-      setupUIForRole(userData.role, userData.adminPrivileges);
-      // Clear URL parameters after auto-login
-      if (isAutoLogin) {
-        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        if (!snapshot.exists()) {
+          throw new Error('No user data found');
+        }
+        
+        const userData = snapshot.val();
+        console.log('login: User data retrieved:', userData);
+        
+        if (userData.approved === false) {
+          throw new Error('Your account is pending admin approval. Please contact an administrator.');
+        }
+        
+        window.currentUserData = userData;
+        currentRole = userData.role;
+        
+        console.log('login: Calling handleLoginSuccess...');
+        // Use handleLoginSuccess instead of duplicating UI logic
+        handleLoginSuccess(userData);
+        
+        // Clear URL parameters after auto-login
+        if (isAutoLogin) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      } catch (error) {
+        console.error('login: Error in user data processing:', error);
+        throw error;
       }
     })
     .catch(error => {
