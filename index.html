@@ -762,98 +762,223 @@
   left: 24px;
   top: 24px;
   z-index: 3000;
-  min-width: 300px;
-  max-width: 370px;
-  border-radius: 1.1rem;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.22), 0 1.5px 8px rgba(0,0,0,0.10);
-  border: 1.5px solid #b0b0b0;
-  background: linear-gradient(135deg, #f8fafc 80%, #e3eaf3 100%);
+  min-width: 320px;
+  max-width: 380px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.1);
+  border: 1px solid #e0e0e0;
+  background: white;
   padding: 0;
   margin: 0;
   font-family: 'Segoe UI', Arial, sans-serif;
-  transition: box-shadow 0.2s;
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
-.layer-control-card .card-header {
-  background: #f3f6fa;
-  border-radius: 1.1rem 1.1rem 0 0;
-  border-bottom: 1px solid #e0e6ed;
+
+.layer-control-card:hover {
+  box-shadow: 0 12px 40px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.layer-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.25rem 0.75rem 1.25rem;
-  font-size: 1.18rem;
-  font-weight: 600;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-  user-select: none;
-  cursor: move;
+  position: relative;
 }
-.layer-control-card .drag-handle {
-  margin-right: 10px;
-  color: #888;
-  font-size: 1.3em;
-  cursor: move;
-  user-select: none;
+
+.layer-header-content {
   display: flex;
   align-items: center;
+  flex: 1;
 }
-.layer-control-card .card-title {
-  font-size: 1.18rem;
+
+.drag-handle {
+  color: rgba(255,255,255,0.8);
+  font-size: 1.2rem;
+  cursor: move;
+  user-select: none;
+  margin-right: 12px;
+  transition: color 0.2s ease;
+}
+
+.drag-handle:hover {
+  color: white;
+}
+
+.layer-title {
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
   font-weight: 600;
-  margin: 0;
-  color: #1a2330;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.5px;
 }
-.layer-control-card .btn-close {
-  font-size: 1.3rem;
-  color: #888;
-  opacity: 1;
-  margin-left: 10px;
-}
-.layer-control-card .list-group {
-  border-radius: 0 0 1.1rem 1.1rem;
-  margin: 0;
-  padding: 0.5rem 0 0.5rem 0;
+
+.layer-close-btn {
   background: none;
-}
-.layer-control-card .list-group-item {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
   border: none;
-  background: none;
-  font-size: 1.05rem;
-  padding: 0.85rem 1.25rem;
-  transition: background 0.15s, box-shadow 0.15s;
+  color: rgba(255,255,255,0.8);
+  font-size: 1.1rem;
   cursor: pointer;
-  border-radius: 0.5rem;
-  margin-bottom: 2px;
-  color: #1a2330;
-}
-.layer-control-card .list-group-item:hover,
-.layer-control-card .list-group-item:focus {
-  background: #e8f0fe;
-  box-shadow: 0 2px 8px rgba(33,150,243,0.07);
-}
-.layer-control-card .form-check-input {
-  margin-right: 0.7rem;
-  accent-color: #2196F3;
-  width: 1.25em;
-  height: 1.25em;
-  border: 2px solid #b0b0b0;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-  cursor: pointer;
-}
-.layer-control-card .layer-icon {
-  width: 26px;
-  height: 26px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
-  background: none;
+}
+
+.layer-close-btn:hover {
+  color: white;
+  background: rgba(255,255,255,0.1);
+}
+
+.layer-content {
+  padding: 20px;
+}
+
+.layer-description {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.layer-item:hover {
+  background: #f8f9fa;
+  border-color: #e9ecef;
+  transform: translateX(2px);
+}
+
+.layer-checkbox {
+  margin-right: 12px;
+}
+
+.layer-checkbox .form-check-input {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.layer-checkbox .form-check-input:checked {
+  background-color: #667eea;
+  border-color: #667eea;
+}
+
+.layer-icon-container {
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layer-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.gully-icon {
+  background: #2196F3;
+  border: 2px solid #1976D2;
+}
+
+.playground-icon {
+  background: #4CAF50;
+  border: 2px solid #388E3C;
+}
+
+.walkway-icon {
+  background: #F44336;
+  border: 2px solid #D32F2F;
+}
+
+.signage-icon {
+  background: #FF9800;
+  border: 2px solid #F57C00;
+}
+
+.lining-icon {
+  background: #9C27B0;
+  border: 2px solid #7B1FA2;
+}
+
+.layer-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.layer-name {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.layer-description {
+  font-size: 0.8rem;
+  color: #6c757d;
+  line-height: 1.3;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .layer-control-card {
+    min-width: 90vw !important;
+    max-width: 95vw !important;
+    left: 2.5vw !important;
+    top: 2.5vw !important;
+  }
+  
+  .layer-header {
+    padding: 20px !important;
+  }
+  
+  .layer-content {
+    padding: 24px !important;
+  }
+  
+  .layer-item {
+    padding: 16px 20px !important;
+  }
+  
+  .layer-icon {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  
+  .layer-name {
+    font-size: 1rem !important;
+  }
+  
+  .layer-description {
+    font-size: 0.85rem !important;
+  }
 }
   </style>
   <style>
@@ -3552,38 +3677,93 @@ function createLayerControlContainer() {
   container.className = 'layer-control-card card shadow';
   container.style.display = 'block';
   container.innerHTML = `
-    <div class="card-header">
-      <span class="drag-handle" title="Drag to move"><i class="bi bi-grip-vertical"></i></span>
-      <span class="card-title">Layer Selection</span>
-      <button type="button" class="btn-close" aria-label="Close" id="closeLayerControlBtn"></button>
+    <div class="layer-header">
+      <div class="layer-header-content">
+        <div class="drag-handle" title="Drag to move">
+          <i class="bi bi-grip-vertical"></i>
+        </div>
+        <div class="layer-title">
+          <i class="bi bi-layers-fill me-2"></i>
+          <span>Map Layers</span>
+        </div>
+      </div>
+      <button type="button" class="layer-close-btn" aria-label="Close" id="closeLayerControlBtn">
+        <i class="bi bi-x-lg"></i>
+      </button>
     </div>
-    <ul class="list-group list-group-flush">
-      <li class="list-group-item" onclick="toggleLayer('gullies')">
-        <input class="form-check-input" type="checkbox" id="gulliesLayer" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''}>
-        <span class="layer-icon" style="background:#2196F3;border-radius:50%;width:22px;height:22px;border:2px solid #000;"></span>
-        Gullies
-      </li>
-      <li class="list-group-item" onclick="toggleLayer('playgrounds')">
-        <input class="form-check-input" type="checkbox" id="playgroundsLayer" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''}>
-        <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><polygon points="10,3 3,17 17,17" fill="#43a047" stroke="#222" stroke-width="2"/></svg></span>
-        Playgrounds
-      </li>
-      <li class="list-group-item" onclick="toggleLayer('walkways')">
-        <input class="form-check-input" type="checkbox" id="walkwaysLayer" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''}>
-        <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" fill="#e53935" stroke="#222" stroke-width="2"/></svg></span>
-        Walkways
-      </li>
-      <li class="list-group-item" onclick="toggleLayer('signage')">
-        <input class="form-check-input" type="checkbox" id="signageLayer" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''}>
-        <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" fill="#fbc02d" stroke="#222" stroke-width="2"/></svg></span>
-        Signage
-      </li>
-      <li class="list-group-item" onclick="toggleLayer('lining')">
-        <input class="form-check-input" type="checkbox" id="liningLayer" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''}>
-        <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><path d="M15 10a6 6 0 1 1-6-6a4 4 0 1 0 6 6z" fill="#333" stroke="#222" stroke-width="2"/></svg></span>
-        Road Lining
-      </li>
-    </ul>
+    
+    <div class="layer-content">
+      <div class="layer-description">
+        <small class="text-muted">Select which layers to display on the map</small>
+      </div>
+      
+      <div class="layer-list">
+        <div class="layer-item" onclick="toggleLayer('gullies')">
+          <div class="layer-checkbox">
+            <input class="form-check-input" type="checkbox" id="gulliesLayer" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''}>
+          </div>
+          <div class="layer-icon-container">
+            <div class="layer-icon gully-icon"></div>
+          </div>
+          <div class="layer-info">
+            <div class="layer-name">Gullies</div>
+            <div class="layer-description">Drainage inspection points</div>
+          </div>
+        </div>
+        
+        <div class="layer-item" onclick="toggleLayer('playgrounds')">
+          <div class="layer-checkbox">
+            <input class="form-check-input" type="checkbox" id="playgroundsLayer" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''}>
+          </div>
+          <div class="layer-icon-container">
+            <div class="layer-icon playground-icon"></div>
+          </div>
+          <div class="layer-info">
+            <div class="layer-name">Playgrounds</div>
+            <div class="layer-description">Recreational areas</div>
+          </div>
+        </div>
+        
+        <div class="layer-item" onclick="toggleLayer('walkways')">
+          <div class="layer-checkbox">
+            <input class="form-check-input" type="checkbox" id="walkwaysLayer" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''}>
+          </div>
+          <div class="layer-icon-container">
+            <div class="layer-icon walkway-icon"></div>
+          </div>
+          <div class="layer-info">
+            <div class="layer-name">Walkways</div>
+            <div class="layer-description">Pedestrian paths</div>
+          </div>
+        </div>
+        
+        <div class="layer-item" onclick="toggleLayer('signage')">
+          <div class="layer-checkbox">
+            <input class="form-check-input" type="checkbox" id="signageLayer" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''}>
+          </div>
+          <div class="layer-icon-container">
+            <div class="layer-icon signage-icon"></div>
+          </div>
+          <div class="layer-info">
+            <div class="layer-name">Signage</div>
+            <div class="layer-description">Information signs</div>
+          </div>
+        </div>
+        
+        <div class="layer-item" onclick="toggleLayer('lining')">
+          <div class="layer-checkbox">
+            <input class="form-check-input" type="checkbox" id="liningLayer" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''}>
+          </div>
+          <div class="layer-icon-container">
+            <div class="layer-icon lining-icon"></div>
+          </div>
+          <div class="layer-info">
+            <div class="layer-name">Road Lining</div>
+            <div class="layer-description">Road markings</div>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
   document.body.appendChild(container);
   updateLayerButtonStates();
@@ -4430,40 +4610,95 @@ if (forgotLink) {
       container.id = 'layerControlContainer';
       container.className = 'layer-control-card card shadow';
       container.style.display = 'block';
-      container.innerHTML = `
-        <div class="card-header">
-          <span class="drag-handle" title="Drag to move"><i class="bi bi-grip-vertical"></i></span>
-          <span class="card-title">Layer Selection</span>
-          <button type="button" class="btn-close" aria-label="Close" id="closeLayerControlBtn"></button>
+        container.innerHTML = `
+    <div class="layer-header">
+      <div class="layer-header-content">
+        <div class="drag-handle" title="Drag to move">
+          <i class="bi bi-grip-vertical"></i>
         </div>
-        <ul class="list-group list-group-flush">
-          <li class="list-group-item" onclick="toggleLayer('gullies')">
+        <div class="layer-title">
+          <i class="bi bi-layers-fill me-2"></i>
+          <span>Map Layers</span>
+        </div>
+      </div>
+      <button type="button" class="layer-close-btn" aria-label="Close" id="closeLayerControlBtn">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    
+    <div class="layer-content">
+      <div class="layer-description">
+        <small class="text-muted">Select which layers to display on the map</small>
+      </div>
+      
+      <div class="layer-list">
+        <div class="layer-item" onclick="toggleLayer('gullies')">
+          <div class="layer-checkbox">
             <input class="form-check-input" type="checkbox" id="gulliesLayer" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''}>
-            <span class="layer-icon" style="background:#2196F3;border-radius:50%;width:22px;height:22px;border:2px solid #000;"></span>
-            Gullies
-          </li>
-          <li class="list-group-item" onclick="toggleLayer('playgrounds')">
+          </div>
+          <div class="layer-icon-container">
+            <div class="layer-icon gully-icon"></div>
+          </div>
+          <div class="layer-info">
+            <div class="layer-name">Gullies</div>
+            <div class="layer-description">Drainage inspection points</div>
+          </div>
+        </div>
+        
+        <div class="layer-item" onclick="toggleLayer('playgrounds')">
+          <div class="layer-checkbox">
             <input class="form-check-input" type="checkbox" id="playgroundsLayer" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''}>
-            <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><polygon points="10,3 3,17 17,17" fill="#43a047" stroke="#222" stroke-width="2"/></svg></span>
-            Playgrounds
-          </li>
-          <li class="list-group-item" onclick="toggleLayer('walkways')">
+          </div>
+          <div class="layer-icon-container">
+            <div class="layer-icon playground-icon"></div>
+          </div>
+          <div class="layer-info">
+            <div class="layer-name">Playgrounds</div>
+            <div class="layer-description">Recreational areas</div>
+          </div>
+        </div>
+        
+        <div class="layer-item" onclick="toggleLayer('walkways')">
+          <div class="layer-checkbox">
             <input class="form-check-input" type="checkbox" id="walkwaysLayer" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''}>
-            <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" fill="#e53935" stroke="#222" stroke-width="2"/></svg></span>
-            Walkways
-          </li>
-          <li class="list-group-item" onclick="toggleLayer('signage')">
+          </div>
+          <div class="layer-icon-container">
+            <div class="layer-icon walkway-icon"></div>
+          </div>
+          <div class="layer-info">
+            <div class="layer-name">Walkways</div>
+            <div class="layer-description">Pedestrian paths</div>
+          </div>
+        </div>
+        
+        <div class="layer-item" onclick="toggleLayer('signage')">
+          <div class="layer-checkbox">
             <input class="form-check-input" type="checkbox" id="signageLayer" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''}>
-            <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" fill="#fbc02d" stroke="#222" stroke-width="2"/></svg></span>
-            Signage
-          </li>
-          <li class="list-group-item" onclick="toggleLayer('lining')">
+          </div>
+          <div class="layer-icon-container">
+            <div class="layer-icon signage-icon"></div>
+          </div>
+          <div class="layer-info">
+            <div class="layer-name">Signage</div>
+            <div class="layer-description">Information signs</div>
+          </div>
+        </div>
+        
+        <div class="layer-item" onclick="toggleLayer('lining')">
+          <div class="layer-checkbox">
             <input class="form-check-input" type="checkbox" id="liningLayer" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''}>
-            <span class="layer-icon"><svg width="22" height="22" viewBox="0 0 20 20"><path d="M15 10a6 6 0 1 1-6-6a4 4 0 1 0 6 6z" fill="#333" stroke="#222" stroke-width="2"/></svg></span>
-            Road Lining
-          </li>
-        </ul>
-      `;
+          </div>
+          <div class="layer-icon-container">
+            <div class="layer-icon lining-icon"></div>
+          </div>
+          <div class="layer-info">
+            <div class="layer-name">Road Lining</div>
+            <div class="layer-description">Road markings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
       document.body.appendChild(container);
       updateLayerButtonStates();
       setTimeout(() => {
