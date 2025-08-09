@@ -1655,6 +1655,12 @@ function login(isAutoLogin = false) {
       const loginScreen = document.getElementById("loginScreen");
       if (loginScreen) loginScreen.style.opacity = "1";
     });
+  } catch (error) {
+    console.error('login: Outer try-catch error:', error);
+    document.getElementById("loginError").textContent = "❌ " + error.message;
+    const loginScreen = document.getElementById("loginScreen");
+    if (loginScreen) loginScreen.style.opacity = "1";
+  }
 }
 
 // Placeholder for setupInactivityTracking if not defined elsewhere
@@ -2415,7 +2421,7 @@ async function handleImportFile(event) {
                 // Update progress every 10 features for small files
                 if (i % 10 === 0 || i === validFeatures.length - 1) {
                     const progress = Math.round((importCount / validFeatures.length) * 80); // Reserve 20% for marker creation
-                    const progressBar = document.getElementById('import-progress-bar');
+                    // Reuse existing progressBar variable
                     const progressText = document.getElementById('import-progress-text');
                     const speedText = document.getElementById('import-speed');
                     
@@ -2438,7 +2444,7 @@ async function handleImportFile(event) {
             
             // Single batch write to Firebase (much faster than individual writes)
             document.getElementById('import-status').textContent = 'Saving to database...';
-            const progressBar = document.getElementById('import-progress-bar');
+            // Reuse existing progressBar variable
             progressBar.style.width = '85%';
             progressBar.textContent = '85%';
             
@@ -2453,7 +2459,8 @@ async function handleImportFile(event) {
 
         // Optimized marker creation for small files
         document.getElementById('import-status').textContent = 'Adding markers to map...';
-        const progressBar = document.getElementById('import-progress-bar');
+        // Reuse the progressBar variable declared earlier
+        progressBar = document.getElementById('import-progress-bar');
         progressBar.style.width = '90%';
         progressBar.textContent = '90%';
         
