@@ -3113,7 +3113,7 @@ function resetMap() {
   auth.currentUser.reauthenticateWithCredential(credential)
     .then(() => {
       // Password correct, proceed with reset
-      const confirmReset = confirm('Are you sure you want to reset the map? This will remove all gullies from the map.');
+      const confirmReset = confirm('Are you sure you want to reset the map? This will:\n\n• Reset ALL gullies to "Unmarked" (unchecked) status\n• Clear all inspection data, comments, and photos\n• Reset the map view to default\n\nThis action cannot be undone and will be logged in the audit trail.');
       if (!confirmReset) {
         return;
       }
@@ -3143,6 +3143,46 @@ function resetMap() {
         Object.values(window.dataLayers).forEach(layer => {
           console.log(`resetMap: Attempting to clear layer: ${layer.id || "unknown"}`);
           layer.clearLayers();
+        });
+
+        // Reset all gullies to "Unmarked" status in Firebase
+        console.log('resetMap: Resetting all gullies to Unmarked status...');
+        db.ref('gullies').once('value').then(snapshot => {
+          const gullies = snapshot.val() || {};
+          const resetPromises = [];
+          
+          Object.keys(gullies).forEach(gullyId => {
+            // Log the reset action for audit trail
+            logAuditEvent('STATUS_CHANGE', 'gullies', gullyId, {
+              location: gullies[gullyId].location || null,
+              previousStatus: gullies[gullyId].status || 'Unknown',
+              newStatus: 'Unmarked',
+              method: 'Bulk reset via reset map function',
+              reason: 'Map reset - all gullies reverted to unchecked status'
+            });
+            
+            const resetPromise = db.ref(`gullies/${gullyId}`).update({
+              status: 'Unmarked',
+              comment: '',
+              date: '',
+              photoURL: '',
+              lastInspected: null,
+              inspections: null
+            });
+            resetPromises.push(resetPromise);
+          });
+          
+          return Promise.all(resetPromises);
+        }).then(() => {
+          console.log('resetMap: All gullies reset to Unmarked status in Firebase');
+          
+          // Reload data to show updated markers with Unmarked status
+          setTimeout(() => {
+            loadGullyData();
+            console.log('resetMap: Reloaded gully data with updated status');
+          }, 500);
+        }).catch(error => {
+          console.error('resetMap: Error resetting gullies status:', error);
         });
 
         // Clear the gullyData array
@@ -3196,8 +3236,8 @@ function resetMap() {
         setTimeout(() => {
           loadingDiv.remove();
           console.log('resetMap: Map reset complete.');
-          alert('Map has been reset successfully');
-        }, 1000);
+          alert('Map reset complete!\n\n✓ All gullies have been reset to "Unmarked" status\n✓ All inspection data cleared\n✓ Map view reset to default\n✓ Actions logged to audit trail');
+        }, 1500);
 
       } catch (error) {
         console.error('resetMap: Error resetting map:', error);
