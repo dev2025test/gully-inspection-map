@@ -1223,7 +1223,8 @@
       <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" onclick="loadFromBackup()" title="Load data from a backup file"><i class="bi bi-folder"></i> <i class="bi bi-arrow-up"></i> <span>Load Backup</span></button>
       <button class="btn btn-outline-dark toolbar-button d-inline-flex align-items-center" onclick="exportAuditHistory()" title="Export audit history of all modifications"><i class="bi bi-journal-text"></i> <span>Audit History</span></button>
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" id="toggleMapLayerBtn" onclick="toggleMapLayer()" title="Switch between Map and Satellite"><i class="bi bi-globe"></i> Satellite</button>
-      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" id="toggleBoundaryBtn" onclick="toggleCorkBoundary()" title="Show/Hide Cork City Council boundary"><i class="bi bi-geo-alt"></i> <span>City Boundary</span></button>
+      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" id="toggleOuterBoundaryBtn" onclick="toggleOuterBoundary()" title="Show/Hide Cork City Council outer boundary"><i class="bi bi-geo"></i> <span>Outer Boundary</span></button>
+      <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" id="toggleInnerBoundariesBtn" onclick="toggleInnerBoundaries()" title="Show/Hide Local Electoral Areas (inner boundaries)"><i class="bi bi-map"></i> <span>Electoral Areas</span></button>
     </div>
   </div>
 </div>
@@ -2132,9 +2133,11 @@ let editMode = false;
 // Audit logging system
 let auditLog = [];
 
-// Cork City Council boundary layer
-let corkBoundaryLayer = null;
-let boundaryLayerVisible = false;
+// Cork City Council boundary layers
+let corkOuterBoundaryLayer = null;
+let corkInnerBoundariesLayer = null;
+let outerBoundaryVisible = false;
+let innerBoundariesVisible = false;
 
 // Function to log all manual modifications
 function logAuditEvent(action, assetType, assetId, details = {}) {
@@ -4396,69 +4399,154 @@ async function loadAuditHistory() {
 }
 
 // Function to load Cork City Council boundary
-async function loadCorkBoundary() {
-  console.log('loadCorkBoundary: Loading Cork City Council boundary...');
+async function loadCorkBoundaries() {
+  console.log('loadCorkBoundaries: Loading Cork City Council boundaries...');
   
   try {
-    // Try to fetch the boundary files in order of preference
-    let response;
-    let data;
+    // First try the official KML file
+    const response = await fetch('./Cork_City_Boundary_and_LEAs_SelfContained.kml');
     
-    try {
-      response = await fetch('./cork-city-boundary.geojson');
-      if (response.ok) {
-        data = await response.json();
-        console.log('loadCorkBoundary: GeoJSON boundary data loaded:', data);
-      } else {
-        throw new Error('GeoJSON file not found');
-      }
-    } catch (error) {
-      console.log('loadCorkBoundary: Trying alternative boundary file...');
-      response = await fetch('./cork city boundary.json');
-      if (!response.ok) {
-        console.warn('loadCorkBoundary: No boundary files found, creating sample boundary');
-        createSampleBoundary();
+    if (response.ok) {
+      const kmlText = await response.text();
+      console.log('loadCorkBoundaries: KML boundary data loaded, converting to GeoJSON...');
+      
+      // Parse KML to GeoJSON using toGeoJSON library
+      const parser = new DOMParser();
+      const kmlDoc = parser.parseFromString(kmlText, 'text/xml');
+      const geoJsonData = toGeoJSON.kml(kmlDoc);
+      
+      console.log('loadCorkBoundaries: KML converted to GeoJSON:', geoJsonData);
+      
+      if (geoJsonData.features && geoJsonData.features.length > 0) {
+        // Separate outer boundary from inner electoral areas
+        const outerBoundaryFeatures = [];
+        const innerBoundaryFeatures = [];
+        
+        geoJsonData.features.forEach((feature, index) => {
+          if (index === 0) {
+            // First feature is typically the main Cork City boundary
+            outerBoundaryFeatures.push(feature);
+          } else {
+            // Other features are Local Electoral Areas (LEAs)
+            innerBoundaryFeatures.push(feature);
+          }
+        });
+        
+        // Create outer boundary layer
+        if (outerBoundaryFeatures.length > 0) {
+          corkOuterBoundaryLayer = L.geoJSON(outerBoundaryFeatures, {
+            style: {
+              color: '#FF6B35',
+              weight: 4,
+              opacity: 0.9,
+              fillColor: '#FF6B35',
+              fillOpacity: 0.15,
+              dashArray: '8, 4'
+            }
+          }).bindPopup(`
+            <div style="text-align: center;">
+              <h5 style="color: #FF6B35; margin-bottom: 10px;">
+                <i class="bi bi-geo-alt"></i> Cork City Council
+              </h5>
+              <p style="margin: 0;"><strong>Official Administrative Boundary</strong></p>
+              <p style="margin: 5px 0; font-size: 0.9em;">
+                Cork City Council main administrative area as defined by official boundaries.
+              </p>
+            </div>
+          `);
+          console.log('loadCorkBoundaries: Outer boundary layer created');
+        }
+        
+        // Create inner boundaries layer (LEAs)
+        if (innerBoundaryFeatures.length > 0) {
+          corkInnerBoundariesLayer = L.layerGroup();
+          
+          innerBoundaryFeatures.forEach((feature, index) => {
+            const colors = ['#2196F3', '#4CAF50', '#9C27B0', '#F44336', '#FF9800', '#607D8B'];
+            const color = colors[index % colors.length];
+            
+            const layer = L.geoJSON(feature, {
+              style: {
+                color: color,
+                weight: 3,
+                opacity: 0.8,
+                fillColor: color,
+                fillOpacity: 0.1,
+                dashArray: '5, 5'
+              }
+            }).bindPopup(`
+              <div style="text-align: center;">
+                <h6 style="color: ${color}; margin-bottom: 8px;">
+                  <i class="bi bi-map"></i> Local Electoral Area
+                </h6>
+                <p style="margin: 0; font-size: 0.9em;">LEA ${index + 1}</p>
+                <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
+                  Cork City Council Local Electoral Area
+                </p>
+              </div>
+            `);
+            
+            corkInnerBoundariesLayer.addLayer(layer);
+          });
+          console.log('loadCorkBoundaries: Inner boundaries layer created with', innerBoundaryFeatures.length, 'electoral areas');
+        }
+        
+        console.log('loadCorkBoundaries: Cork boundary layers created from official KML file');
         return;
       }
-      data = await response.json();
-      console.log('loadCorkBoundary: JSON boundary data loaded:', data);
-    }
-    
-    // Check if it's a valid GeoJSON
-    if (data.type === 'FeatureCollection' || data.type === 'Feature') {
-      // It's a proper GeoJSON
-      corkBoundaryLayer = L.geoJSON(data, {
-        style: {
-          color: '#FF6B35',
-          weight: 3,
-          opacity: 0.8,
-          fillColor: '#FF6B35',
-          fillOpacity: 0.1,
-          dashArray: '5, 5'
-        }
-      });
     } else {
-      // Try to convert if it's in a different format
-      console.log('loadCorkBoundary: Data is not GeoJSON format, creating sample boundary');
-      createSampleBoundary();
-      return;
+      throw new Error('KML file not found');
+    }
+  } catch (error) {
+    console.warn('loadCorkBoundaries: KML file failed, trying fallback options...', error);
+    
+    // Fallback to GeoJSON or sample boundaries
+    try {
+      const response = await fetch('./cork-city-boundary.geojson');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('loadCorkBoundaries: Fallback GeoJSON boundary data loaded');
+        
+        if (data.type === 'FeatureCollection' || data.type === 'Feature') {
+          corkOuterBoundaryLayer = L.geoJSON(data, {
+            style: {
+              color: '#FF6B35',
+              weight: 4,
+              opacity: 0.9,
+              fillColor: '#FF6B35',
+              fillOpacity: 0.15,
+              dashArray: '8, 4'
+            }
+          }).bindPopup(`
+            <div style="text-align: center;">
+              <h5 style="color: #FF6B35; margin-bottom: 10px;">
+                <i class="bi bi-geo-alt"></i> Cork City Council
+              </h5>
+              <p style="margin: 0;"><strong>Administrative Boundary</strong></p>
+              <p style="margin: 5px 0; font-size: 0.9em;">
+                Cork City Council administrative area (fallback data).
+              </p>
+            </div>
+          `);
+          console.log('loadCorkBoundaries: Fallback outer boundary created');
+          return;
+        }
+      }
+    } catch (fallbackError) {
+      console.warn('loadCorkBoundaries: Fallback also failed, creating sample boundaries');
     }
     
-    console.log('loadCorkBoundary: Cork boundary layer created successfully');
-    
-  } catch (error) {
-    console.error('loadCorkBoundary: Error loading boundary:', error);
-    console.log('loadCorkBoundary: Creating sample boundary as fallback');
-    createSampleBoundary();
+    // Final fallback - create sample boundaries
+    createSampleBoundaries();
   }
 }
 
-// Function to create a sample Cork City boundary (approximate)
-function createSampleBoundary() {
-  console.log('createSampleBoundary: Creating sample Cork City boundary');
+// Function to create sample Cork City boundaries (approximate)
+function createSampleBoundaries() {
+  console.log('createSampleBoundaries: Creating sample Cork City boundaries');
   
-  // Approximate Cork City boundary coordinates
-  const corkBoundaryCoords = [
+  // Approximate Cork City outer boundary coordinates
+  const outerBoundaryCoords = [
     [51.8600, -8.5900], // Southwest
     [51.8600, -8.4200], // Southeast  
     [51.9200, -8.4200], // Northeast
@@ -4468,22 +4556,22 @@ function createSampleBoundary() {
     [51.8600, -8.5900]  // Back to start
   ];
   
-  corkBoundaryLayer = L.polygon(corkBoundaryCoords, {
+  // Create outer boundary layer
+  corkOuterBoundaryLayer = L.polygon(outerBoundaryCoords, {
     color: '#FF6B35',
-    weight: 3,
-    opacity: 0.8,
+    weight: 4,
+    opacity: 0.9,
     fillColor: '#FF6B35',
-    fillOpacity: 0.1,
-    dashArray: '5, 5'
+    fillOpacity: 0.15,
+    dashArray: '8, 4'
   });
   
-  // Add popup with information
-  corkBoundaryLayer.bindPopup(`
+  corkOuterBoundaryLayer.bindPopup(`
     <div style="text-align: center;">
       <h5 style="color: #FF6B35; margin-bottom: 10px;">
         <i class="bi bi-geo-alt"></i> Cork City Council
       </h5>
-      <p style="margin: 0;"><strong>Administrative Boundary</strong></p>
+      <p style="margin: 0;"><strong>Outer Administrative Boundary</strong></p>
       <p style="margin: 5px 0; font-size: 0.9em;">
         This is an approximate representation of the Cork City Council administrative area.
       </p>
@@ -4494,76 +4582,217 @@ function createSampleBoundary() {
     </div>
   `);
   
-  console.log('createSampleBoundary: Sample boundary created');
+  // Create sample inner boundaries (electoral areas)
+  corkInnerBoundariesLayer = L.layerGroup();
+  
+  // Sample electoral areas within Cork City
+  const electoralAreas = [
+    {
+      name: "Cork City North East",
+      coords: [
+        [51.9000, -8.5000],
+        [51.9000, -8.4200],
+        [51.9200, -8.4200],
+        [51.9200, -8.5000],
+        [51.9000, -8.5000]
+      ],
+      color: '#2196F3'
+    },
+    {
+      name: "Cork City North West", 
+      coords: [
+        [51.9000, -8.5900],
+        [51.9000, -8.5000],
+        [51.9200, -8.5000],
+        [51.9200, -8.5900],
+        [51.9000, -8.5900]
+      ],
+      color: '#4CAF50'
+    },
+    {
+      name: "Cork City South East",
+      coords: [
+        [51.8600, -8.5000],
+        [51.8600, -8.4200],
+        [51.9000, -8.4200],
+        [51.9000, -8.5000],
+        [51.8600, -8.5000]
+      ],
+      color: '#9C27B0'
+    },
+    {
+      name: "Cork City South West",
+      coords: [
+        [51.8600, -8.5900],
+        [51.8600, -8.5000],
+        [51.9000, -8.5000],
+        [51.9000, -8.5900],
+        [51.8600, -8.5900]
+      ],
+      color: '#F44336'
+    }
+  ];
+  
+  electoralAreas.forEach((area, index) => {
+    const layer = L.polygon(area.coords, {
+      color: area.color,
+      weight: 3,
+      opacity: 0.8,
+      fillColor: area.color,
+      fillOpacity: 0.1,
+      dashArray: '5, 5'
+    });
+    
+    layer.bindPopup(`
+      <div style="text-align: center;">
+        <h6 style="color: ${area.color}; margin-bottom: 8px;">
+          <i class="bi bi-map"></i> Local Electoral Area
+        </h6>
+        <p style="margin: 0; font-size: 0.9em;">${area.name}</p>
+        <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
+          Sample electoral area boundary (approximate)
+        </p>
+      </div>
+    `);
+    
+    corkInnerBoundariesLayer.addLayer(layer);
+  });
+  
+  console.log('createSampleBoundaries: Sample boundaries created with', electoralAreas.length, 'electoral areas');
 }
 
-// Function to toggle Cork City Council boundary visibility
-function toggleCorkBoundary() {
-  console.log('toggleCorkBoundary: Toggle boundary visibility');
+// Function to toggle outer boundary visibility
+function toggleOuterBoundary() {
+  console.log('toggleOuterBoundary: Toggle outer boundary visibility');
   
   if (!window.map) {
-    console.error('toggleCorkBoundary: Map not initialized');
+    console.error('toggleOuterBoundary: Map not initialized');
     alert('Map not ready. Please wait for the map to load.');
     return;
   }
   
-  const boundaryBtn = document.getElementById('toggleBoundaryBtn');
-  
-  if (!corkBoundaryLayer) {
-    console.log('toggleCorkBoundary: Boundary layer not loaded, loading now...');
-    loadCorkBoundary().then(() => {
-      if (corkBoundaryLayer) {
-        showBoundary();
+  if (!corkOuterBoundaryLayer) {
+    console.log('toggleOuterBoundary: Boundary layers not loaded, loading now...');
+    loadCorkBoundaries().then(() => {
+      if (corkOuterBoundaryLayer) {
+        showOuterBoundary();
       }
     });
     return;
   }
   
-  if (boundaryLayerVisible) {
-    hideBoundary();
+  if (outerBoundaryVisible) {
+    hideOuterBoundary();
   } else {
-    showBoundary();
+    showOuterBoundary();
   }
 }
 
-// Function to show the boundary layer
-function showBoundary() {
-  if (!corkBoundaryLayer || !window.map) return;
+// Function to toggle inner boundaries (LEAs) visibility
+function toggleInnerBoundaries() {
+  console.log('toggleInnerBoundaries: Toggle inner boundaries visibility');
   
-  console.log('showBoundary: Adding boundary to map');
-  corkBoundaryLayer.addTo(window.map);
-  boundaryLayerVisible = true;
+  if (!window.map) {
+    console.error('toggleInnerBoundaries: Map not initialized');
+    alert('Map not ready. Please wait for the map to load.');
+    return;
+  }
+  
+  if (!corkInnerBoundariesLayer) {
+    console.log('toggleInnerBoundaries: Boundary layers not loaded, loading now...');
+    loadCorkBoundaries().then(() => {
+      if (corkInnerBoundariesLayer) {
+        showInnerBoundaries();
+      }
+    });
+    return;
+  }
+  
+  if (innerBoundariesVisible) {
+    hideInnerBoundaries();
+  } else {
+    showInnerBoundaries();
+  }
+}
+
+// Function to show the outer boundary layer
+function showOuterBoundary() {
+  if (!corkOuterBoundaryLayer || !window.map) return;
+  
+  console.log('showOuterBoundary: Adding outer boundary to map');
+  corkOuterBoundaryLayer.addTo(window.map);
+  outerBoundaryVisible = true;
   
   // Update button appearance
-  const boundaryBtn = document.getElementById('toggleBoundaryBtn');
+  const boundaryBtn = document.getElementById('toggleOuterBoundaryBtn');
   if (boundaryBtn) {
     boundaryBtn.style.backgroundColor = '#FF6B35';
     boundaryBtn.style.color = 'white';
     boundaryBtn.style.borderColor = '#FF6B35';
   }
   
-  console.log('showBoundary: Boundary layer shown');
-  showNotification('Cork City Council boundary shown', 'success');
+  console.log('showOuterBoundary: Outer boundary layer shown');
+  showNotification('Cork City Council outer boundary shown', 'success');
 }
 
-// Function to hide the boundary layer
-function hideBoundary() {
-  if (!corkBoundaryLayer || !window.map) return;
+// Function to hide the outer boundary layer
+function hideOuterBoundary() {
+  if (!corkOuterBoundaryLayer || !window.map) return;
   
-  console.log('hideBoundary: Removing boundary from map');
-  window.map.removeLayer(corkBoundaryLayer);
-  boundaryLayerVisible = false;
+  console.log('hideOuterBoundary: Removing outer boundary from map');
+  window.map.removeLayer(corkOuterBoundaryLayer);
+  outerBoundaryVisible = false;
   
   // Reset button appearance
-  const boundaryBtn = document.getElementById('toggleBoundaryBtn');
+  const boundaryBtn = document.getElementById('toggleOuterBoundaryBtn');
   if (boundaryBtn) {
     boundaryBtn.style.backgroundColor = '';
     boundaryBtn.style.color = '';
     boundaryBtn.style.borderColor = '';
   }
   
-  console.log('hideBoundary: Boundary layer hidden');
-  showNotification('Cork City Council boundary hidden', 'info');
+  console.log('hideOuterBoundary: Outer boundary layer hidden');
+  showNotification('Cork City Council outer boundary hidden', 'info');
+}
+
+// Function to show the inner boundaries layer (LEAs)
+function showInnerBoundaries() {
+  if (!corkInnerBoundariesLayer || !window.map) return;
+  
+  console.log('showInnerBoundaries: Adding inner boundaries to map');
+  corkInnerBoundariesLayer.addTo(window.map);
+  innerBoundariesVisible = true;
+  
+  // Update button appearance
+  const boundaryBtn = document.getElementById('toggleInnerBoundariesBtn');
+  if (boundaryBtn) {
+    boundaryBtn.style.backgroundColor = '#FFC107';
+    boundaryBtn.style.color = 'black';
+    boundaryBtn.style.borderColor = '#FFC107';
+  }
+  
+  console.log('showInnerBoundaries: Inner boundaries layer shown');
+  showNotification('Local Electoral Areas (inner boundaries) shown', 'success');
+}
+
+// Function to hide the inner boundaries layer (LEAs)
+function hideInnerBoundaries() {
+  if (!corkInnerBoundariesLayer || !window.map) return;
+  
+  console.log('hideInnerBoundaries: Removing inner boundaries from map');
+  window.map.removeLayer(corkInnerBoundariesLayer);
+  innerBoundariesVisible = false;
+  
+  // Reset button appearance
+  const boundaryBtn = document.getElementById('toggleInnerBoundariesBtn');
+  if (boundaryBtn) {
+    boundaryBtn.style.backgroundColor = '';
+    boundaryBtn.style.color = '';
+    boundaryBtn.style.borderColor = '';
+  }
+  
+  console.log('hideInnerBoundaries: Inner boundaries layer hidden');
+  showNotification('Local Electoral Areas (inner boundaries) hidden', 'info');
 }
 
 // 1. Backup function
@@ -4757,14 +4986,25 @@ function showLayerControl() {
     
     <hr style="margin: 12px 16px; border: none; border-top: 1px solid #e9ecef;">
     
-    <div class="layer-item" onclick="toggleCorkBoundary()" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #fff8f0; border: 1px solid #ffc947;">
+    <div class="layer-item" onclick="toggleOuterBoundary()" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #fff8f0; border: 1px solid #FF6B35;">
       <div style="margin-right: 12px;">
-        <input class="form-check-input" type="checkbox" id="boundaryLayer" onclick="event.stopPropagation(); toggleCorkBoundary()" ${boundaryLayerVisible ? 'checked' : ''} style="width: 18px; height: 18px;">
+        <input class="form-check-input" type="checkbox" id="outerBoundaryLayer" onclick="event.stopPropagation(); toggleOuterBoundary()" ${outerBoundaryVisible ? 'checked' : ''} style="width: 18px; height: 18px;">
       </div>
       <div style="margin-right: 12px; width: 24px; height: 24px; background: #FF6B35; border-radius: 6px; border: 2px solid #E55A2B; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem;">🏛️</div>
       <div style="flex: 1;">
-        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">City Boundary</div>
-        <div style="font-size: 0.8rem; color: #6c757d;">Cork City Council area</div>
+        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">Outer Boundary</div>
+        <div style="font-size: 0.8rem; color: #6c757d;">Cork City Council main area</div>
+      </div>
+    </div>
+    
+    <div class="layer-item" onclick="toggleInnerBoundaries()" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #fffaf0; border: 1px solid #FFC107;">
+      <div style="margin-right: 12px;">
+        <input class="form-check-input" type="checkbox" id="innerBoundariesLayer" onclick="event.stopPropagation(); toggleInnerBoundaries()" ${innerBoundariesVisible ? 'checked' : ''} style="width: 18px; height: 18px;">
+      </div>
+      <div style="margin-right: 12px; width: 24px; height: 24px; background: #FFC107; border-radius: 6px; border: 2px solid #FFB300; display: flex; align-items: center; justify-content: center; color: black; font-size: 0.75rem;">🗺️</div>
+      <div style="flex: 1;">
+        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">Electoral Areas</div>
+        <div style="font-size: 0.8rem; color: #6c757d;">Local Electoral Area boundaries</div>
       </div>
     </div>
   `;
@@ -4813,11 +5053,17 @@ function updateLayerCheckboxStates() {
     }
   });
   
-  // Update boundary layer checkbox
-  const boundaryCheckbox = document.getElementById('boundaryLayer');
-  if (boundaryCheckbox) {
-    boundaryCheckbox.checked = boundaryLayerVisible;
-    console.log(`updateLayerCheckboxStates: boundary checkbox set to ${boundaryLayerVisible}`);
+  // Update boundary layer checkboxes
+  const outerBoundaryCheckbox = document.getElementById('outerBoundaryLayer');
+  if (outerBoundaryCheckbox) {
+    outerBoundaryCheckbox.checked = outerBoundaryVisible;
+    console.log(`updateLayerCheckboxStates: outer boundary checkbox set to ${outerBoundaryVisible}`);
+  }
+  
+  const innerBoundariesCheckbox = document.getElementById('innerBoundariesLayer');
+  if (innerBoundariesCheckbox) {
+    innerBoundariesCheckbox.checked = innerBoundariesVisible;
+    console.log(`updateLayerCheckboxStates: inner boundaries checkbox set to ${innerBoundariesVisible}`);
   }
 }
 
