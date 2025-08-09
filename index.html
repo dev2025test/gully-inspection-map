@@ -1543,7 +1543,7 @@ async function ensureAllUsers() {
 }
 
 // Update login function with better error handling
-function login(isAutoLogin = false) {
+window.login = function login(isAutoLogin = false) {
   console.log('login: Starting login process...', new Date().toISOString());
   console.log('login: isAutoLogin =', isAutoLogin);
   
@@ -3840,3 +3840,2518 @@ function printMap() {
       font-family: Arial, sans-serif;
       font-size: 14px;
       font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    `;
+    printHeader.textContent = 'Cork City Council - Asset Management System (Roads)';
+    document.body.appendChild(printHeader);
+    
+    // Add print-specific CSS
+    const printStyle = document.createElement('style');
+    printStyle.id = 'print-style';
+    printStyle.innerHTML = `
+      @media print {
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        
+        #map {
+          width: 100% !important;
+          height: 100vh !important;
+          position: relative !important;
+        }
+        
+        .leaflet-container {
+          width: 100% !important;
+          height: 100% !important;
+        }
+        
+        /* Hide all UI elements except map and print header */
+        .bottom-toolbar,
+        #functionToolbar,
+        .leaflet-control-zoom,
+        .leaflet-control-attribution,
+        .modal-backdrop-custom,
+        .layer-control-card,
+        #notification {
+          display: none !important;
+        }
+        
+        #print-header {
+          display: block !important;
+          position: absolute !important;
+          top: 10px !important;
+          left: 10px !important;
+          z-index: 2000 !important;
+        }
+        
+        @page {
+          margin: 0;
+          size: landscape;
+        }
+      }
+      
+      @media screen {
+        #print-header {
+          display: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(printStyle);
+    
+    // Force map to refresh and fit to new dimensions
+    setTimeout(() => {
+      if (window.map) {
+        window.map.invalidateSize();
+        console.log('printMap: Map size invalidated for print');
+        
+        // Trigger print after a short delay to ensure map is refreshed
+        setTimeout(() => {
+          console.log('printMap: Triggering print dialog');
+          window.print();
+          
+          // Clean up after print dialog closes
+          setTimeout(() => {
+            try {
+              // Remove print elements
+              const header = document.getElementById('print-header');
+              const style = document.getElementById('print-style');
+              if (header) document.body.removeChild(header);
+              if (style) document.head.removeChild(style);
+              
+              // Restore original styles
+              Object.keys(originalStyles).forEach(key => {
+                const {element, display, visibility} = originalStyles[key];
+                if (element) {
+                  element.style.display = display;
+                  element.style.visibility = visibility;
+                }
+              });
+              
+              // Refresh map to original size
+              if (window.map) {
+                window.map.invalidateSize();
+              }
+              
+              console.log('printMap: Cleanup completed');
+            } catch (cleanupError) {
+              console.error('printMap: Error during cleanup:', cleanupError);
+            }
+          }, 2000);
+          
+        }, 500);
+      }
+    }, 100);
+    
+  } catch (error) {
+    console.error('printMap: Error during print process:', error);
+    alert('Error preparing map for printing: ' + error.message);
+  }
+}
+
+function updateWelcomeMessage(email) {
+  const welcomeDiv = document.getElementById('welcomeMessage');
+  if (welcomeDiv) {
+    welcomeDiv.textContent = `Welcome ${email.split('@')[0]}!`;
+    welcomeDiv.style.padding = '10px';
+    welcomeDiv.style.background = 'white';
+    welcomeDiv.style.borderRadius = '4px';
+    welcomeDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+    welcomeDiv.style.position = 'absolute';
+    welcomeDiv.style.top = '10px';
+    welcomeDiv.style.right = '10px';
+    welcomeDiv.style.zIndex = '1000';
+    welcomeDiv.style.display = 'block';
+  }
+}
+
+// Update scale control
+function updateScaleControl() {
+  if (window.map.scale) window.map.scale.remove();
+  
+  window.map.scale = L.control.scale({
+    metric: true,
+    imperial: false,
+    maxWidth: 200,
+    position: 'bottomleft',
+    updateWhenIdle: true
+  }).addTo(window.map);
+  
+  // Custom scale factor to correct the scale
+  const scaleFactor = 0.333333; // 1km = 3000m correction
+  
+  const originalGetScaleText = window.map.scale._getScaleText;
+  window.map.scale._getScaleText = function(ratio, text) {
+    const distance = ratio * scaleFactor;
+    if (distance >= 1) {
+      return distance.toFixed(0) + ' km';
+    } else {
+      return (distance * 1000).toFixed(0) + ' m';
+    }
+  };
+}
+
+function toggleFunctionTabs() {
+  const tabs = document.getElementById('functionTabs');
+  const icon = document.getElementById('tabToggleIcon');
+  tabs.classList.toggle('minimized');
+  icon.textContent = tabs.classList.contains('minimized') ? '▲' : '▼';
+}
+
+// Add a function to check map status
+function checkMapStatus() {
+  console.log('checkMapStatus: Map container:', document.getElementById('map'));
+  console.log('checkMapStatus: Map instance:', window.map);
+  if (window.map instanceof L.Map) {
+    console.log('checkMapStatus: Map center:', window.map.getCenter());
+    console.log('checkMapStatus: Map zoom:', window.map.getZoom());
+  } else {
+    console.warn('checkMapStatus: window.map is not a Leaflet map instance.');
+  }
+}
+
+// Add a function to check if map needs reset
+function checkMapState() {
+  if (gullyData.length > 0) {
+    const resetButton = document.querySelector('button[onclick="resetMap()"]');
+    if (resetButton) {
+      resetButton.style.backgroundColor = '#ff9800';
+      resetButton.style.color = 'white';
+      setTimeout(() => {
+        resetButton.style.backgroundColor = '';
+        resetButton.style.color = '';
+      }, 2000);
+    }
+  }
+}
+
+// Add the delete and edit functions
+function enableDeleteMode() {
+    if (!auth.currentUser || currentRole !== 'admin') {
+        alert('Only administrators can delete gullies');
+        return;
+    }
+    deleteMode = !deleteMode;
+    editMode = false;
+    const mapElement = document.getElementById('map');
+    const deleteButton = document.querySelector('button[onclick="enableDeleteMode()"]');
+    if (deleteMode) {
+        mapElement.style.cursor = 'pointer';
+        deleteButton.style.backgroundColor = '#ff4444';
+        deleteButton.style.color = 'white';
+        alert('Delete mode enabled. Click on gullies to delete them.');
+    } else {
+        mapElement.style.cursor = '';
+        deleteButton.style.backgroundColor = '';
+        deleteButton.style.color = '';
+    }
+    gullyData.forEach(gully => {
+        if (gully.marker) {
+            if (deleteMode) {
+                gully.marker.setStyle({ radius: 8, color: '#000', weight: 2 });
+            } else {
+                gully.marker.setStyle({ radius: 6, color: '#000', weight: 2 });
+            }
+        }
+    });
+}
+
+function enableEditMode() {
+    if (!auth.currentUser || currentRole !== 'admin') {
+        alert('Only administrators can edit gullies');
+        return;
+    }
+    
+    editMode = !editMode;
+    deleteMode = false;
+    
+    const editButton = document.querySelector('button[onclick="enableEditMode()"]');
+    if (editButton) {
+        if (editMode) {
+            editButton.style.backgroundColor = '#2196F3';
+            editButton.style.color = 'white';
+            alert('Edit mode enabled. Click on gullies to edit them.');
+        } else {
+            editButton.style.backgroundColor = '';
+            editButton.style.color = '';
+        }
+    }
+}
+
+async function handleGullyDelete(gullyId, marker, layerType) {
+    if (!deleteMode || !auth.currentUser || currentRole !== 'admin') return;
+    try {
+        const confirmDelete = confirm('Are you sure you want to delete this asset?');
+        if (!confirmDelete) return;
+        
+        // Get asset details before deletion for audit log
+        const gullyInfo = gullyData.find(g => g.id === gullyId);
+        const location = marker ? marker.getLatLng() : null;
+        
+        marker.setStyle({ fillColor: '#ff0000', radius: 8, color: '#000', weight: 2 });
+        
+        // Log the deletion event
+        logAuditEvent('DELETE', layerType, gullyId, {
+            location: location ? { lat: location.lat, lng: location.lng } : null,
+            previousStatus: gullyInfo ? gullyInfo.status : 'Unknown',
+            reason: 'Manual deletion via delete mode'
+        });
+        
+        // Remove from Firebase
+        await db.ref(`${layerType}/${gullyId}`).remove();
+        // Remove from map layer
+        if (window.dataLayers && window.dataLayers[layerType]) {
+            window.dataLayers[layerType].removeLayer(marker);
+        }
+        // Remove from gullyData array
+        const index = gullyData.findIndex(g => g.id === gullyId);
+        if (index !== -1) {
+            gullyData.splice(index, 1);
+        }
+        updateSummary();
+        // Remove marker from map if still present
+        if (window.map.hasLayer(marker)) {
+            window.map.removeLayer(marker);
+        }
+        enableDeleteMode(); // Disable delete mode after successful deletion
+        
+        console.log(`Asset ${gullyId} deleted and logged to audit trail`);
+    } catch (error) {
+        console.error('handleGullyDelete: Error deleting gully:', error);
+        alert('Error deleting gully: ' + error.message);
+        if (marker) {
+            marker.setStyle(getMarkerOptions('Unmarked'));
+        }
+    }
+}
+
+// Add the new mode variable
+let addMode = false;
+
+// Add the new functions
+function enableAddMode() {
+    console.log('enableAddMode: Function called, current user:', auth.currentUser, 'role:', currentRole);
+    
+    if (!auth.currentUser || currentRole !== 'admin') {
+        alert('Only administrators can add new gullies');
+        return;
+    }
+    
+    if (!window.map) {
+        console.error('enableAddMode: Map not initialized');
+        alert('Map is not ready. Please wait for the map to load.');
+        return;
+    }
+    
+    addMode = !addMode;
+    editMode = false;
+    deleteMode = false;
+    
+    console.log('enableAddMode: addMode set to:', addMode);
+    
+    // Update cursor and button style
+    const mapElement = document.getElementById('map');
+    const addButton = document.querySelector('button[onclick*="enableAddMode"]'); // Use partial match since we modified the onclick
+    
+    if (!mapElement) {
+        console.error('enableAddMode: Map element not found');
+        return;
+    }
+    
+    if (!addButton) {
+        console.error('enableAddMode: Add button not found');
+        return;
+    }
+    
+    if (addMode) {
+        mapElement.style.cursor = 'crosshair';
+        addButton.style.backgroundColor = '#4CAF50';
+        addButton.style.color = 'white';
+        alert('Add mode enabled. Click on the map to add new asset.');
+        
+        console.log('enableAddMode: Attaching click handler to map');
+        // Add click handler to map
+        try {
+            window.map.on('click', handleMapClick);
+            console.log('enableAddMode: Click handler attached successfully');
+        } catch (error) {
+            console.error('enableAddMode: Error attaching click handler:', error);
+        }
+    } else {
+        mapElement.style.cursor = '';
+        addButton.style.backgroundColor = '';
+        addButton.style.color = '';
+        
+        console.log('enableAddMode: Removing click handler from map');
+        // Remove click handler from map
+        try {
+            window.map.off('click', handleMapClick);
+            console.log('enableAddMode: Click handler removed successfully');
+        } catch (error) {
+            console.error('enableAddMode: Error removing click handler:', error);
+        }
+    }
+}
+
+async function handleMapClick(e) {
+    console.log('handleMapClick: Map clicked, addMode:', addMode, 'auth.currentUser:', auth.currentUser, 'currentRole:', currentRole);
+    
+    if (!addMode || !auth.currentUser || currentRole !== 'admin') {
+        console.log('handleMapClick: Conditions not met for adding new asset');
+        return;
+    }
+    
+    try {
+        const timestamp = Date.now();
+        // Ensure 'activeLayer' is correctly referenced or replaced if it's from a removed dropdown
+        // For now, using 'gullies' as a default if activeLayer is not available
+        const currentLayer = currentActiveLayer || 'gullies'; 
+        const newId = `${currentLayer}_${timestamp}`;
+        const latlng = e.latlng;
+        
+        console.log('handleMapClick: Adding new asset at:', latlng, 'with ID:', newId);
+        
+        // Log the addition event
+        logAuditEvent('ADD', currentLayer, newId, {
+            location: { lat: latlng.lat, lng: latlng.lng },
+            initialStatus: 'Unmarked',
+            method: 'Manual addition via add mode'
+        });
+        
+        // Add marker to map
+        const marker = addGullyToMap(latlng, newId, currentLayer);
+        
+        // Save to Firebase
+        await db.ref(`${currentLayer}/${newId}`).set({
+            location: { 
+                lat: latlng.lat, 
+                lng: latlng.lng 
+            },
+            status: 'Unmarked',
+            created: firebase.database.ServerValue.TIMESTAMP,
+            createdBy: auth.currentUser.uid
+        });
+        
+        console.log('handleMapClick: New asset added successfully and logged to audit trail');
+        
+        // Show inspection popup immediately
+        currentMarker = marker;
+        showInspectionPopup(marker, newId, latlng, currentLayer);
+        
+        // Disable add mode after successful addition
+        enableAddMode();
+        
+    } catch (error) {
+        console.error('handleMapClick: Error adding new asset:', error);
+        alert('Error adding new asset: ' + error.message);
+    }
+}
+
+// Helper function to create tooltip
+function createTooltip() {
+    const tooltip = document.createElement('div');
+    tooltip.id = 'add-tooltip';
+    tooltip.style.cssText = `
+        position: fixed;
+        background: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 1000;
+        pointer-events: none;
+        font-size: 12px;
+    `;
+    document.body.appendChild(tooltip);
+    return tooltip;
+}
+
+// Function to load audit history from Firebase and export as file
+async function exportAuditHistory() {
+  console.log('exportAuditHistory: Starting audit history export...');
+  
+  try {
+    // Show loading indicator
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'modal-backdrop-custom';
+    loadingDiv.innerHTML = `
+      <div class="card shadow p-4 text-center" style="max-width: 300px;">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <h5>Loading Audit History</h5>
+        <p>Please wait while we gather all modification records...</p>
+      </div>
+    `;
+    document.body.appendChild(loadingDiv);
+    
+    // Load audit log from Firebase
+    const auditSnapshot = await db.ref('audit_log').once('value');
+    const auditData = auditSnapshot.val() || {};
+    
+    // Convert to array and sort by timestamp (newest first)
+    const auditEntries = Object.values(auditData).sort((a, b) => 
+      new Date(b.timestamp) - new Date(a.timestamp)
+    );
+    
+    // Remove loading indicator
+    loadingDiv.remove();
+    
+    if (auditEntries.length === 0) {
+      alert('No audit history found. Start making modifications to see them tracked here.');
+      return;
+    }
+    
+    // Create CSV content
+    let csvContent = 'Date,Time,Action,Asset Type,Asset ID,User Name,User Email,User Role,Previous Status,New Status,Location (Lat),Location (Lng),Comment,Method,Details\n';
+    
+    auditEntries.forEach(entry => {
+      const row = [
+        entry.date || '',
+        entry.time || '',
+        entry.action || '',
+        entry.assetType || '',
+        entry.assetId || '',
+        entry.user?.name || '',
+        entry.user?.email || '',
+        entry.user?.role || '',
+        entry.details?.previousStatus || '',
+        entry.details?.newStatus || '',
+        entry.location?.lat || '',
+        entry.location?.lng || '',
+        (entry.details?.newComment || '').replace(/,/g, ';').replace(/"/g, '""'),
+        entry.details?.method || '',
+        entry.details?.reason || ''
+      ];
+      
+      // Escape and quote fields that contain commas or quotes
+      const escapedRow = row.map(field => {
+        const str = String(field);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      });
+      
+      csvContent += escapedRow.join(',') + '\n';
+    });
+    
+    // Create and download file
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    const filename = `Cork_City_Council_Audit_History_${timestamp}.csv`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Show success message with summary
+    const totalEntries = auditEntries.length;
+    const actionCounts = auditEntries.reduce((counts, entry) => {
+      counts[entry.action] = (counts[entry.action] || 0) + 1;
+      return counts;
+    }, {});
+    
+    const summaryMessage = `
+Audit History Export Complete!
+
+File: ${filename}
+Total Records: ${totalEntries}
+
+Action Summary:
+${Object.entries(actionCounts).map(([action, count]) => `- ${action}: ${count}`).join('\n')}
+
+The file contains all manual modifications with date, time, user information, and details of changes made.
+    `;
+    
+    alert(summaryMessage);
+    console.log('exportAuditHistory: Export completed successfully');
+    
+  } catch (error) {
+    console.error('exportAuditHistory: Error exporting audit history:', error);
+    alert('Error exporting audit history: ' + error.message);
+    
+    // Remove loading indicator if still present
+    const loadingDiv = document.querySelector('.modal-backdrop-custom');
+    if (loadingDiv) loadingDiv.remove();
+  }
+}
+
+// Function to load audit history on application start
+async function loadAuditHistory() {
+  try {
+    console.log('loadAuditHistory: Loading existing audit history...');
+    const auditSnapshot = await db.ref('audit_log').once('value');
+    const auditData = auditSnapshot.val() || {};
+    
+    // Load into local array
+    auditLog = Object.values(auditData);
+    console.log(`loadAuditHistory: Loaded ${auditLog.length} audit entries from Firebase`);
+  } catch (error) {
+    console.error('loadAuditHistory: Error loading audit history:', error);
+  }
+}
+
+// Function to load Cork City Council boundary
+async function loadCorkBoundaries() {
+  console.log('loadCorkBoundaries: Loading Cork City Council boundaries...');
+  console.log('loadCorkBoundaries: Current working directory:', window.location.href);
+  
+  try {
+    // First try the official KML file
+    console.log('loadCorkBoundaries: Attempting to fetch KML file...');
+    const response = await fetch('./Cork_City_Boundary_and_LEAs_SelfContained.kml');
+    
+    if (response.ok) {
+      const kmlText = await response.text();
+      console.log('loadCorkBoundaries: KML boundary data loaded, converting to GeoJSON...');
+      
+      // Parse KML to GeoJSON using toGeoJSON library
+      const parser = new DOMParser();
+      const kmlDoc = parser.parseFromString(kmlText, 'text/xml');
+      const geoJsonData = toGeoJSON.kml(kmlDoc);
+      
+      console.log('loadCorkBoundaries: KML converted to GeoJSON:', geoJsonData);
+      
+      if (geoJsonData.features && geoJsonData.features.length > 0) {
+        // Separate outer boundary from inner electoral areas
+        const outerBoundaryFeatures = [];
+        const innerBoundaryFeatures = [];
+        
+        geoJsonData.features.forEach((feature, index) => {
+          if (index === 0) {
+            // First feature is typically the main Cork City boundary
+            outerBoundaryFeatures.push(feature);
+          } else {
+            // Other features are Local Electoral Areas (LEAs)
+            innerBoundaryFeatures.push(feature);
+          }
+        });
+        
+        // Create outer boundary layer
+        if (outerBoundaryFeatures.length > 0) {
+          corkOuterBoundaryLayer = L.geoJSON(outerBoundaryFeatures, {
+            style: {
+              color: '#FF6B35',
+              weight: 4,
+              opacity: 0.9,
+              fillColor: '#FF6B35',
+              fillOpacity: 0.15,
+              dashArray: '8, 4'
+            }
+          }).bindPopup(`
+            <div style="text-align: center;">
+              <h5 style="color: #FF6B35; margin-bottom: 10px;">
+                <i class="bi bi-geo-alt"></i> Cork City Council
+              </h5>
+              <p style="margin: 0;"><strong>Official Administrative Boundary</strong></p>
+              <p style="margin: 5px 0; font-size: 0.9em;">
+                Cork City Council main administrative area as defined by official boundaries.
+              </p>
+            </div>
+          `);
+          console.log('loadCorkBoundaries: Outer boundary layer created');
+        }
+        
+        // Create inner boundaries layer (LEAs)
+        if (innerBoundaryFeatures.length > 0) {
+          corkInnerBoundariesLayer = L.layerGroup();
+          
+          innerBoundaryFeatures.forEach((feature, index) => {
+            const colors = ['#2196F3', '#4CAF50', '#9C27B0', '#F44336', '#FF9800', '#607D8B'];
+            const color = colors[index % colors.length];
+            
+            const layer = L.geoJSON(feature, {
+              style: {
+                color: color,
+                weight: 3,
+                opacity: 0.8,
+                fillColor: color,
+                fillOpacity: 0.1,
+                dashArray: '5, 5'
+              }
+            }).bindPopup(`
+              <div style="text-align: center;">
+                <h6 style="color: ${color}; margin-bottom: 8px;">
+                  <i class="bi bi-map"></i> Local Electoral Area
+                </h6>
+                <p style="margin: 0; font-size: 0.9em;">LEA ${index + 1}</p>
+                <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
+                  Cork City Council Local Electoral Area
+                </p>
+              </div>
+            `);
+            
+            corkInnerBoundariesLayer.addLayer(layer);
+          });
+          console.log('loadCorkBoundaries: Inner boundaries layer created with', innerBoundaryFeatures.length, 'electoral areas');
+        }
+        
+        console.log('loadCorkBoundaries: Cork boundary layers created from official KML file');
+        return;
+      }
+    } else {
+      console.warn('loadCorkBoundaries: KML file response not OK, status:', response.status);
+      throw new Error('KML file not found');
+    }
+  } catch (error) {
+    console.warn('loadCorkBoundaries: KML file failed, trying fallback options...', error);
+    
+    // Fallback to GeoJSON or sample boundaries
+    try {
+      const response = await fetch('./cork-city-boundary.geojson');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('loadCorkBoundaries: Fallback GeoJSON boundary data loaded');
+        
+        if (data.type === 'FeatureCollection' || data.type === 'Feature') {
+          corkOuterBoundaryLayer = L.geoJSON(data, {
+            style: {
+              color: '#FF6B35',
+              weight: 4,
+              opacity: 0.9,
+              fillColor: '#FF6B35',
+              fillOpacity: 0.15,
+              dashArray: '8, 4'
+            }
+          }).bindPopup(`
+            <div style="text-align: center;">
+              <h5 style="color: #FF6B35; margin-bottom: 10px;">
+                <i class="bi bi-geo-alt"></i> Cork City Council
+              </h5>
+              <p style="margin: 0;"><strong>Administrative Boundary</strong></p>
+              <p style="margin: 5px 0; font-size: 0.9em;">
+                Cork City Council administrative area (fallback data).
+              </p>
+            </div>
+          `);
+          console.log('loadCorkBoundaries: Fallback outer boundary created');
+          return;
+        }
+      }
+    } catch (fallbackError) {
+      console.warn('loadCorkBoundaries: Fallback also failed, creating sample boundaries');
+    }
+    
+    // Final fallback - create sample boundaries
+    createSampleBoundaries();
+  }
+}
+
+// Function to create sample Cork City boundaries (approximate)
+function createSampleBoundaries() {
+  console.log('createSampleBoundaries: Creating sample Cork City boundaries');
+  console.log('createSampleBoundaries: Map object available:', !!window.map);
+  
+  // Approximate Cork City outer boundary coordinates
+  const outerBoundaryCoords = [
+    [51.8600, -8.5900], // Southwest
+    [51.8600, -8.4200], // Southeast  
+    [51.9200, -8.4200], // Northeast
+    [51.9400, -8.4800], // North
+    [51.9300, -8.5500], // Northwest
+    [51.9000, -8.5900], // West
+    [51.8600, -8.5900]  // Back to start
+  ];
+  
+  // Create outer boundary layer
+  corkOuterBoundaryLayer = L.polygon(outerBoundaryCoords, {
+    color: '#FF6B35',
+    weight: 4,
+    opacity: 0.9,
+    fillColor: '#FF6B35',
+    fillOpacity: 0.15,
+    dashArray: '8, 4'
+  });
+  
+  corkOuterBoundaryLayer.bindPopup(`
+    <div style="text-align: center;">
+      <h5 style="color: #FF6B35; margin-bottom: 10px;">
+        <i class="bi bi-geo-alt"></i> Cork City Council
+      </h5>
+      <p style="margin: 0;"><strong>Outer Administrative Boundary</strong></p>
+      <p style="margin: 5px 0; font-size: 0.9em;">
+        This is an approximate representation of the Cork City Council administrative area.
+      </p>
+      <hr style="margin: 10px 0;">
+      <p style="margin: 0; font-size: 0.8em; color: #666;">
+        For official boundaries, please consult Cork City Council's GIS department.
+      </p>
+    </div>
+  `);
+  
+  console.log('createSampleBoundaries: Outer boundary layer created:', !!corkOuterBoundaryLayer);
+  
+  // Create sample inner boundaries (electoral areas)
+  corkInnerBoundariesLayer = L.layerGroup();
+  
+  // Sample electoral areas within Cork City
+  const electoralAreas = [
+    {
+      name: "Cork City North East",
+      coords: [
+        [51.9000, -8.5000],
+        [51.9000, -8.4200],
+        [51.9200, -8.4200],
+        [51.9200, -8.5000],
+        [51.9000, -8.5000]
+      ],
+      color: '#2196F3'
+    },
+    {
+      name: "Cork City North West", 
+      coords: [
+        [51.9000, -8.5900],
+        [51.9000, -8.5000],
+        [51.9200, -8.5000],
+        [51.9200, -8.5900],
+        [51.9000, -8.5900]
+      ],
+      color: '#4CAF50'
+    },
+    {
+      name: "Cork City South East",
+      coords: [
+        [51.8600, -8.5000],
+        [51.8600, -8.4200],
+        [51.9000, -8.4200],
+        [51.9000, -8.5000],
+        [51.8600, -8.5000]
+      ],
+      color: '#9C27B0'
+    },
+    {
+      name: "Cork City South West",
+      coords: [
+        [51.8600, -8.5900],
+        [51.8600, -8.5000],
+        [51.9000, -8.5000],
+        [51.9000, -8.5900],
+        [51.8600, -8.5900]
+      ],
+      color: '#F44336'
+    }
+  ];
+  
+  electoralAreas.forEach((area, index) => {
+    const layer = L.polygon(area.coords, {
+      color: area.color,
+      weight: 3,
+      opacity: 0.8,
+      fillColor: area.color,
+      fillOpacity: 0.1,
+      dashArray: '5, 5'
+    });
+    
+    layer.bindPopup(`
+      <div style="text-align: center;">
+        <h6 style="color: ${area.color}; margin-bottom: 8px;">
+          <i class="bi bi-map"></i> Local Electoral Area
+        </h6>
+        <p style="margin: 0; font-size: 0.9em;">${area.name}</p>
+        <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
+          Sample electoral area boundary (approximate)
+        </p>
+      </div>
+    `);
+    
+    corkInnerBoundariesLayer.addLayer(layer);
+  });
+  
+  console.log('createSampleBoundaries: Sample boundaries created with', electoralAreas.length, 'electoral areas');
+  console.log('createSampleBoundaries: Inner boundaries layer created:', !!corkInnerBoundariesLayer);
+  console.log('createSampleBoundaries: Inner boundaries layer has', corkInnerBoundariesLayer.getLayers().length, 'sub-layers');
+}
+
+// Function to toggle outer boundary visibility
+function toggleOuterBoundary() {
+  console.log('toggleOuterBoundary: Toggle outer boundary visibility');
+  console.log('toggleOuterBoundary: Current state - outerBoundaryVisible:', outerBoundaryVisible);
+  console.log('toggleOuterBoundary: Layer available:', !!corkOuterBoundaryLayer);
+  
+  if (!window.map) {
+    console.error('toggleOuterBoundary: Map not initialized');
+    alert('Map not ready. Please wait for the map to load.');
+    return;
+  }
+  
+  if (!corkOuterBoundaryLayer) {
+    console.log('toggleOuterBoundary: Boundary layers not loaded, loading now...');
+    loadCorkBoundaries().then(() => {
+      if (corkOuterBoundaryLayer) {
+        showOuterBoundary();
+      } else {
+        console.warn('toggleOuterBoundary: Still no boundary layer after loading, creating sample...');
+        createSampleBoundaries();
+        if (corkOuterBoundaryLayer) {
+          showOuterBoundary();
+        }
+      }
+    });
+    return;
+  }
+  
+  if (outerBoundaryVisible) {
+    hideOuterBoundary();
+  } else {
+    showOuterBoundary();
+  }
+}
+
+// Function to toggle inner boundaries (LEAs) visibility
+function toggleInnerBoundaries() {
+  console.log('toggleInnerBoundaries: Toggle inner boundaries visibility');
+  
+  if (!window.map) {
+    console.error('toggleInnerBoundaries: Map not initialized');
+    alert('Map not ready. Please wait for the map to load.');
+    return;
+  }
+  
+  if (!corkInnerBoundariesLayer) {
+    console.log('toggleInnerBoundaries: Boundary layers not loaded, loading now...');
+    loadCorkBoundaries().then(() => {
+      if (corkInnerBoundariesLayer) {
+        showInnerBoundaries();
+      } else {
+        console.warn('toggleInnerBoundaries: Still no boundary layer after loading, creating sample...');
+        createSampleBoundaries();
+        if (corkInnerBoundariesLayer) {
+          showInnerBoundaries();
+        }
+      }
+    });
+    return;
+  }
+  
+  if (innerBoundariesVisible) {
+    hideInnerBoundaries();
+  } else {
+    showInnerBoundaries();
+  }
+}
+
+// Function to show the outer boundary layer
+function showOuterBoundary() {
+  console.log('showOuterBoundary: Called');
+  console.log('showOuterBoundary: Layer available:', !!corkOuterBoundaryLayer);
+  console.log('showOuterBoundary: Map available:', !!window.map);
+  
+  if (!corkOuterBoundaryLayer || !window.map) {
+    console.warn('showOuterBoundary: Cannot show boundary - layer or map missing');
+    return;
+  }
+  
+  console.log('showOuterBoundary: Adding outer boundary to map');
+  corkOuterBoundaryLayer.addTo(window.map);
+  outerBoundaryVisible = true;
+  
+  // Update button appearance
+  const boundaryBtn = document.getElementById('toggleOuterBoundaryBtn');
+  if (boundaryBtn) {
+    boundaryBtn.style.backgroundColor = '#FF6B35';
+    boundaryBtn.style.color = 'white';
+    boundaryBtn.style.borderColor = '#FF6B35';
+  }
+  
+  console.log('showOuterBoundary: Outer boundary layer shown');
+  showNotification('Cork City Council outer boundary shown', 'success');
+  
+  // Update checkbox states
+  updateLayerCheckboxStates();
+}
+
+// Function to hide the outer boundary layer
+function hideOuterBoundary() {
+  if (!corkOuterBoundaryLayer || !window.map) return;
+  
+  console.log('hideOuterBoundary: Removing outer boundary from map');
+  window.map.removeLayer(corkOuterBoundaryLayer);
+  outerBoundaryVisible = false;
+  
+  // Reset button appearance
+  const boundaryBtn = document.getElementById('toggleOuterBoundaryBtn');
+  if (boundaryBtn) {
+    boundaryBtn.style.backgroundColor = '';
+    boundaryBtn.style.color = '';
+    boundaryBtn.style.borderColor = '';
+  }
+  
+  console.log('hideOuterBoundary: Outer boundary layer hidden');
+  showNotification('Cork City Council outer boundary hidden', 'info');
+  
+  // Update checkbox states
+  updateLayerCheckboxStates();
+}
+
+// Function to show the inner boundaries layer (LEAs)
+function showInnerBoundaries() {
+  console.log('showInnerBoundaries: Called');
+  console.log('showInnerBoundaries: Layer available:', !!corkInnerBoundariesLayer);
+  console.log('showInnerBoundaries: Map available:', !!window.map);
+  
+  if (!corkInnerBoundariesLayer || !window.map) {
+    console.warn('showInnerBoundaries: Cannot show boundaries - layer or map missing');
+    return;
+  }
+  
+  console.log('showInnerBoundaries: Adding inner boundaries to map');
+  corkInnerBoundariesLayer.addTo(window.map);
+  innerBoundariesVisible = true;
+  
+  // Update button appearance
+  const boundaryBtn = document.getElementById('toggleInnerBoundariesBtn');
+  if (boundaryBtn) {
+    boundaryBtn.style.backgroundColor = '#FFC107';
+    boundaryBtn.style.color = 'black';
+    boundaryBtn.style.borderColor = '#FFC107';
+  }
+  
+  console.log('showInnerBoundaries: Inner boundaries layer shown');
+  showNotification('Local Electoral Areas (inner boundaries) shown', 'success');
+  
+  // Update checkbox states
+  updateLayerCheckboxStates();
+}
+
+// Function to hide the inner boundaries layer (LEAs)
+function hideInnerBoundaries() {
+  if (!corkInnerBoundariesLayer || !window.map) return;
+  
+  console.log('hideInnerBoundaries: Removing inner boundaries from map');
+  window.map.removeLayer(corkInnerBoundariesLayer);
+  innerBoundariesVisible = false;
+  
+  // Reset button appearance
+  const boundaryBtn = document.getElementById('toggleInnerBoundariesBtn');
+  if (boundaryBtn) {
+    boundaryBtn.style.backgroundColor = '';
+    boundaryBtn.style.color = '';
+    boundaryBtn.style.borderColor = '';
+  }
+  
+  console.log('hideInnerBoundaries: Inner boundaries layer hidden');
+  showNotification('Local Electoral Areas (inner boundaries) hidden', 'info');
+  
+  // Update checkbox states
+  updateLayerCheckboxStates();
+}
+
+// Debug function to test boundary display (can be called from browser console)
+window.testBoundaries = function() {
+  console.log('testBoundaries: Starting boundary test...');
+  console.log('testBoundaries: Map available:', !!window.map);
+  console.log('testBoundaries: Outer boundary layer:', !!corkOuterBoundaryLayer);
+  console.log('testBoundaries: Inner boundaries layer:', !!corkInnerBoundariesLayer);
+  
+  if (!window.map) {
+    console.error('testBoundaries: No map available');
+    return;
+  }
+  
+  // Force create sample boundaries
+  createSampleBoundaries();
+  
+  // Try to show them
+  if (corkOuterBoundaryLayer) {
+    console.log('testBoundaries: Adding outer boundary to map...');
+    corkOuterBoundaryLayer.addTo(window.map);
+    console.log('testBoundaries: Outer boundary added');
+  }
+  
+  if (corkInnerBoundariesLayer) {
+    console.log('testBoundaries: Adding inner boundaries to map...');
+    corkInnerBoundariesLayer.addTo(window.map);
+    console.log('testBoundaries: Inner boundaries added');
+  }
+  
+  // Zoom to fit boundaries
+  if (corkOuterBoundaryLayer) {
+    try {
+      const bounds = corkOuterBoundaryLayer.getBounds();
+      window.map.fitBounds(bounds);
+      console.log('testBoundaries: Map zoomed to boundary bounds');
+    } catch (e) {
+      console.warn('testBoundaries: Could not zoom to bounds:', e);
+    }
+  }
+};
+
+// 1. Backup function
+function saveGullyData() {
+  if (!auth.currentUser) {
+    alert('Please log in to back up data');
+    return;
+  }
+  const layersToBackup = ['gullies', 'signage', 'playgrounds', 'parks', 'walkways', 'lining'];
+  const backup = {};
+  let completed = 0;
+  layersToBackup.forEach(layer => {
+    db.ref(layer).once('value').then(snapshot => {
+      backup[layer] = snapshot.val() || {};
+      completed++;
+      if (completed === layersToBackup.length) {
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `gully_backup_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        alert('Backup downloaded successfully!');
+      }
+    }).catch(error => {
+      alert('Error backing up ' + layer + ': ' + error.message);
+    });
+  });
+}
+
+// 2. User management modal
+function showUserManagement() {
+  if (!auth.currentUser) {
+    alert('Only administrators can view users');
+    return;
+  }
+  db.ref('users').once('value').then(snapshot => {
+    const users = snapshot.val() || {};
+    let html = `<div style="max-height:60vh;overflow:auto;">
+      <h3>User Management</h3>
+      <table class='table table-striped table-bordered'>
+        <tr><th>User</th><th>Role</th></tr>`;
+    Object.values(users).forEach(user => {
+      html += `<tr><td>${user.name ? user.name + ' ' : ''}(${user.email || ''})</td><td>${user.role || ''}</td></tr>`;
+    });
+    html += '</table>';
+    html += `<div class='text-end mt-3'><button class='btn btn-secondary' onclick='closeModal()'>Close</button></div></div>`;
+
+    // Create backdrop
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop-custom';
+    backdrop.onclick = function(e) {
+      if (e.target === backdrop) backdrop.remove();
+    };
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'user-management-modal card shadow p-4';
+    modal.innerHTML = html;
+    modal.style.maxWidth = '98vw';
+    modal.style.maxHeight = '90vh';
+    modal.style.overflow = 'auto';
+
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    // Close helper
+    window.closeModal = () => backdrop.remove();
+  });
+}
+
+// Layer management
+let mapLayers = {
+  gullies: { visible: true, data: null },
+  playgrounds: { visible: false, data: null },
+  walkways: { visible: false, data: null },
+  signage: { visible: false, data: null },
+  lining: { visible: false, data: null }
+};
+
+function toggleLayer(layerName) {
+  console.log('toggleLayer: Toggling layer:', layerName);
+  
+  if (window.dataLayers && window.dataLayers[layerName]) {
+    const layer = window.dataLayers[layerName];
+    const isVisible = window.map.hasLayer(layer);
+    
+    // Toggle the clicked layer
+    if (!isVisible) {
+      layer.addTo(window.map);
+      currentActiveLayer = layerName;
+    } else {
+      layer.removeFrom(window.map);
+      if (currentActiveLayer === layerName) {
+        currentActiveLayer = null;
+      }
+    }
+    
+    // Update visual state of buttons
+    updateLayerButtonStates();
+  }
+}
+
+function showLayerControl() {
+  console.log('showLayerControl: Attempting to show layer control.');
+  
+  // Remove any existing layer control first
+  const existingControl = document.getElementById('layerControlContainer');
+  if (existingControl) {
+    existingControl.remove();
+  }
+  
+  // Create a new layer control with guaranteed visibility
+  const container = document.createElement('div');
+  container.id = 'layerControlContainer';
+  container.className = 'layer-control-card';
+  container.style.cssText = `
+    position: absolute;
+    left: 24px;
+    top: 24px;
+    z-index: 3000;
+    min-width: 320px;
+    max-width: 380px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    border: 1px solid #e0e0e0;
+    background: white;
+    padding: 0;
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    display: block;
+  `;
+
+  // Create the layer list HTML
+  const layerListHTML = `
+    <div class="layer-item" onclick="toggleLayer('gullies')" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
+      <div style="margin-right: 12px;">
+        <input class="form-check-input" type="checkbox" id="gulliesLayer" onclick="event.stopPropagation(); toggleLayer('gullies')" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''} style="width: 18px; height: 18px;">
+      </div>
+      <div style="margin-right: 12px; width: 24px; height: 24px; background: #2196F3; border-radius: 6px; border: 2px solid #1976D2;"></div>
+      <div style="flex: 1;">
+        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">Gullies</div>
+        <div style="font-size: 0.8rem; color: #6c757d;">Drainage inspection points</div>
+      </div>
+    </div>
+    
+    <div class="layer-item" onclick="toggleLayer('playgrounds')" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
+      <div style="margin-right: 12px;">
+        <input class="form-check-input" type="checkbox" id="playgroundsLayer" onclick="event.stopPropagation(); toggleLayer('playgrounds')" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''} style="width: 18px; height: 18px;">
+      </div>
+      <div style="margin-right: 12px; width: 24px; height: 24px; background: #4CAF50; border-radius: 6px; border: 2px solid #388E3C;"></div>
+      <div style="flex: 1;">
+        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">Playgrounds</div>
+        <div style="font-size: 0.8rem; color: #6c757d;">Recreational areas</div>
+      </div>
+    </div>
+    
+    <div class="layer-item" onclick="toggleLayer('walkways')" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
+      <div style="margin-right: 12px;">
+        <input class="form-check-input" type="checkbox" id="walkwaysLayer" onclick="event.stopPropagation(); toggleLayer('walkways')" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''} style="width: 18px; height: 18px;">
+      </div>
+      <div style="margin-right: 12px; width: 24px; height: 24px; background: #F44336; border-radius: 6px; border: 2px solid #D32F2F;"></div>
+      <div style="flex: 1;">
+        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">Walkways</div>
+        <div style="font-size: 0.8rem; color: #6c757d;">Pedestrian paths</div>
+      </div>
+    </div>
+    
+    <div class="layer-item" onclick="toggleLayer('signage')" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
+      <div style="margin-right: 12px;">
+        <input class="form-check-input" type="checkbox" id="signageLayer" onclick="event.stopPropagation(); toggleLayer('signage')" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''} style="width: 18px; height: 18px;">
+      </div>
+      <div style="margin-right: 12px; width: 24px; height: 24px; background: #FF9800; border-radius: 6px; border: 2px solid #F57C00;"></div>
+      <div style="flex: 1;">
+        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">Signage</div>
+        <div style="font-size: 0.8rem; color: #6c757d;">Information signs</div>
+      </div>
+    </div>
+    
+    <div class="layer-item" onclick="toggleLayer('lining')" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
+      <div style="margin-right: 12px;">
+        <input class="form-check-input" type="checkbox" id="liningLayer" onclick="event.stopPropagation(); toggleLayer('lining')" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''} style="width: 18px; height: 18px;">
+      </div>
+      <div style="margin-right: 12px; width: 24px; height: 24px; background: #9C27B0; border-radius: 6px; border: 2px solid #7B1FA2;"></div>
+      <div style="flex: 1;">
+        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">Road Lining</div>
+        <div style="font-size: 0.8rem; color: #6c757d;">Road markings</div>
+      </div>
+    </div>
+    
+    <hr style="margin: 12px 16px; border: none; border-top: 1px solid #e9ecef;">
+    
+    <div class="layer-item" onclick="toggleOuterBoundary()" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #fff8f0; border: 1px solid #FF6B35;">
+      <div style="margin-right: 12px;">
+        <input class="form-check-input" type="checkbox" id="outerBoundaryLayer" onclick="event.stopPropagation(); toggleOuterBoundary()" style="width: 18px; height: 18px;">
+      </div>
+      <div style="margin-right: 12px; width: 24px; height: 24px; background: #FF6B35; border-radius: 6px; border: 2px solid #E55A2B; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem;">🏛️</div>
+      <div style="flex: 1;">
+        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">Outer Boundary</div>
+        <div style="font-size: 0.8rem; color: #6c757d;">Cork City Council main area</div>
+      </div>
+    </div>
+    
+    <div class="layer-item" onclick="toggleInnerBoundaries()" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #fffaf0; border: 1px solid #FFC107;">
+      <div style="margin-right: 12px;">
+        <input class="form-check-input" type="checkbox" id="innerBoundariesLayer" onclick="event.stopPropagation(); toggleInnerBoundaries()" style="width: 18px; height: 18px;">
+      </div>
+      <div style="margin-right: 12px; width: 24px; height: 24px; background: #FFC107; border-radius: 6px; border: 2px solid #FFB300; display: flex; align-items: center; justify-content: center; color: black; font-size: 0.75rem;">🗺️</div>
+      <div style="flex: 1;">
+        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">Electoral Areas</div>
+        <div style="font-size: 0.8rem; color: #6c757d;">Local Electoral Area boundaries</div>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = `
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; flex: 1;">
+        <div style="color: rgba(255,255,255,0.8); font-size: 1.2rem; cursor: move; margin-right: 12px;">
+          <i class="bi bi-grip-vertical"></i>
+        </div>
+        <div style="display: flex; align-items: center; font-size: 1.1rem; font-weight: 600;">
+          <i class="bi bi-layers-fill me-2"></i>
+          <span>Map Layers</span>
+        </div>
+      </div>
+      <button type="button" onclick="document.getElementById('layerControlContainer').style.display='none'" style="background: none; border: none; color: rgba(255,255,255,0.8); font-size: 1.1rem; cursor: pointer; padding: 4px; border-radius: 4px;">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div style="padding: 20px;">
+      <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0;">
+        <small style="color: #6c757d;">Select which layers to display on the map</small>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        ${layerListHTML}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(container);
+  console.log('showLayerControl: New layer control created and added to DOM');
+  
+  // Update checkbox states after creating the layer control
+  setTimeout(() => {
+    updateLayerCheckboxStates();
+  }, 100);
+}
+
+// Function to update checkbox states in the layer control
+function updateLayerCheckboxStates() {
+  console.log('updateLayerCheckboxStates: Called');
+  console.log('updateLayerCheckboxStates: outerBoundaryVisible =', outerBoundaryVisible);
+  console.log('updateLayerCheckboxStates: innerBoundariesVisible =', innerBoundariesVisible);
+  
+  const layers = ['gullies', 'playgrounds', 'walkways', 'signage', 'lining'];
+  layers.forEach(layerName => {
+    const checkbox = document.getElementById(`${layerName}Layer`);
+    if (checkbox && window.dataLayers && window.dataLayers[layerName]) {
+      const isVisible = window.map.hasLayer(window.dataLayers[layerName]);
+      checkbox.checked = isVisible;
+      console.log(`updateLayerCheckboxStates: ${layerName} checkbox set to ${isVisible}`);
+    }
+  });
+  
+  // Update boundary layer checkboxes
+  const outerBoundaryCheckbox = document.getElementById('outerBoundaryLayer');
+  if (outerBoundaryCheckbox) {
+    outerBoundaryCheckbox.checked = outerBoundaryVisible;
+    console.log(`updateLayerCheckboxStates: outer boundary checkbox found and set to ${outerBoundaryVisible}`);
+  } else {
+    console.warn('updateLayerCheckboxStates: outer boundary checkbox not found');
+  }
+  
+  const innerBoundariesCheckbox = document.getElementById('innerBoundariesLayer');
+  if (innerBoundariesCheckbox) {
+    innerBoundariesCheckbox.checked = innerBoundariesVisible;
+    console.log(`updateLayerCheckboxStates: inner boundaries checkbox found and set to ${innerBoundariesVisible}`);
+  } else {
+    console.warn('updateLayerCheckboxStates: inner boundaries checkbox not found');
+  }
+}
+
+function createLayerControlContainer() {
+  const container = document.createElement('div');
+  container.id = 'layerControlContainer';
+  container.className = 'layer-control-card card shadow';
+  container.style.display = 'block';
+
+  // Build the layer list HTML
+  let layerListHTML = '';
+  const layers = [
+    { key: 'gullies', name: 'Gullies', desc: 'Drainage inspection points', iconClass: 'gully-icon' },
+    { key: 'playgrounds', name: 'Playgrounds', desc: 'Recreational areas', iconClass: 'playground-icon' },
+    { key: 'walkways', name: 'Walkways', desc: 'Pedestrian paths', iconClass: 'walkway-icon' },
+    { key: 'signage', name: 'Signage', desc: 'Information signs', iconClass: 'signage-icon' },
+    { key: 'lining', name: 'Road Lining', desc: 'Road markings', iconClass: 'lining-icon' }
+  ];
+  layers.forEach(layer => {
+    layerListHTML += `
+      <div class="layer-item" onclick="toggleLayer('${layer.key}')">
+        <div class="layer-checkbox">
+          <input class="form-check-input" type="checkbox" id="${layer.key}Layer" ${window.map && window.dataLayers[layer.key] && window.map.hasLayer(window.dataLayers[layer.key]) ? 'checked' : ''}>
+        </div>
+        <div class="layer-icon-container">
+          <div class="layer-icon ${layer.iconClass}"></div>
+        </div>
+        <div class="layer-info">
+          <div class="layer-name">${layer.name}</div>
+          <div class="layer-description">${layer.desc}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  if (!layerListHTML) {
+    layerListHTML = `<div class="text-muted text-center py-3">No layers available</div>`;
+  }
+
+  container.innerHTML = `
+    <div class="layer-header">
+      <div class="layer-header-content">
+        <div class="drag-handle" title="Drag to move">
+          <i class="bi bi-grip-vertical"></i>
+        </div>
+        <div class="layer-title">
+          <i class="bi bi-layers-fill me-2"></i>
+          <span>Map Layers</span>
+        </div>
+      </div>
+      <button type="button" class="layer-close-btn" aria-label="Close" id="closeLayerControlBtn">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="layer-content">
+      <div class="layer-description">
+        <small class="text-muted">Select which layers to display on the map</small>
+      </div>
+      <div class="layer-list">
+        ${layerListHTML}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(container);
+  updateLayerButtonStates();
+  setTimeout(() => {
+    const closeBtn = document.getElementById('closeLayerControlBtn');
+    if (closeBtn) {
+      closeBtn.onclick = function() {
+        container.style.display = 'none';
+      };
+    }
+    makeLayerControlDraggable();
+  }, 0);
+}
+
+function toggleLayerControl() {
+  console.log('toggleLayerControl: Toggling layer control visibility.');
+  const container = document.getElementById('layerControlContainer');
+  const content = container.querySelector('.layer-content');
+  const icon = container.querySelector('.collapse-icon');
+  
+  content.classList.toggle('expanded');
+  icon.classList.toggle('expanded');
+  console.log('toggleLayerControl: Layer control expanded state:', content.classList.contains('expanded'));
+}
+
+// Initialize layer visibility on startup
+function initializeLayerVisibility() {
+  console.log('initializeLayerVisibility: Initializing layer visibility.');
+
+  // Clear all layers from the map first to prevent duplicates during re-initialization
+  Object.values(window.dataLayers).forEach(layer => {
+    if (window.map.hasLayer(layer)) {
+      window.map.removeLayer(layer);
+    }
+  });
+
+  // Add layers to the map if they contain any features
+  Object.keys(window.dataLayers).forEach(layerName => {
+    if (window.dataLayers[layerName] && window.dataLayers[layerName].getLayers().length > 0) {
+      window.dataLayers[layerName].addTo(window.map);
+      console.log(`initializeLayerVisibility: Added ${layerName} to map because it contains data.`);
+    } else if (layerName === 'gullies') {
+      // Ensure gullies layer is always on the map, even if empty, as it's the default active layer.
+      window.dataLayers[layerName].addTo(window.map);
+      console.log(`initializeLayerVisibility: Added empty ${layerName} to map as default.`);
+    }
+  });
+
+  // Set the currentActiveLayer based on what's visible, or default to 'gullies'
+  let foundActive = false;
+  for (const layerName in window.dataLayers) {
+    if (window.map.hasLayer(window.dataLayers[layerName])) {
+      currentActiveLayer = layerName;
+      foundActive = true;
+      break;
+    }
+  }
+  if (!foundActive) {
+    currentActiveLayer = 'gullies'; // Fallback if no layers have data or are visible
+  }
+
+  updateLayerButtonStates(); // Ensure visual state is accurate
+  updateLayerCheckboxStates(); // Update checkbox states in layer control
+  console.log('initializeLayerVisibility: Layer button states updated.');
+}
+
+// Remove the old layer control div if it still exists from previous versions
+document.querySelector('.layer-control')?.remove();
+
+// Add a form submit handler to always call login()
+document.addEventListener('DOMContentLoaded', function() {
+  var loginForm = document.getElementById('loginForm');
+  if (loginForm) {
+    loginForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      login();
+      return false;
+    });
+  }
+});
+
+// Add after updateMarkerStatus or near other popup/inspection functions
+function showInspectionPopup(marker, gullyId, latlng, layerType) {
+  // Custom popup for playgrounds and walkways
+  if (layerType === 'playgrounds' || layerType === 'walkways') {
+    db.ref(`${layerType}/${gullyId}`).once('value').then(snapshot => {
+      const asset = snapshot.val() || {};
+      const description = asset.description || 'No description';
+      const status = asset.status || '';
+      const comment = asset.comment || '';
+      const photoURL = asset.photoURL || '';
+      const date = asset.date ? new Date(asset.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
+      let html = `<form id='asset-inspection-form'>`;
+      html += `<div class='inspection-popup popup-form'>`;
+      html += `<h3 style='margin-top:0;'>${layerType.charAt(0).toUpperCase() + layerType.slice(1)} Asset</h3>`;
+      html += `<div><b>Description:</b> ${description}</div>`;
+      html += `<div><b>Status:</b> <select id='asset-status'>`;
+      html += `<option value='Fixed'${status === 'Fixed' ? ' selected' : ''}>Fixed</option>`;
+      html += `<option value='Replaced'${status === 'Replaced' ? ' selected' : ''}>Replaced</option>`;
+      html += `<option value='New Installation'${status === 'New Installation' ? ' selected' : ''}>New Installation</option>`;
+      html += `</select></div>`;
+      // Always show date picker, disabled if not editable
+      html += `<div><b>Date:</b><br/><input type='date' id='asset-date' value='${date}' style='width:100%;margin-bottom:5px;' ${canEdit ? '' : 'disabled'}></div>`;
+      html += `<div><b>Comment:</b><br/>`;
+      html += `<input type='text' id='asset-comment' placeholder='Enter comment' style='width:100%;margin-bottom:5px;' value="${comment || ''}" ${canEdit ? '' : 'readonly'}>`;
+      html += `</div>`;
+      html += `<div><b>Photo:</b><br/>`;
+      if (photoURL) {
+        html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+        html += `<img src='${photoURL}' alt='Asset Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+      }
+      if (canEdit) {
+        html += `<input type='file' id='asset-photo' accept='image/*' style='margin-top:5px;display:none;'/><br/>`;
+        html += `<button id='take-photo-btn' type='button' style='margin:5px 0;'>📸 Take Photo</button>`;
+        html += `<img id='asset-photo-preview' style='max-width:100%;max-height:100px;display:none;margin:5px 0;'>`;
+      }
+      html += `</div>`;
+      if (canEdit) {
+        html += `<div style='margin-top:8px;display:flex;align-items:center;gap:8px;'>`;
+        html += `<input type='checkbox' id='confirm-save-asset' style='margin-right:4px;'>`;
+        html += `<label for='confirm-save-asset' style='margin:0;'>Confirm Save</label>`;
+        html += `<button id='save-asset' style='margin-left:8px;' disabled>Save</button>`;
+        html += `</div>`;
+      }
+      html += `<div class='d-flex gap-2 justify-content-end mt-3'>`;
+      if (canEdit) {
+        html += `<button id='save-asset' class='btn btn-success flex-fill' type='button' disabled>Save</button>`;
+      }
+      html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
+      html += `</div>`;
+      html += `</div>`;
+      html += `</form>`;
+      // Remove any existing modal
+      document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
+      const inspectionBackdrop = document.createElement('div');
+      inspectionBackdrop.className = 'modal-backdrop-custom';
+      inspectionBackdrop.onclick = function(e) { if (e.target === inspectionBackdrop) inspectionBackdrop.remove(); };
+      const modal = document.createElement('div');
+      modal.className = 'card shadow p-4';
+      modal.style.maxWidth = '400px';
+      modal.style.maxHeight = '90vh';
+      modal.style.overflowY = 'auto';
+      modal.innerHTML = `
+        <div class=\"d-flex justify-content-between align-items-center mb-3\">\n        <h3 class=\"m-0\">${layerType === 'gullies' ? 'Gully Inspection' : layerType.charAt(0).toUpperCase() + layerType.slice(1) + ' Asset'}</h3>\n        <button class=\"btn btn-secondary\" onclick=\"this.closest('.card').parentElement.remove()\">✖ Close</button>\n      </div>\n      <div>${html}</div>\n    `;
+      inspectionBackdrop.appendChild(modal);
+      document.body.appendChild(inspectionBackdrop);
+      setTimeout(() => {
+        if (canEdit) {
+          // Photo preview logic
+          const photoInput = document.getElementById('asset-photo');
+          const photoPreview = document.getElementById('asset-photo-preview');
+          if (photoInput && photoPreview) {
+            photoInput.onchange = function() {
+              if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                  photoPreview.src = e.target.result;
+                  photoPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+              } else {
+                photoPreview.style.display = 'none';
+              }
+            };
+          }
+          // Take Photo button
+          const takePhotoBtn = document.getElementById('take-photo-btn');
+          if (takePhotoBtn && photoInput) {
+            takePhotoBtn.onclick = function() {
+              photoInput.setAttribute('capture', 'environment');
+              photoInput.click();
+            };
+          }
+          // Confirm Save checkbox
+          const confirmSave = document.getElementById('confirm-save-asset');
+          const saveBtn = document.getElementById('save-asset');
+          if (confirmSave && saveBtn) {
+            confirmSave.onchange = function() {
+              saveBtn.disabled = !confirmSave.checked;
+            };
+            saveBtn.disabled = !confirmSave.checked;
+          }
+          // Save logic
+          if (saveBtn) {
+            saveBtn.onclick = async function() {
+              if (saveBtn.disabled) return;
+              try {
+                saveBtn.textContent = 'Saving...';
+                saveBtn.disabled = true;
+                const newStatus = document.getElementById('asset-status').value;
+                const newComment = document.getElementById('asset-comment').value;
+                const newDate = document.getElementById('asset-date').value;
+                let newPhotoURL = photoURL;
+                if (photoInput && photoInput.files && photoInput.files[0]) {
+                  const file = photoInput.files[0];
+                  const storageRef = storage.ref(`${layerType}/${gullyId}/${Date.now()}_${file.name}`);
+                  await storageRef.put(file);
+                  newPhotoURL = await storageRef.getDownloadURL();
+                }
+                await db.ref(`${layerType}/${gullyId}`).update({
+                  status: newStatus,
+                  comment: newComment,
+                  date: newDate,
+                  photoURL: newPhotoURL
+                });
+                alert('Asset updated!');
+                window.map.closePopup(currentInspectionPopup);
+              } catch (err) {
+                alert('Error saving asset: ' + err.message);
+                saveBtn.textContent = 'Save';
+                saveBtn.disabled = false;
+              }
+            };
+          }
+        }
+      }, 100);
+    });
+    return; // Prevent running the gully popup code
+  }
+  if (currentInspectionPopup) {
+    window.map.closePopup(currentInspectionPopup);
+    currentInspectionPopup = null;
+  }
+  db.ref(`${layerType}/${gullyId}`).once('value').then(snapshot => {
+    const gully = snapshot.val() || {};
+    const status = gully.status || 'Unmarked';
+    const lastInspection = gully.inspections ?
+      Object.values(gully.inspections).sort((a, b) => b.timestamp - a.timestamp)[0] : null;
+    const comment = lastInspection ? lastInspection.comment : '';
+    const photoURL = lastInspection ? lastInspection.photoURL : '';
+    const inspector = lastInspection && lastInspection.inspector ? lastInspection.inspector.name : '';
+    const timestamp = lastInspection ? lastInspection.timestamp : null;
+    const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
+    // Date picker setup
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    let lastDate = timestamp ? new Date(timestamp).toISOString().split('T')[0] : todayStr;
+    // Build the modal content
+    let html = `<form id='gully-inspection-form' class='needs-validation' novalidate>`;
+    // Editable ID for admin only
+    if (canEdit && window.currentUserData && window.currentUserData.role === 'admin') {
+      html += `<div class='mb-2'><label class='form-label'><b>ID:</b></label> <input type='text' id='gully-id-edit' class='form-control' value='${gullyId}'></div>`;
+    } else {
+      html += `<div class='mb-2'><label class='form-label'><b>ID:</b></label> <span>${gullyId}</span></div>`;
+    }
+    // Date picker
+    if (canEdit) {
+      // Add time input next to date input
+      let lastTime = '12:00';
+      if (timestamp) {
+        const d = new Date(timestamp);
+        lastTime = d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+      } else {
+        const now = new Date();
+        lastTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+      }
+      html += `<div class='mb-2'><label class='form-label'><b>Inspection Date & Time:</b></label><div style='display:flex;gap:8px;'><input type='date' id='inspection-date' class='form-control' max='${todayStr}' value='${lastDate}' required><input type='time' id='inspection-time' class='form-control' value='${lastTime}' required></div></div>`;
+    } else {
+      let timeStr = '12:00';
+      if (timestamp) {
+        const d = new Date(timestamp);
+        timeStr = d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+      }
+      html += `<div class='mb-2'><label class='form-label'><b>Inspection Date & Time:</b></label> <span>${lastDate} ${timeStr}</span></div>`;
+    }
+    // Comment textarea
+    if (canEdit) {
+      html += `<div class='mb-2'><label class='form-label'><b>Comment:</b></label><textarea id='inspection-comment-custom' class='form-control' placeholder='Enter comment'>${comment || ''}</textarea></div>`;
+    } else {
+      html += `<div class='mb-2'><label class='form-label'><b>Comment:</b></label> <div class='form-control-plaintext' style='min-height:2em;'>${comment || '-'}</div></div>`;
+    }
+    // --- PHOTO UPLOAD/TAKE PHOTO/PREVIEW ---
+    if (canEdit) {
+      html += `<div class='mb-2'><label class='form-label'><b>Photo:</b></label><br/>`;
+      if (photoURL) {
+        html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+        html += `<img src='${photoURL}' alt='Inspection Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+      }
+      html += `<input type='file' id='inspection-photo' accept='image/*' style='margin-top:5px;display:none;'/><br/>`;
+      html += `<button id='take-photo-btn' type='button' style='margin:5px 0;'>📸 Take Photo</button>`;
+      html += `<img id='inspection-photo-preview' style='max-width:100%;max-height:100px;display:none;margin:5px 0;'>`;
+      html += `<div id='photo-upload-progress-container' style='display:none;margin:5px 0;'>`
+      html += `<div style='width:100%;background:#eee;border-radius:4px;overflow:hidden;height:16px;'>`
+      html += `<div id='photo-upload-progress-bar' style='width:0%;height:16px;background:#2196F3;transition:width 0.2s;'></div>`
+      html += `</div>`
+      html += `<div id='photo-upload-progress-text' style='font-size:12px;text-align:center;margin-top:2px;'></div>`
+      html += `</div>`;
+    } else if (photoURL) {
+      html += `<div class='mb-2'><label class='form-label'><b>Photo:</b></label><br/>`;
+      html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+      html += `<img src='${photoURL}' alt='Inspection Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+      html += `</div>`;
+    }
+    // Status dropdown for editable gullies
+    if (canEdit) {
+      html += `<div class='mb-2'><label class='form-label'><b>Status:</b></label><select id='inspection-status' class='form-select'>`;
+      const statuses = ['Clear','Blocked','Broken','Remediation','Replacement','Unmarked'];
+      statuses.forEach(s => {
+        html += `<option value='${s}'${status === s ? ' selected' : ''}>${s}</option>`;
+      });
+      html += `</select></div>`;
+    } else {
+      html += `<div class='mb-2'><label class='form-label'><b>Status:</b></label> <span>${status}</span></div>`;
+    }
+    // Confirm inspection checkbox and Save button
+    if (canEdit) {
+      html += `<div class='form-check mb-2'>`;
+      html += `<input type='checkbox' class='form-check-input' id='confirm-save-inspection'>`;
+      html += `<label class='form-check-label' for='confirm-save-inspection'>Confirm Inspection</label>`;
+      html += `</div>`;
+      html += `<div class='d-flex gap-2 justify-content-end mt-3'>`;
+      html += `<button id='save-inspection' class='btn btn-success flex-fill' type='button' disabled>Save Inspection</button>`;
+      html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
+      html += `</div>`;
+    } else {
+      html += `<div class='d-flex gap-2 justify-content-end mt-3'>`;
+      html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
+      html += `</div>`;
+    }
+    html += `</form>`;
+    // Remove any existing modal
+    document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
+    const inspectionBackdrop = document.createElement('div');
+    inspectionBackdrop.className = 'modal-backdrop-custom';
+    inspectionBackdrop.onclick = function(e) { if (e.target === inspectionBackdrop) inspectionBackdrop.remove(); };
+    const modal = document.createElement('div');
+    modal.className = 'card shadow p-4';
+    modal.style.maxWidth = '400px';
+    modal.style.maxHeight = '90vh';
+    modal.style.overflowY = 'auto';
+    modal.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="m-0">${layerType === 'gullies' ? 'Gully Inspection' : layerType.charAt(0).toUpperCase() + layerType.slice(1) + ' Asset'}</h3>
+        <button class="btn btn-secondary" onclick="this.closest('.card').parentElement.remove()">✖ Close</button>
+      </div>
+      <div>${html}</div>
+    `;
+    inspectionBackdrop.appendChild(modal);
+    document.body.appendChild(inspectionBackdrop);
+    // Re-attach event handlers as before (photo preview, save, etc.)
+    setTimeout(() => {
+      if (canEdit) {
+        // Photo preview logic
+        const photoInput = document.getElementById('inspection-photo');
+        const photoPreview = document.getElementById('inspection-photo-preview');
+        const takePhotoBtn = document.getElementById('take-photo-btn');
+        if (photoInput && photoPreview) {
+          photoInput.onchange = function() {
+            if (photoInput.files && photoInput.files[0]) {
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                photoPreview.src = e.target.result;
+                photoPreview.style.display = 'block';
+              };
+              reader.readAsDataURL(photoInput.files[0]);
+            } else {
+              photoPreview.style.display = 'none';
+            }
+          };
+        }
+        if (takePhotoBtn && photoInput) {
+          takePhotoBtn.onclick = function() {
+            photoInput.setAttribute('capture', 'environment');
+            photoInput.click();
+          };
+        }
+        // Confirm Save Inspection checkbox
+        const confirmSave = document.getElementById('confirm-save-inspection');
+        const saveBtn = document.getElementById('save-inspection');
+        if (!saveBtn) {
+          console.error('Save Inspection button not found in popup!');
+          return;
+        }
+        if (confirmSave) {
+          confirmSave.onchange = function() {
+            saveBtn.disabled = !confirmSave.checked;
+          };
+          saveBtn.disabled = !confirmSave.checked;
+        } else {
+          saveBtn.disabled = false;
+        }
+        saveBtn.onclick = async function() {
+          if (saveBtn.disabled) return;
+          try {
+            saveBtn.textContent = 'Saving...';
+            saveBtn.disabled = true;
+            // Robustly get values, fallback if missing
+            const statusInput = document.getElementById('inspection-status');
+            const newStatus = statusInput ? statusInput.value : (gully.status || 'Unmarked');
+            const commentCustom = document.getElementById('inspection-comment-custom');
+            const newComment = commentCustom ? commentCustom.value : '';
+            const dateInput = document.getElementById('inspection-date');
+            const timeInput = document.getElementById('inspection-time');
+            let inspectionTimestamp = Date.now();
+            if (dateInput && dateInput.value && timeInput && timeInput.value) {
+              // Combine selected date and selected time
+              const [year, month, day] = dateInput.value.split('-');
+              const [hour, minute] = timeInput.value.split(':');
+              const dateWithTime = new Date(
+                Number(year),
+                Number(month) - 1,
+                Number(day),
+                Number(hour),
+                Number(minute),
+                0,
+                0
+              );
+              inspectionTimestamp = dateWithTime.getTime();
+            }
+            let newPhotoURL = photoURL;
+            if (photoInput && photoInput.files && photoInput.files[0]) {
+              const file = photoInput.files[0];
+              const storageRef = storage.ref(`inspections/${gullyId}/${Date.now()}_${file.name}`);
+              // Show progress bar at upload start
+              const progressContainer = document.getElementById('photo-upload-progress-container');
+              const progressBar = document.getElementById('photo-upload-progress-bar');
+              const progressText = document.getElementById('photo-upload-progress-text');
+              if (progressContainer && progressBar && progressText) {
+                progressContainer.style.display = 'block';
+                progressBar.style.width = '0%';
+                progressText.textContent = 'Uploading photo...';
+              }
+              const uploadTask = storageRef.put(file);
+              uploadTask.on('state_changed', function(snapshot) {
+                const percent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                if (progressBar) progressBar.style.width = percent + '%';
+                if (progressText) progressText.textContent = `Uploading photo... ${percent}%`;
+              });
+              const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Photo upload timed out after 2 minutes')), 120000));
+              await Promise.race([
+                uploadTask,
+                timeoutPromise
+              ]);
+              newPhotoURL = await storageRef.getDownloadURL();
+              if (progressContainer && progressBar && progressText) {
+                progressBar.style.width = '100%';
+                progressText.textContent = 'Upload complete!';
+                setTimeout(() => { progressContainer.style.display = 'none'; }, 1000);
+              }
+            }
+            
+            // Get current status for comparison
+            const previousStatus = gully.status || 'Unmarked';
+            const previousComment = gully.comment || '';
+            
+            // Log the inspection/status change event
+            logAuditEvent(
+              previousStatus !== newStatus ? 'STATUS_CHANGE' : 'INSPECTION', 
+              layerType, 
+              gullyId, 
+              {
+                location: { lat: latlng.lat, lng: latlng.lng },
+                previousStatus: previousStatus,
+                newStatus: newStatus,
+                previousComment: previousComment,
+                newComment: newComment,
+                inspectionDate: new Date(inspectionTimestamp).toISOString(),
+                hasPhoto: newPhotoURL ? true : false,
+                method: 'Manual inspection via popup'
+              }
+            );
+            
+            await db.ref(`${layerType}/${gullyId}`).update({
+              status: newStatus,
+              comment: newComment,
+              date: newDate,
+              photoURL: newPhotoURL
+            });
+            alert('Inspection saved and logged to audit trail!');
+            inspectionBackdrop.remove();
+          } catch (err) {
+            // Hide progress bar on error
+            const progressContainer = document.getElementById('photo-upload-progress-container');
+            if (progressContainer) progressContainer.style.display = 'none';
+            alert('Error saving inspection: ' + err.message);
+            saveBtn.textContent = 'Save Inspection';
+            saveBtn.disabled = false;
+          }
+        };
+      }
+      document.getElementById('view-history').onclick = function() {
+        viewGullyHistory(gullyId);
+      };
+    }, 100);
+  });
+
+  // Custom popup for signage
+  if (layerType === 'signage') {
+    db.ref(`${layerType}/${gullyId}`).once('value').then(snapshot => {
+      const asset = snapshot.val() || {};
+      const description = asset.description || 'No description';
+      const status = asset.status || '';
+      const comment = asset.comment || '';
+      const photoURL = asset.photoURL || '';
+      const date = asset.date ? new Date(asset.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
+      let html = `<div class='inspection-popup popup-form'>`;
+      html += `<h3 style='margin-top:0;'>Signage Asset</h3>`;
+      html += `<div><b>Description:</b> ${description}</div>`;
+      html += `<div><b>Status:</b> <select id='signage-status'>`;
+      html += `<option value='Replacement'${status === 'Replacement' ? ' selected' : ''}>Replacement</option>`;
+      html += `<option value='New'${status === 'New' ? ' selected' : ''}>New</option>`;
+      html += `<option value='Retired'${status === 'Retired' ? ' selected' : ''}>Retired</option>`;
+      html += `<option value='Changed'${status === 'Changed' ? ' selected' : ''}>Changed</option>`;
+      html += `</select></div>`;
+      html += `<div><b>Date:</b><br/><input type='date' id='signage-date' value='${date}' style='width:100%;margin-bottom:5px;'></div>`;
+      html += `<div><b>Comment:</b><br/>`;
+      html += `<input type='text' id='signage-comment' placeholder='Enter comment' style='width:100%;margin-bottom:5px;' value="${comment || ''}">`;
+      html += `</div>`;
+      html += `<div><b>Photo:</b><br/>`;
+      if (photoURL) {
+        html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+        html += `<img src='${photoURL}' alt='Signage Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+      }
+      if (canEdit) {
+        html += `<input type='file' id='signage-photo' accept='image/*' style='margin-top:5px;display:none;'/><br/>`;
+        html += `<button id='take-photo-btn' type='button' style='margin:5px 0;'>📸 Take Photo</button>`;
+        html += `<img id='signage-photo-preview' style='max-width:100%;max-height:100px;display:none;margin:5px 0;'>`;
+      }
+      html += `</div>`;
+      if (canEdit) {
+        html += `<div style='margin-top:8px;display:flex;align-items:center;gap:8px;'>`;
+        html += `<input type='checkbox' id='confirm-save-signage' style='margin-right:4px;'>`;
+        html += `<label for='confirm-save-signage' style='margin:0;'>Confirm Save</label>`;
+        html += `<button id='save-signage' style='margin-left:8px;' disabled>Save</button>`;
+        html += `</div>`;
+      }
+      html += `<div class='d-flex gap-2 justify-content-end mt-3'>`;
+      if (canEdit) {
+        html += `<button id='save-signage' class='btn btn-success flex-fill' type='button' disabled>Save</button>`;
+      }
+      html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
+      html += `</div>`;
+      html += `</div>`;
+      // Remove any existing modal
+      document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
+      const inspectionBackdrop = document.createElement('div');
+      inspectionBackdrop.className = 'modal-backdrop-custom';
+      inspectionBackdrop.onclick = function(e) { if (e.target === inspectionBackdrop) inspectionBackdrop.remove(); };
+      const modal = document.createElement('div');
+      modal.className = 'card shadow p-4';
+      modal.style.maxWidth = '400px';
+      modal.style.maxHeight = '90vh';
+      modal.style.overflowY = 'auto';
+      modal.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="m-0">Signage Asset</h3>
+          <button class="btn btn-secondary" onclick="this.closest('.card').parentElement.remove()">✖ Close</button>
+        </div>
+        <div>${html}</div>
+      `;
+      inspectionBackdrop.appendChild(modal);
+      document.body.appendChild(inspectionBackdrop);
+      // Re-attach event handlers as before (photo preview, save, etc.)
+      setTimeout(() => {
+        if (canEdit) {
+          // Photo preview logic
+          const photoInput = document.getElementById('signage-photo');
+          const photoPreview = document.getElementById('signage-photo-preview');
+          if (photoInput && photoPreview) {
+            photoInput.onchange = function() {
+              if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                  photoPreview.src = e.target.result;
+                  photoPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+              } else {
+                photoPreview.style.display = 'none';
+              }
+            };
+          }
+          // Take Photo button
+          const takePhotoBtn = document.getElementById('take-photo-btn');
+          if (takePhotoBtn && photoInput) {
+            takePhotoBtn.onclick = function() {
+              photoInput.setAttribute('capture', 'environment');
+              photoInput.click();
+            };
+          }
+          // Confirm Save checkbox
+          const confirmSave = document.getElementById('confirm-save-signage');
+          const saveBtn = document.getElementById('save-signage');
+          if (confirmSave && saveBtn) {
+            confirmSave.onchange = function() {
+              saveBtn.disabled = !confirmSave.checked;
+            };
+            saveBtn.disabled = !confirmSave.checked;
+          }
+          // Save logic
+          if (saveBtn) {
+            saveBtn.onclick = async function() {
+              if (saveBtn.disabled) return;
+              try {
+                saveBtn.textContent = 'Saving...';
+                saveBtn.disabled = true;
+                const newStatus = document.getElementById('signage-status').value;
+                const newComment = document.getElementById('signage-comment').value;
+                const newDate = document.getElementById('signage-date').value;
+                let newPhotoURL = photoURL;
+                if (photoInput && photoInput.files && photoInput.files[0]) {
+                  const file = photoInput.files[0];
+                  const storageRef = storage.ref(`${layerType}/${gullyId}/${Date.now()}_${file.name}`);
+                  await storageRef.put(file);
+                  newPhotoURL = await storageRef.getDownloadURL();
+                }
+                await db.ref(`${layerType}/${gullyId}`).update({
+                  status: newStatus,
+                  comment: newComment,
+                  date: newDate,
+                  photoURL: newPhotoURL
+                });
+                alert('Signage asset updated!');
+                window.map.closePopup(currentInspectionPopup);
+              } catch (err) {
+                alert('Error saving signage asset: ' + err.message);
+                saveBtn.textContent = 'Save';
+                saveBtn.disabled = false;
+              }
+            };
+          }
+        }
+      }, 100);
+    });
+    return; // Prevent running the gully popup code
+  }
+  // Custom popup for road lining
+  if (layerType === 'lining') {
+    db.ref(`${layerType}/${gullyId}`).once('value').then(snapshot => {
+      const asset = snapshot.val() || {};
+      const description = asset.description || 'No description';
+      const status = asset.status || '';
+      const comment = asset.comment || '';
+      const photoURL = asset.photoURL || '';
+      const date = asset.date ? new Date(asset.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      const canEdit = (window.currentUserData && (window.currentUserData.role === 'admin' || window.currentUserData.role === 'operator')) || editMode;
+      let html = `<div class='inspection-popup popup-form'>`;
+      html += `<h3 style='margin-top:0;'>Road Lining Asset</h3>`;
+      html += `<div><b>Description of Type of Lining:</b> ${description}</div>`;
+      html += `<div><b>Status:</b> <select id='lining-status'>`;
+      html += `<option value='New'${status === 'New' ? ' selected' : ''}>New</option>`;
+      html += `<option value='Renewed'${status === 'Renewed' ? ' selected' : ''}>Renewed</option>`;
+      html += `</select></div>`;
+      html += `<div><b>Date:</b><br/><input type='date' id='lining-date' value='${date}' style='width:100%;margin-bottom:5px;'></div>`;
+      html += `<div><b>Comment:</b><br/>`;
+      html += `<input type='text' id='lining-comment' placeholder='Enter comment' style='width:100%;margin-bottom:5px;' value="${comment || ''}">`;
+      html += `</div>`;
+      html += `<div><b>Photo:</b><br/>`;
+      if (photoURL) {
+        html += `<a href='${photoURL}' target='_blank' style='color:blue;'>📷 View Photo</a><br/>`;
+        html += `<img src='${photoURL}' alt='Lining Photo' style='max-width:100%;max-height:100px;margin:5px 0;display:block;'>`;
+      }
+      if (canEdit) {
+        html += `<input type='file' id='lining-photo' accept='image/*' style='margin-top:5px;display:none;'/><br/>`;
+        html += `<button id='take-photo-btn' type='button' style='margin:5px 0;'>📸 Take Photo</button>`;
+        html += `<img id='lining-photo-preview' style='max-width:100%;max-height:100px;display:none;margin:5px 0;'>`;
+      }
+      html += `</div>`;
+      if (canEdit) {
+        html += `<div style='margin-top:8px;display:flex;align-items:center;gap:8px;'>`;
+        html += `<input type='checkbox' id='confirm-save-lining' style='margin-right:4px;'>`;
+        html += `<label for='confirm-save-lining' style='margin:0;'>Confirm Save</label>`;
+        html += `<button id='save-lining' style='margin-left:8px;' disabled>Save</button>`;
+        html += `</div>`;
+      }
+      html += `<div class='d-flex gap-2 justify-content-end mt-3'>`;
+      if (canEdit) {
+        html += `<button id='save-lining' class='btn btn-success flex-fill' type='button' disabled>Save</button>`;
+      }
+      html += `<button id='view-history' class='btn btn-outline-secondary flex-fill' type='button'>View History</button>`;
+      html += `</div>`;
+      html += `</div>`;
+      // Remove any existing modal
+      document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
+      const inspectionBackdrop = document.createElement('div');
+      inspectionBackdrop.className = 'modal-backdrop-custom';
+      inspectionBackdrop.onclick = function(e) { if (e.target === inspectionBackdrop) inspectionBackdrop.remove(); };
+      const modal = document.createElement('div');
+      modal.className = 'card shadow p-4';
+      modal.style.maxWidth = '400px';
+      modal.style.maxHeight = '90vh';
+      modal.style.overflowY = 'auto';
+      modal.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="m-0">Road Lining Asset</h3>
+          <button class="btn btn-secondary" onclick="this.closest('.card').parentElement.remove()">✖ Close</button>
+        </div>
+        <div>${html}</div>
+      `;
+      inspectionBackdrop.appendChild(modal);
+      document.body.appendChild(inspectionBackdrop);
+      // Re-attach event handlers as before (photo preview, save, etc.)
+      setTimeout(() => {
+        if (canEdit) {
+          // Photo preview logic
+          const photoInput = document.getElementById('lining-photo');
+          const photoPreview = document.getElementById('lining-photo-preview');
+          if (photoInput && photoPreview) {
+            photoInput.onchange = function() {
+              if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                  photoPreview.src = e.target.result;
+                  photoPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(photoInput.files[0]);
+              } else {
+                photoPreview.style.display = 'none';
+              }
+            };
+          }
+          // Take Photo button
+          const takePhotoBtn = document.getElementById('take-photo-btn');
+          if (takePhotoBtn && photoInput) {
+            takePhotoBtn.onclick = function() {
+              photoInput.setAttribute('capture', 'environment');
+              photoInput.click();
+            };
+          }
+          // Confirm Save checkbox
+          const confirmSave = document.getElementById('confirm-save-lining');
+          const saveBtn = document.getElementById('save-lining');
+          if (confirmSave && saveBtn) {
+            confirmSave.onchange = function() {
+              saveBtn.disabled = !confirmSave.checked;
+            };
+            saveBtn.disabled = !confirmSave.checked;
+          }
+          // Save logic
+          if (saveBtn) {
+            saveBtn.onclick = async function() {
+              if (saveBtn.disabled) return;
+              try {
+                saveBtn.textContent = 'Saving...';
+                saveBtn.disabled = true;
+                const newStatus = document.getElementById('lining-status').value;
+                const newComment = document.getElementById('lining-comment').value;
+                const newDate = document.getElementById('lining-date').value;
+                let newPhotoURL = photoURL;
+                if (photoInput && photoInput.files && photoInput.files[0]) {
+                  const file = photoInput.files[0];
+                  const storageRef = storage.ref(`${layerType}/${gullyId}/${Date.now()}_${file.name}`);
+                  await storageRef.put(file);
+                  newPhotoURL = await storageRef.getDownloadURL();
+                }
+                await db.ref(`${layerType}/${gullyId}`).update({
+                  status: newStatus,
+                  comment: newComment,
+                  date: newDate,
+                  photoURL: newPhotoURL
+                });
+                alert('Road lining asset updated!');
+                window.map.closePopup(currentInspectionPopup);
+              } catch (err) {
+                alert('Error saving road lining asset: ' + err.message);
+                saveBtn.textContent = 'Save';
+                saveBtn.disabled = false;
+              }
+            };
+          }
+        }
+      }, 100);
+    });
+    return; // Prevent running the gully popup code
+  }
+}
+
+// Add the loadFromBackup function
+function loadFromBackup() {
+  if (!auth.currentUser) {
+    alert('Please log in to load backup data');
+    return;
+  }
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const backup = JSON.parse(text);
+      // Clear all layers and gullyData
+      Object.values(window.dataLayers).forEach(layer => layer.clearLayers());
+      gullyData.length = 0;
+      // Add features from backup
+      Object.keys(backup).forEach(layerType => {
+        const items = backup[layerType] || {};
+        Object.entries(items).forEach(([id, item]) => {
+          if (item.location) {
+            addGullyToMap(item.location, id, layerType, item.status || 'Unmarked');
+          }
+        });
+      });
+      initializeLayerVisibility();
+      alert('Backup loaded successfully!');
+    } catch (err) {
+      alert('Error loading backup: ' + err.message);
+    }
+  };
+  input.click();
+}
+
+// Forgot password handler (attach directly, not in DOMContentLoaded)
+const forgotLink = document.getElementById('forgotPasswordLink');
+if (forgotLink) {
+  forgotLink.onclick = function(e) {
+    e.preventDefault();
+    let email = document.getElementById('email').value.trim();
+    if (!email) {
+      email = prompt('Please enter your email address to reset your password:');
+      if (!email) return;
+    }
+    // Normalize and validate email
+    const validation = validateAndNormalizeEmail(email);
+    if (!validation.isValid) {
+      document.getElementById('loginError').style.color = 'red';
+      document.getElementById('loginError').textContent = '❌ ' + validation.message;
+      return;
+    }
+    firebase.auth().sendPasswordResetEmail(validation.normalizedEmail)
+      .then(() => {
+        document.getElementById('loginError').style.color = 'green';
+        document.getElementById('loginError').textContent = '✔️ Password reset email sent. Please check your inbox.';
+      })
+      .catch(error => {
+        document.getElementById('loginError').style.color = 'red';
+        document.getElementById('loginError').textContent = '❌ ' + (error.message || 'Error sending password reset email.');
+      });
+  };
+}
+
+// The quick-comment dropdown logic is now handled inside each popup function where canEdit is defined.
+
+    // --- DRAGGABLE LAYER CONTROL POPUP ---
+    // Add draggable functionality to the layer control card
+    function makeLayerControlDraggable() {
+      const container = document.getElementById('layerControlContainer');
+      if (!container) return;
+      let isDragging = false;
+      let offsetX = 0, offsetY = 0;
+      const header = container.querySelector('.card-header');
+      if (!header) return;
+      header.style.cursor = 'move';
+      header.onmousedown = function(e) {
+        isDragging = true;
+        offsetX = e.clientX - container.offsetLeft;
+        offsetY = e.clientY - container.offsetTop;
+        document.onmousemove = function(e) {
+          if (!isDragging) return;
+          container.style.left = (e.clientX - offsetX) + 'px';
+          container.style.top = (e.clientY - offsetY) + 'px';
+          container.style.right = 'auto';
+        };
+        document.onmouseup = function() {
+          isDragging = false;
+          document.onmousemove = null;
+          document.onmouseup = null;
+        };
+      };
+    }
+    // Call this after creating the layer control container
+    function createLayerControlContainer() {
+      const container = document.createElement('div');
+      container.id = 'layerControlContainer';
+      container.className = 'layer-control-card card shadow';
+      container.style.display = 'block';
+
+      // Build the layer list HTML
+      let layerListHTML = '';
+      const layers = [
+        { key: 'gullies', name: 'Gullies', desc: 'Drainage inspection points', iconClass: 'gully-icon' },
+        { key: 'playgrounds', name: 'Playgrounds', desc: 'Recreational areas', iconClass: 'playground-icon' },
+        { key: 'walkways', name: 'Walkways', desc: 'Pedestrian paths', iconClass: 'walkway-icon' },
+        { key: 'signage', name: 'Signage', desc: 'Information signs', iconClass: 'signage-icon' },
+        { key: 'lining', name: 'Road Lining', desc: 'Road markings', iconClass: 'lining-icon' }
+      ];
+      layers.forEach(layer => {
+        layerListHTML += `
+          <div class="layer-item" onclick="toggleLayer('${layer.key}')">
+            <div class="layer-checkbox">
+              <input class="form-check-input" type="checkbox" id="${layer.key}Layer" ${window.map && window.dataLayers[layer.key] && window.map.hasLayer(window.dataLayers[layer.key]) ? 'checked' : ''}>
+            </div>
+            <div class="layer-icon-container">
+              <div class="layer-icon ${layer.iconClass}"></div>
+            </div>
+            <div class="layer-info">
+              <div class="layer-name">${layer.name}</div>
+              <div class="layer-description">${layer.desc}</div>
+            </div>
+          </div>
+        `;
+      });
+
+      if (!layerListHTML) {
+        layerListHTML = `<div class="text-muted text-center py-3">No layers available</div>`;
+      }
+
+      container.innerHTML = `
+        <div class="layer-header">
+          <div class="layer-header-content">
+            <div class="drag-handle" title="Drag to move">
+              <i class="bi bi-grip-vertical"></i>
+            </div>
+            <div class="layer-title">
+              <i class="bi bi-layers-fill me-2"></i>
+              <span>Map Layers</span>
+            </div>
+          </div>
+          <button type="button" class="layer-close-btn" aria-label="Close" id="closeLayerControlBtn">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        <div class="layer-content">
+          <div class="layer-description">
+            <small class="text-muted">Select which layers to display on the map</small>
+          </div>
+          <div class="layer-list">
+            ${layerListHTML}
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(container);
+      updateLayerButtonStates();
+      setTimeout(() => {
+        const closeBtn = document.getElementById('closeLayerControlBtn');
+        if (closeBtn) {
+          closeBtn.onclick = function() {
+            container.style.display = 'none';
+          };
+        }
+        makeLayerControlDraggable();
+      }, 0);
+    }
+
+    // --- ENHANCED DRAGGABLE FOR TOUCH (TABLET) ---
+    function makeLayerControlDraggable() {
+      const container = document.getElementById('layerControlContainer');
+      if (!container) return;
+      let isDragging = false;
+      let offsetX = 0, offsetY = 0;
+      const header = container.querySelector('.card-header');
+      if (!header) return;
+      header.style.cursor = 'move';
+
+      // Mouse events
+      header.onmousedown = function(e) {
+        isDragging = true;
+        offsetX = e.clientX - container.offsetLeft;
+        offsetY = e.clientY - container.offsetTop;
+        document.onmousemove = function(e) {
+          if (!isDragging) return;
+          container.style.left = (e.clientX - offsetX) + 'px';
+          container.style.top = (e.clientY - offsetY) + 'px';
+          container.style.right = 'auto';
+        };
+        document.onmouseup = function() {
+          isDragging = false;
+          document.onmousemove = null;
+          document.onmouseup = null;
+        };
+      };
+
+      // Touch events for tablet/mobile
+      header.ontouchstart = function(e) {
+        if (e.touches.length !== 1) return;
+        isDragging = true;
+        const touch = e.touches[0];
+        offsetX = touch.clientX - container.offsetLeft;
+        offsetY = touch.clientY - container.offsetTop;
+        document.ontouchmove = function(e) {
+          if (!isDragging || e.touches.length !== 1) return;
+          const moveTouch = e.touches[0];
+          container.style.left = (moveTouch.clientX - offsetX) + 'px';
+          container.style.top = (moveTouch.clientY - offsetY) + 'px';
+          container.style.right = 'auto';
+        };
+        document.ontouchend = function() {
+          isDragging = false;
+          document.ontouchmove = null;
+          document.ontouchend = null;
+        };
+      };
+    }
+
+    // Add base layers for OSM and Esri Satellite
+    let osiLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    });
+    let satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles © Esri',
+      maxZoom: 19
+    });
+    let isSatellite = false;
+
+    // Update initMap to use osiLayer as the default
+    function initMap() {
+      // ... existing code ...
+      window.map = L.map('map', {
+        center: [51.9, -8.5],
+        zoom: 13,
+        zoomControl: false,
+        attributionControl: false
+      });
+      osiLayer.addTo(window.map);
+      // ... rest of initMap ...
+    }
+
+    // Add the toggleMapLayer function
+    function toggleMapLayer() {
+      if (!window.map) return;
+      if (isSatellite) {
+        window.map.removeLayer(satelliteLayer);
+        osiLayer.addTo(window.map);
+        document.getElementById('toggleMapLayerBtn').innerHTML = '<i class="bi bi-globe"></i> Satellite';
+      } else {
+        window.map.removeLayer(osiLayer);
+        satelliteLayer.addTo(window.map);
+        document.getElementById('toggleMapLayerBtn').innerHTML = '<i class="bi bi-map"></i> Map';
+      }
+      // Ensure zoom control is present after switching layers
+      if (!window.map.zoomControl) {
+        window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
+      }
+      isSatellite = !isSatellite;
+    }
+
+    // --- USER LOGIN/LOGOUT LOGGING ---
+    function logUserEvent(eventType, userEmail) {
+      if (!userEmail) return;
+      const logRef = db.ref('user_logs').push();
+      logRef.set({
+        email: userEmail,
+        event: eventType,
+        timestamp: Date.now()
+      });
+    }
+
+    // Add Register button below Sign In in the login form
+    // Find the login form and add after the Sign In button:
+    // <button type="button" class="btn btn-outline-primary w-100 mt-2" onclick="showRegisterModal()">Register</button>
+
+    // Add the Register modal and logic
+    function showRegisterModal() {
+      document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop-custom';
+      backdrop.onclick = function(e) { if (e.target === backdrop) backdrop.remove(); };
+      const modal = document.createElement('div');
+      modal.className = 'card shadow p-4';
+      modal.style.maxWidth = '400px';
+      modal.style.maxHeight = '90vh';
+      modal.style.overflowY = 'auto';
+      modal.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="m-0">Register</h3>
+          <button class="btn btn-secondary" onclick="this.closest('.card').parentElement.remove()">✖ Close</button>
+        </div>
+        <form id="registerForm">
+          <div class="mb-3">
+            <label for="regEmail" class="form-label">Email</label>
+            <input type="email" id="regEmail" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="regPassword" class="form-label">Password</label>
+            <input type="password" id="regPassword" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="regName" class="form-label">Full Name</label>
+            <input type="text" id="regName" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Register</button>
+          <div id="registerError" style="color:red;margin-top:10px;"></div>
+        </form>
+      `;
+      backdrop.appendChild(modal);
+      document.body.appendChild(backdrop);
+      document.getElementById('registerForm').onsubmit = function(e) {
+        e.preventDefault();
+        registerUser();
+      };
+    }
+
+    function registerUser() {
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const name = document.getElementById('regName').value.trim();
+      const errorDiv = document.getElementById('registerError');
+      errorDiv.textContent = '';
+      if (!email || !password || !name) {
+        errorDiv.textContent = 'Please fill in all fields.';
+        return;
+      }
+      // Optional: restrict to @corkcity.ie
+      if (!/@corkcity\.ie$/.test(email)) {
+        errorDiv.textContent = 'Registration is only allowed for @corkcity.ie emails.';
+        return;
+      }
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          const user = userCredential.user;
+          db.ref('users/' + user.uid).set({
+            email: email,
+            name: name,
+            role: 'operator',
+            initials: name.split(' ').map(n => n[0]).join('').toUpperCase(),
+            isAdmin: false,
+            approved: false, // admin must approve
+            created: firebase.database.ServerValue.TIMESTAMP
+          });
+          alert('Registration successful! Your account is pending admin approval. You will not be able to log in until approved.');
+          document.querySelectorAll('.modal-backdrop-custom').forEach(e => e.remove());
+          auth.signOut(); // Ensure user is signed out until approved
+        })
+        .catch(error => {
+          errorDiv.textContent = error.message;
+        });
+    }
+
+    // Duplicate login function removed - using main login function instead
+
+</script>
+</body>
+</html>
