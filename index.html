@@ -1208,7 +1208,7 @@
       <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center" onclick="logout()" title="Log out of your account"><i class="bi bi-box-arrow-right"></i> <span>Logout</span></button>
       <button class="btn btn-warning toolbar-button d-inline-flex align-items-center" onclick="enableEditMode()" title="Enable edit mode"><i class="bi bi-pencil"></i> <span>Edit</span></button>
       <button class="btn btn-danger toolbar-button d-inline-flex align-items-center" onclick="enableDeleteMode()" title="Enable delete mode"><i class="bi bi-trash"></i> <span>Delete</span></button>
-      <button class="btn btn-success toolbar-button d-inline-flex align-items-center" onclick="enableAddMode()" title="Add a new item"><i class="bi bi-plus"></i> <span>Add New</span></button>
+      <button class="btn btn-success toolbar-button d-inline-flex align-items-center" onclick="console.log('Add New button clicked'); enableAddMode()" title="Add a new item"><i class="bi bi-plus"></i> <span>Add New</span></button>
     </div>
     <div class="button-group d-flex flex-nowrap gap-2 w-100">
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="printMap()" title="Print the current map view"><i class="bi bi-printer"></i> <span>Print</span></button>
@@ -1706,9 +1706,12 @@ function logout() {
 function setupUIForRole(role, adminPrivileges = null) {
   const isAdmin = role === 'admin';
   
+  console.log('setupUIForRole: role =', role, 'isAdmin =', isAdmin);
+  
   // Show/hide admin-only elements
   document.querySelectorAll('.admin-only').forEach(element => {
     element.style.display = isAdmin ? 'block' : 'none';
+    console.log('setupUIForRole: Set admin-only element display to:', isAdmin ? 'block' : 'none');
   });
   
   // Toolbar button group (non-admin)
@@ -1972,6 +1975,8 @@ function handleLoginSuccess(userData) {
 
   // Update user info
   updateUserInfo(userData);
+  console.log('handleLoginSuccess: User data:', userData);
+  console.log('handleLoginSuccess: Setting up UI for role:', userData.role);
   setupUIForRole(userData.role, userData.adminPrivileges);
   
   console.log('handleLoginSuccess: Reached point before setTimeout.'); // New diagnostic log
@@ -3743,8 +3748,16 @@ let addMode = false;
 
 // Add the new functions
 function enableAddMode() {
+    console.log('enableAddMode: Function called, current user:', auth.currentUser, 'role:', currentRole);
+    
     if (!auth.currentUser || currentRole !== 'admin') {
         alert('Only administrators can add new gullies');
+        return;
+    }
+    
+    if (!window.map) {
+        console.error('enableAddMode: Map not initialized');
+        alert('Map is not ready. Please wait for the map to load.');
         return;
     }
     
@@ -3752,29 +3765,59 @@ function enableAddMode() {
     editMode = false;
     deleteMode = false;
     
+    console.log('enableAddMode: addMode set to:', addMode);
+    
     // Update cursor and button style
     const mapElement = document.getElementById('map');
-    const addButton = document.querySelector('button[onclick="enableAddMode()"]');
+    const addButton = document.querySelector('button[onclick*="enableAddMode"]'); // Use partial match since we modified the onclick
+    
+    if (!mapElement) {
+        console.error('enableAddMode: Map element not found');
+        return;
+    }
+    
+    if (!addButton) {
+        console.error('enableAddMode: Add button not found');
+        return;
+    }
     
     if (addMode) {
         mapElement.style.cursor = 'crosshair';
         addButton.style.backgroundColor = '#4CAF50';
         addButton.style.color = 'white';
         alert('Add mode enabled. Click on the map to add new asset.');
+        
+        console.log('enableAddMode: Attaching click handler to map');
         // Add click handler to map
-        window.map.on('click', handleMapClick);
+        try {
+            window.map.on('click', handleMapClick);
+            console.log('enableAddMode: Click handler attached successfully');
+        } catch (error) {
+            console.error('enableAddMode: Error attaching click handler:', error);
+        }
     } else {
         mapElement.style.cursor = '';
         addButton.style.backgroundColor = '';
         addButton.style.color = '';
         
+        console.log('enableAddMode: Removing click handler from map');
         // Remove click handler from map
-        window.map.off('click', handleMapClick);
+        try {
+            window.map.off('click', handleMapClick);
+            console.log('enableAddMode: Click handler removed successfully');
+        } catch (error) {
+            console.error('enableAddMode: Error removing click handler:', error);
+        }
     }
 }
 
 async function handleMapClick(e) {
-    if (!addMode || !auth.currentUser || currentRole !== 'admin') return;
+    console.log('handleMapClick: Map clicked, addMode:', addMode, 'auth.currentUser:', auth.currentUser, 'currentRole:', currentRole);
+    
+    if (!addMode || !auth.currentUser || currentRole !== 'admin') {
+        console.log('handleMapClick: Conditions not met for adding new asset');
+        return;
+    }
     
     try {
         const timestamp = Date.now();
@@ -3784,7 +3827,7 @@ async function handleMapClick(e) {
         const newId = `${currentLayer}_${timestamp}`;
         const latlng = e.latlng;
         
-        console.log('handleMapClick: Adding new gully at:', latlng);
+        console.log('handleMapClick: Adding new gully at:', latlng, 'with ID:', newId);
         
         // Add marker to map
         const marker = addGullyToMap(latlng, newId, currentLayer);
