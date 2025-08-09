@@ -1994,7 +1994,9 @@ function handleLoginSuccess(userData) {
     loadGullyData();
     // Load audit history
     loadAuditHistory();
-    console.log('handleLoginSuccess: Map initialized, gully data loaded, and audit history loaded.');
+    // Load boundary data
+    loadCorkBoundaries();
+    console.log('handleLoginSuccess: Map initialized, gully data loaded, audit history loaded, and boundaries loaded.');
     console.log('handleLoginSuccess: Map initialized. Waiting for user to load data.');
   }, 500);
   // Start inactivity tracking
@@ -4401,9 +4403,11 @@ async function loadAuditHistory() {
 // Function to load Cork City Council boundary
 async function loadCorkBoundaries() {
   console.log('loadCorkBoundaries: Loading Cork City Council boundaries...');
+  console.log('loadCorkBoundaries: Current working directory:', window.location.href);
   
   try {
     // First try the official KML file
+    console.log('loadCorkBoundaries: Attempting to fetch KML file...');
     const response = await fetch('./Cork_City_Boundary_and_LEAs_SelfContained.kml');
     
     if (response.ok) {
@@ -4495,6 +4499,7 @@ async function loadCorkBoundaries() {
         return;
       }
     } else {
+      console.warn('loadCorkBoundaries: KML file response not OK, status:', response.status);
       throw new Error('KML file not found');
     }
   } catch (error) {
@@ -4544,6 +4549,7 @@ async function loadCorkBoundaries() {
 // Function to create sample Cork City boundaries (approximate)
 function createSampleBoundaries() {
   console.log('createSampleBoundaries: Creating sample Cork City boundaries');
+  console.log('createSampleBoundaries: Map object available:', !!window.map);
   
   // Approximate Cork City outer boundary coordinates
   const outerBoundaryCoords = [
@@ -4581,6 +4587,8 @@ function createSampleBoundaries() {
       </p>
     </div>
   `);
+  
+  console.log('createSampleBoundaries: Outer boundary layer created:', !!corkOuterBoundaryLayer);
   
   // Create sample inner boundaries (electoral areas)
   corkInnerBoundariesLayer = L.layerGroup();
@@ -4659,11 +4667,15 @@ function createSampleBoundaries() {
   });
   
   console.log('createSampleBoundaries: Sample boundaries created with', electoralAreas.length, 'electoral areas');
+  console.log('createSampleBoundaries: Inner boundaries layer created:', !!corkInnerBoundariesLayer);
+  console.log('createSampleBoundaries: Inner boundaries layer has', corkInnerBoundariesLayer.getLayers().length, 'sub-layers');
 }
 
 // Function to toggle outer boundary visibility
 function toggleOuterBoundary() {
   console.log('toggleOuterBoundary: Toggle outer boundary visibility');
+  console.log('toggleOuterBoundary: Current state - outerBoundaryVisible:', outerBoundaryVisible);
+  console.log('toggleOuterBoundary: Layer available:', !!corkOuterBoundaryLayer);
   
   if (!window.map) {
     console.error('toggleOuterBoundary: Map not initialized');
@@ -4676,6 +4688,12 @@ function toggleOuterBoundary() {
     loadCorkBoundaries().then(() => {
       if (corkOuterBoundaryLayer) {
         showOuterBoundary();
+      } else {
+        console.warn('toggleOuterBoundary: Still no boundary layer after loading, creating sample...');
+        createSampleBoundaries();
+        if (corkOuterBoundaryLayer) {
+          showOuterBoundary();
+        }
       }
     });
     return;
@@ -4703,6 +4721,12 @@ function toggleInnerBoundaries() {
     loadCorkBoundaries().then(() => {
       if (corkInnerBoundariesLayer) {
         showInnerBoundaries();
+      } else {
+        console.warn('toggleInnerBoundaries: Still no boundary layer after loading, creating sample...');
+        createSampleBoundaries();
+        if (corkInnerBoundariesLayer) {
+          showInnerBoundaries();
+        }
       }
     });
     return;
@@ -4717,7 +4741,14 @@ function toggleInnerBoundaries() {
 
 // Function to show the outer boundary layer
 function showOuterBoundary() {
-  if (!corkOuterBoundaryLayer || !window.map) return;
+  console.log('showOuterBoundary: Called');
+  console.log('showOuterBoundary: Layer available:', !!corkOuterBoundaryLayer);
+  console.log('showOuterBoundary: Map available:', !!window.map);
+  
+  if (!corkOuterBoundaryLayer || !window.map) {
+    console.warn('showOuterBoundary: Cannot show boundary - layer or map missing');
+    return;
+  }
   
   console.log('showOuterBoundary: Adding outer boundary to map');
   corkOuterBoundaryLayer.addTo(window.map);
@@ -4757,7 +4788,14 @@ function hideOuterBoundary() {
 
 // Function to show the inner boundaries layer (LEAs)
 function showInnerBoundaries() {
-  if (!corkInnerBoundariesLayer || !window.map) return;
+  console.log('showInnerBoundaries: Called');
+  console.log('showInnerBoundaries: Layer available:', !!corkInnerBoundariesLayer);
+  console.log('showInnerBoundaries: Map available:', !!window.map);
+  
+  if (!corkInnerBoundariesLayer || !window.map) {
+    console.warn('showInnerBoundaries: Cannot show boundaries - layer or map missing');
+    return;
+  }
   
   console.log('showInnerBoundaries: Adding inner boundaries to map');
   corkInnerBoundariesLayer.addTo(window.map);
@@ -4794,6 +4832,46 @@ function hideInnerBoundaries() {
   console.log('hideInnerBoundaries: Inner boundaries layer hidden');
   showNotification('Local Electoral Areas (inner boundaries) hidden', 'info');
 }
+
+// Debug function to test boundary display (can be called from browser console)
+window.testBoundaries = function() {
+  console.log('testBoundaries: Starting boundary test...');
+  console.log('testBoundaries: Map available:', !!window.map);
+  console.log('testBoundaries: Outer boundary layer:', !!corkOuterBoundaryLayer);
+  console.log('testBoundaries: Inner boundaries layer:', !!corkInnerBoundariesLayer);
+  
+  if (!window.map) {
+    console.error('testBoundaries: No map available');
+    return;
+  }
+  
+  // Force create sample boundaries
+  createSampleBoundaries();
+  
+  // Try to show them
+  if (corkOuterBoundaryLayer) {
+    console.log('testBoundaries: Adding outer boundary to map...');
+    corkOuterBoundaryLayer.addTo(window.map);
+    console.log('testBoundaries: Outer boundary added');
+  }
+  
+  if (corkInnerBoundariesLayer) {
+    console.log('testBoundaries: Adding inner boundaries to map...');
+    corkInnerBoundariesLayer.addTo(window.map);
+    console.log('testBoundaries: Inner boundaries added');
+  }
+  
+  // Zoom to fit boundaries
+  if (corkOuterBoundaryLayer) {
+    try {
+      const bounds = corkOuterBoundaryLayer.getBounds();
+      window.map.fitBounds(bounds);
+      console.log('testBoundaries: Map zoomed to boundary bounds');
+    } catch (e) {
+      console.warn('testBoundaries: Could not zoom to bounds:', e);
+    }
+  }
+};
 
 // 1. Backup function
 function saveGullyData() {
