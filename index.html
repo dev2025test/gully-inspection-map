@@ -1221,6 +1221,7 @@
       <button class="btn btn-outline-success toolbar-button d-inline-flex align-items-center" onclick="exportData()" title="Export data as CSV file"><i class="bi bi-download"></i> <span>Export CSV</span></button>
       <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" onclick="saveGullyData()" title="Backup all gully data"><i class="bi bi-save"></i> <span>Backup</span></button>
       <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" onclick="loadFromBackup()" title="Load data from a backup file"><i class="bi bi-folder"></i> <i class="bi bi-arrow-up"></i> <span>Load Backup</span></button>
+      <button class="btn btn-outline-dark toolbar-button d-inline-flex align-items-center" onclick="exportAuditHistory()" title="Export audit history of all modifications"><i class="bi bi-journal-text"></i> <span>Audit History</span></button>
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" id="toggleMapLayerBtn" onclick="toggleMapLayer()" title="Switch between Map and Satellite"><i class="bi bi-globe"></i> Satellite</button>
     </div>
   </div>
@@ -1989,7 +1990,9 @@ function handleLoginSuccess(userData) {
     initMap();
     // Load latest gully data from Firebase after map is ready
     loadGullyData();
-    console.log('handleLoginSuccess: Map initialized and gully data loaded.');
+    // Load audit history
+    loadAuditHistory();
+    console.log('handleLoginSuccess: Map initialized, gully data loaded, and audit history loaded.');
     console.log('handleLoginSuccess: Map initialized. Waiting for user to load data.');
   }, 500);
   // Start inactivity tracking
@@ -2124,6 +2127,55 @@ let currentMarker = null;
 let currentInspectionPopup = null;
 let deleteMode = false;
 let editMode = false;
+
+// Audit logging system
+let auditLog = [];
+
+// Function to log all manual modifications
+function logAuditEvent(action, assetType, assetId, details = {}) {
+  if (!auth.currentUser || !window.currentUserData) {
+    console.warn('logAuditEvent: No user logged in, skipping audit log');
+    return;
+  }
+  
+  const timestamp = new Date();
+  const auditEntry = {
+    id: `audit_${timestamp.getTime()}_${Math.random().toString(36).substr(2, 9)}`,
+    timestamp: timestamp.toISOString(),
+    date: timestamp.toLocaleDateString('en-IE', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    }),
+    time: timestamp.toLocaleTimeString('en-IE', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    }),
+    action: action, // 'ADD', 'DELETE', 'EDIT', 'STATUS_CHANGE', 'INSPECTION'
+    assetType: assetType, // 'gully', 'playground', 'walkway', 'signage', 'lining'
+    assetId: assetId,
+    user: {
+      uid: auth.currentUser.uid,
+      email: auth.currentUser.email,
+      name: window.currentUserData.name || auth.currentUser.email.split('@')[0],
+      role: window.currentUserData.role || 'unknown'
+    },
+    details: details, // Additional information about the change
+    location: details.location || null
+  };
+  
+  // Add to local audit log
+  auditLog.push(auditEntry);
+  
+  // Save to Firebase for persistence
+  try {
+    db.ref(`audit_log/${auditEntry.id}`).set(auditEntry);
+    console.log('logAuditEvent: Audit entry saved:', auditEntry);
+  } catch (error) {
+    console.error('logAuditEvent: Error saving audit entry:', error);
+  }
+}
 
 // Add a Set to track imported file names and GPS positions
 let importedFiles = new Set();
@@ -3869,9 +3921,22 @@ function enableEditMode() {
 async function handleGullyDelete(gullyId, marker, layerType) {
     if (!deleteMode || !auth.currentUser || currentRole !== 'admin') return;
     try {
-        const confirmDelete = confirm('Are you sure you want to delete this gully?');
+        const confirmDelete = confirm('Are you sure you want to delete this asset?');
         if (!confirmDelete) return;
+        
+        // Get asset details before deletion for audit log
+        const gullyInfo = gullyData.find(g => g.id === gullyId);
+        const location = marker ? marker.getLatLng() : null;
+        
         marker.setStyle({ fillColor: '#ff0000', radius: 8, color: '#000', weight: 2 });
+        
+        // Log the deletion event
+        logAuditEvent('DELETE', layerType, gullyId, {
+            location: location ? { lat: location.lat, lng: location.lng } : null,
+            previousStatus: gullyInfo ? gullyInfo.status : 'Unknown',
+            reason: 'Manual deletion via delete mode'
+        });
+        
         // Remove from Firebase
         await db.ref(`${layerType}/${gullyId}`).remove();
         // Remove from map layer
@@ -3889,6 +3954,8 @@ async function handleGullyDelete(gullyId, marker, layerType) {
             window.map.removeLayer(marker);
         }
         enableDeleteMode(); // Disable delete mode after successful deletion
+        
+        console.log(`Asset ${gullyId} deleted and logged to audit trail`);
     } catch (error) {
         console.error('handleGullyDelete: Error deleting gully:', error);
         alert('Error deleting gully: ' + error.message);
@@ -3982,7 +4049,14 @@ async function handleMapClick(e) {
         const newId = `${currentLayer}_${timestamp}`;
         const latlng = e.latlng;
         
-        console.log('handleMapClick: Adding new gully at:', latlng, 'with ID:', newId);
+        console.log('handleMapClick: Adding new asset at:', latlng, 'with ID:', newId);
+        
+        // Log the addition event
+        logAuditEvent('ADD', currentLayer, newId, {
+            location: { lat: latlng.lat, lng: latlng.lng },
+            initialStatus: 'Unmarked',
+            method: 'Manual addition via add mode'
+        });
         
         // Add marker to map
         const marker = addGullyToMap(latlng, newId, currentLayer);
@@ -3998,7 +4072,7 @@ async function handleMapClick(e) {
             createdBy: auth.currentUser.uid
         });
         
-        console.log('handleMapClick: New gully added successfully');
+        console.log('handleMapClick: New asset added successfully and logged to audit trail');
         
         // Show inspection popup immediately
         currentMarker = marker;
@@ -4008,8 +4082,8 @@ async function handleMapClick(e) {
         enableAddMode();
         
     } catch (error) {
-        console.error('handleMapClick: Error adding new gully:', error);
-        alert('Error adding new gully: ' + error.message);
+        console.error('handleMapClick: Error adding new asset:', error);
+        alert('Error adding new asset: ' + error.message);
     }
 }
 
@@ -4029,6 +4103,136 @@ function createTooltip() {
     `;
     document.body.appendChild(tooltip);
     return tooltip;
+}
+
+// Function to load audit history from Firebase and export as file
+async function exportAuditHistory() {
+  console.log('exportAuditHistory: Starting audit history export...');
+  
+  try {
+    // Show loading indicator
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'modal-backdrop-custom';
+    loadingDiv.innerHTML = `
+      <div class="card shadow p-4 text-center" style="max-width: 300px;">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <h5>Loading Audit History</h5>
+        <p>Please wait while we gather all modification records...</p>
+      </div>
+    `;
+    document.body.appendChild(loadingDiv);
+    
+    // Load audit log from Firebase
+    const auditSnapshot = await db.ref('audit_log').once('value');
+    const auditData = auditSnapshot.val() || {};
+    
+    // Convert to array and sort by timestamp (newest first)
+    const auditEntries = Object.values(auditData).sort((a, b) => 
+      new Date(b.timestamp) - new Date(a.timestamp)
+    );
+    
+    // Remove loading indicator
+    loadingDiv.remove();
+    
+    if (auditEntries.length === 0) {
+      alert('No audit history found. Start making modifications to see them tracked here.');
+      return;
+    }
+    
+    // Create CSV content
+    let csvContent = 'Date,Time,Action,Asset Type,Asset ID,User Name,User Email,User Role,Previous Status,New Status,Location (Lat),Location (Lng),Comment,Method,Details\n';
+    
+    auditEntries.forEach(entry => {
+      const row = [
+        entry.date || '',
+        entry.time || '',
+        entry.action || '',
+        entry.assetType || '',
+        entry.assetId || '',
+        entry.user?.name || '',
+        entry.user?.email || '',
+        entry.user?.role || '',
+        entry.details?.previousStatus || '',
+        entry.details?.newStatus || '',
+        entry.location?.lat || '',
+        entry.location?.lng || '',
+        (entry.details?.newComment || '').replace(/,/g, ';').replace(/"/g, '""'),
+        entry.details?.method || '',
+        entry.details?.reason || ''
+      ];
+      
+      // Escape and quote fields that contain commas or quotes
+      const escapedRow = row.map(field => {
+        const str = String(field);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      });
+      
+      csvContent += escapedRow.join(',') + '\n';
+    });
+    
+    // Create and download file
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    const filename = `Cork_City_Council_Audit_History_${timestamp}.csv`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Show success message with summary
+    const totalEntries = auditEntries.length;
+    const actionCounts = auditEntries.reduce((counts, entry) => {
+      counts[entry.action] = (counts[entry.action] || 0) + 1;
+      return counts;
+    }, {});
+    
+    const summaryMessage = `
+Audit History Export Complete!
+
+File: ${filename}
+Total Records: ${totalEntries}
+
+Action Summary:
+${Object.entries(actionCounts).map(([action, count]) => `- ${action}: ${count}`).join('\n')}
+
+The file contains all manual modifications with date, time, user information, and details of changes made.
+    `;
+    
+    alert(summaryMessage);
+    console.log('exportAuditHistory: Export completed successfully');
+    
+  } catch (error) {
+    console.error('exportAuditHistory: Error exporting audit history:', error);
+    alert('Error exporting audit history: ' + error.message);
+    
+    // Remove loading indicator if still present
+    const loadingDiv = document.querySelector('.modal-backdrop-custom');
+    if (loadingDiv) loadingDiv.remove();
+  }
+}
+
+// Function to load audit history on application start
+async function loadAuditHistory() {
+  try {
+    console.log('loadAuditHistory: Loading existing audit history...');
+    const auditSnapshot = await db.ref('audit_log').once('value');
+    const auditData = auditSnapshot.val() || {};
+    
+    // Load into local array
+    auditLog = Object.values(auditData);
+    console.log(`loadAuditHistory: Loaded ${auditLog.length} audit entries from Firebase`);
+  } catch (error) {
+    console.error('loadAuditHistory: Error loading audit history:', error);
+  }
 }
 
 // 1. Backup function
@@ -4767,13 +4971,35 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
                 setTimeout(() => { progressContainer.style.display = 'none'; }, 1000);
               }
             }
+            
+            // Get current status for comparison
+            const previousStatus = gully.status || 'Unmarked';
+            const previousComment = gully.comment || '';
+            
+            // Log the inspection/status change event
+            logAuditEvent(
+              previousStatus !== newStatus ? 'STATUS_CHANGE' : 'INSPECTION', 
+              layerType, 
+              gullyId, 
+              {
+                location: { lat: latlng.lat, lng: latlng.lng },
+                previousStatus: previousStatus,
+                newStatus: newStatus,
+                previousComment: previousComment,
+                newComment: newComment,
+                inspectionDate: new Date(inspectionTimestamp).toISOString(),
+                hasPhoto: newPhotoURL ? true : false,
+                method: 'Manual inspection via popup'
+              }
+            );
+            
             await db.ref(`${layerType}/${gullyId}`).update({
               status: newStatus,
               comment: newComment,
               date: newDate,
               photoURL: newPhotoURL
             });
-            alert('Inspection saved!');
+            alert('Inspection saved and logged to audit trail!');
             inspectionBackdrop.remove();
           } catch (err) {
             // Hide progress bar on error
