@@ -2245,7 +2245,7 @@ async function handleImportFile(event) {
         document.getElementById('import-status').textContent = 'Parsing file...';
         
         // Update progress bar to show parsing is happening
-        const progressBar = document.getElementById('import-progress-bar');
+        let progressBar = document.getElementById('import-progress-bar');
         progressBar.style.width = '10%';
         progressBar.textContent = '10%';
         
