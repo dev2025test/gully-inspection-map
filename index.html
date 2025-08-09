@@ -1223,6 +1223,7 @@
       <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" onclick="loadFromBackup()" title="Load data from a backup file"><i class="bi bi-folder"></i> <i class="bi bi-arrow-up"></i> <span>Load Backup</span></button>
       <button class="btn btn-outline-dark toolbar-button d-inline-flex align-items-center" onclick="exportAuditHistory()" title="Export audit history of all modifications"><i class="bi bi-journal-text"></i> <span>Audit History</span></button>
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" id="toggleMapLayerBtn" onclick="toggleMapLayer()" title="Switch between Map and Satellite"><i class="bi bi-globe"></i> Satellite</button>
+      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" id="toggleBoundaryBtn" onclick="toggleCorkBoundary()" title="Show/Hide Cork City Council boundary"><i class="bi bi-geo-alt"></i> <span>City Boundary</span></button>
     </div>
   </div>
 </div>
@@ -2130,6 +2131,10 @@ let editMode = false;
 
 // Audit logging system
 let auditLog = [];
+
+// Cork City Council boundary layer
+let corkBoundaryLayer = null;
+let boundaryLayerVisible = false;
 
 // Function to log all manual modifications
 function logAuditEvent(action, assetType, assetId, details = {}) {
@@ -4275,6 +4280,177 @@ async function loadAuditHistory() {
   }
 }
 
+// Function to load Cork City Council boundary
+async function loadCorkBoundary() {
+  console.log('loadCorkBoundary: Loading Cork City Council boundary...');
+  
+  try {
+    // Try to fetch the boundary files in order of preference
+    let response;
+    let data;
+    
+    try {
+      response = await fetch('./cork-city-boundary.geojson');
+      if (response.ok) {
+        data = await response.json();
+        console.log('loadCorkBoundary: GeoJSON boundary data loaded:', data);
+      } else {
+        throw new Error('GeoJSON file not found');
+      }
+    } catch (error) {
+      console.log('loadCorkBoundary: Trying alternative boundary file...');
+      response = await fetch('./cork city boundary.json');
+      if (!response.ok) {
+        console.warn('loadCorkBoundary: No boundary files found, creating sample boundary');
+        createSampleBoundary();
+        return;
+      }
+      data = await response.json();
+      console.log('loadCorkBoundary: JSON boundary data loaded:', data);
+    }
+    
+    // Check if it's a valid GeoJSON
+    if (data.type === 'FeatureCollection' || data.type === 'Feature') {
+      // It's a proper GeoJSON
+      corkBoundaryLayer = L.geoJSON(data, {
+        style: {
+          color: '#FF6B35',
+          weight: 3,
+          opacity: 0.8,
+          fillColor: '#FF6B35',
+          fillOpacity: 0.1,
+          dashArray: '5, 5'
+        }
+      });
+    } else {
+      // Try to convert if it's in a different format
+      console.log('loadCorkBoundary: Data is not GeoJSON format, creating sample boundary');
+      createSampleBoundary();
+      return;
+    }
+    
+    console.log('loadCorkBoundary: Cork boundary layer created successfully');
+    
+  } catch (error) {
+    console.error('loadCorkBoundary: Error loading boundary:', error);
+    console.log('loadCorkBoundary: Creating sample boundary as fallback');
+    createSampleBoundary();
+  }
+}
+
+// Function to create a sample Cork City boundary (approximate)
+function createSampleBoundary() {
+  console.log('createSampleBoundary: Creating sample Cork City boundary');
+  
+  // Approximate Cork City boundary coordinates
+  const corkBoundaryCoords = [
+    [51.8600, -8.5900], // Southwest
+    [51.8600, -8.4200], // Southeast  
+    [51.9200, -8.4200], // Northeast
+    [51.9400, -8.4800], // North
+    [51.9300, -8.5500], // Northwest
+    [51.9000, -8.5900], // West
+    [51.8600, -8.5900]  // Back to start
+  ];
+  
+  corkBoundaryLayer = L.polygon(corkBoundaryCoords, {
+    color: '#FF6B35',
+    weight: 3,
+    opacity: 0.8,
+    fillColor: '#FF6B35',
+    fillOpacity: 0.1,
+    dashArray: '5, 5'
+  });
+  
+  // Add popup with information
+  corkBoundaryLayer.bindPopup(`
+    <div style="text-align: center;">
+      <h5 style="color: #FF6B35; margin-bottom: 10px;">
+        <i class="bi bi-geo-alt"></i> Cork City Council
+      </h5>
+      <p style="margin: 0;"><strong>Administrative Boundary</strong></p>
+      <p style="margin: 5px 0; font-size: 0.9em;">
+        This is an approximate representation of the Cork City Council administrative area.
+      </p>
+      <hr style="margin: 10px 0;">
+      <p style="margin: 0; font-size: 0.8em; color: #666;">
+        For official boundaries, please consult Cork City Council's GIS department.
+      </p>
+    </div>
+  `);
+  
+  console.log('createSampleBoundary: Sample boundary created');
+}
+
+// Function to toggle Cork City Council boundary visibility
+function toggleCorkBoundary() {
+  console.log('toggleCorkBoundary: Toggle boundary visibility');
+  
+  if (!window.map) {
+    console.error('toggleCorkBoundary: Map not initialized');
+    alert('Map not ready. Please wait for the map to load.');
+    return;
+  }
+  
+  const boundaryBtn = document.getElementById('toggleBoundaryBtn');
+  
+  if (!corkBoundaryLayer) {
+    console.log('toggleCorkBoundary: Boundary layer not loaded, loading now...');
+    loadCorkBoundary().then(() => {
+      if (corkBoundaryLayer) {
+        showBoundary();
+      }
+    });
+    return;
+  }
+  
+  if (boundaryLayerVisible) {
+    hideBoundary();
+  } else {
+    showBoundary();
+  }
+}
+
+// Function to show the boundary layer
+function showBoundary() {
+  if (!corkBoundaryLayer || !window.map) return;
+  
+  console.log('showBoundary: Adding boundary to map');
+  corkBoundaryLayer.addTo(window.map);
+  boundaryLayerVisible = true;
+  
+  // Update button appearance
+  const boundaryBtn = document.getElementById('toggleBoundaryBtn');
+  if (boundaryBtn) {
+    boundaryBtn.style.backgroundColor = '#FF6B35';
+    boundaryBtn.style.color = 'white';
+    boundaryBtn.style.borderColor = '#FF6B35';
+  }
+  
+  console.log('showBoundary: Boundary layer shown');
+  showNotification('Cork City Council boundary shown', 'success');
+}
+
+// Function to hide the boundary layer
+function hideBoundary() {
+  if (!corkBoundaryLayer || !window.map) return;
+  
+  console.log('hideBoundary: Removing boundary from map');
+  window.map.removeLayer(corkBoundaryLayer);
+  boundaryLayerVisible = false;
+  
+  // Reset button appearance
+  const boundaryBtn = document.getElementById('toggleBoundaryBtn');
+  if (boundaryBtn) {
+    boundaryBtn.style.backgroundColor = '';
+    boundaryBtn.style.color = '';
+    boundaryBtn.style.borderColor = '';
+  }
+  
+  console.log('hideBoundary: Boundary layer hidden');
+  showNotification('Cork City Council boundary hidden', 'info');
+}
+
 // 1. Backup function
 function saveGullyData() {
   if (!auth.currentUser) {
@@ -4463,6 +4639,19 @@ function showLayerControl() {
         <div style="font-size: 0.8rem; color: #6c757d;">Road markings</div>
       </div>
     </div>
+    
+    <hr style="margin: 12px 16px; border: none; border-top: 1px solid #e9ecef;">
+    
+    <div class="layer-item" onclick="toggleCorkBoundary()" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #fff8f0; border: 1px solid #ffc947;">
+      <div style="margin-right: 12px;">
+        <input class="form-check-input" type="checkbox" id="boundaryLayer" onclick="event.stopPropagation(); toggleCorkBoundary()" ${boundaryLayerVisible ? 'checked' : ''} style="width: 18px; height: 18px;">
+      </div>
+      <div style="margin-right: 12px; width: 24px; height: 24px; background: #FF6B35; border-radius: 6px; border: 2px solid #E55A2B; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem;">🏛️</div>
+      <div style="flex: 1;">
+        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">City Boundary</div>
+        <div style="font-size: 0.8rem; color: #6c757d;">Cork City Council area</div>
+      </div>
+    </div>
   `;
 
   container.innerHTML = `
@@ -4508,6 +4697,13 @@ function updateLayerCheckboxStates() {
       console.log(`updateLayerCheckboxStates: ${layerName} checkbox set to ${isVisible}`);
     }
   });
+  
+  // Update boundary layer checkbox
+  const boundaryCheckbox = document.getElementById('boundaryLayer');
+  if (boundaryCheckbox) {
+    boundaryCheckbox.checked = boundaryLayerVisible;
+    console.log(`updateLayerCheckboxStates: boundary checkbox set to ${boundaryLayerVisible}`);
+  }
 }
 
 function createLayerControlContainer() {

@@ -1,0 +1,27 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Cork City Council",
+        "area": "Administrative Boundary",
+        "description": "Cork City Council administrative boundary area",
+        "county": "Cork",
+        "province": "Munster"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-8.590, 51.860],
+          [-8.420, 51.860],
+          [-8.420, 51.920],
+          [-8.480, 51.940],
+          [-8.550, 51.930],
+          [-8.590, 51.900],
+          [-8.590, 51.860]
+        ]]
+      }
+    }
+  ]
+}
