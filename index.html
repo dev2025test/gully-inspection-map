@@ -1215,7 +1215,7 @@
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="resetMap()" title="Reset the map to its default state"><i class="bi bi-arrow-repeat"></i> <span>Reset</span></button>
       <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSummaryPopup()" title="Show summary statistics"><i class="bi bi-bar-chart"></i> <span>Summary</span></button>
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="showLayerControl()" title="Show or hide map layers"><i class="bi bi-layers"></i> <span>Layers</span></button>
-      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSearchPopup()" title="Search for gullies, parks, or assets"><i class="bi bi-search"></i> <span>Search</span></button>
+      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSearchPopup()" title="Search by street name, estate, gully ID, or area"><i class="bi bi-search"></i> <span>Search</span></button>
       <label for="importFile" class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" title="Import data from a file"><i class="bi bi-upload"></i> <span>Import</span></label>
       <input type="file" id="importFile" onchange="handleImportFile(event)" style="display: none;">
       <button class="btn btn-outline-success toolbar-button d-inline-flex align-items-center" onclick="exportData()" title="Export data as CSV file"><i class="bi bi-download"></i> <span>Export CSV</span></button>
@@ -3407,9 +3407,9 @@ function showSearchPopup() {
     </div>
     <div style="padding: 20px;">
       <div style="margin-bottom: 16px;">
-        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">Search for gullies, parks, or assets:</label>
+        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">Search by street name, estate, gully ID, or area:</label>
         <div style="display: flex; gap: 8px;">
-          <input type="text" id="searchInput" placeholder="Enter name, estate, or location..." 
+          <input type="text" id="searchInput" placeholder="Enter street name, estate, gully ID, or area..." 
                  style="flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none;"
                  onkeyup="handleSearchInput(event)">
           <button onclick="performSearch()" style="padding: 12px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
@@ -3421,7 +3421,7 @@ function showSearchPopup() {
       <div id="searchResults" style="max-height: 400px; overflow-y: auto;">
         <div style="text-align: center; color: #6c757d; padding: 20px;">
           <i class="bi bi-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
-          Enter a search term to find gullies, parks, or other assets
+          Enter a search term to find assets by street name, estate, gully ID, or area
         </div>
       </div>
     </div>
@@ -3444,7 +3444,7 @@ function handleSearchInput(event) {
   }
 }
 
-function performSearch() {
+async function performSearch() {
   const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
   const resultsContainer = document.getElementById('searchResults');
   
@@ -3460,27 +3460,91 @@ function performSearch() {
   
   console.log('performSearch: Searching for:', searchTerm);
   
-  // Search through gully data
+  // Show loading spinner while searching
+  resultsContainer.innerHTML = `
+    <div style="text-align: center; color: #6c757d; padding: 20px;">
+      <div class="spinner-border text-primary mb-3" role="status"></div>
+      <div>Searching...</div>
+    </div>
+  `;
+  
+  // Search through gully data and Firebase for additional details
   const results = [];
   
   if (window.gullyData && Array.isArray(window.gullyData)) {
-    window.gullyData.forEach((gully, index) => {
-      const searchableText = [
-        gully.name || '',
-        gully.estate || '',
-        gully.location || '',
-        gully.description || '',
-        gully.status || '',
-        gully.layer || ''
-      ].join(' ').toLowerCase();
-      
-      if (searchableText.includes(searchTerm)) {
-        results.push({
-          type: 'gully',
-          data: gully,
-          index: index,
-          matchText: gully.name || gully.estate || 'Unnamed Gully'
-        });
+    // Create array of promises to fetch detailed data for each gully
+    const searchPromises = window.gullyData.map(async (gully, index) => {
+      try {
+        // Get additional details from Firebase
+        const snapshot = await db.ref(`${gully.layer}/${gully.id}`).once('value');
+        const fullData = snapshot.val() || {};
+        
+        // Build searchable text from all available fields
+        const searchableText = [
+          gully.id || '',
+          gully.status || '',
+          gully.layer || '',
+          fullData.name || '',
+          fullData.estate || '',
+          fullData.street || '',
+          fullData.location_name || '',
+          fullData.description || '',
+          fullData.comment || '',
+          fullData.area || '',
+          fullData.zone || ''
+        ].join(' ').toLowerCase();
+        
+        if (searchableText.includes(searchTerm)) {
+          // Get coordinates from marker
+          const coords = gully.marker ? gully.marker.getLatLng() : null;
+          
+          return {
+            type: 'asset',
+            data: {
+              ...gully,
+              ...fullData,
+              lat: coords ? coords.lat : null,
+              lng: coords ? coords.lng : null
+            },
+            index: index,
+            matchText: fullData.name || fullData.street || fullData.estate || gully.id || 'Unnamed Asset'
+          };
+        }
+      } catch (error) {
+        console.warn('performSearch: Error fetching data for gully', gully.id, error);
+        
+        // Fallback to basic search with available data
+        const basicSearchText = [
+          gully.id || '',
+          gully.status || '',
+          gully.layer || ''
+        ].join(' ').toLowerCase();
+        
+        if (basicSearchText.includes(searchTerm)) {
+          const coords = gully.marker ? gully.marker.getLatLng() : null;
+          
+          return {
+            type: 'asset',
+            data: {
+              ...gully,
+              lat: coords ? coords.lat : null,
+              lng: coords ? coords.lng : null
+            },
+            index: index,
+            matchText: gully.id || 'Unnamed Asset'
+          };
+        }
+      }
+      return null;
+    });
+    
+    // Wait for all search promises to complete
+    const searchResults = await Promise.all(searchPromises);
+    
+    // Filter out null results and add to results array
+    searchResults.forEach(result => {
+      if (result) {
+        results.push(result);
       }
     });
   }
@@ -3495,27 +3559,45 @@ function performSearch() {
       </div>
     `;
   } else {
-    const resultsHTML = results.map(result => `
-      <div onclick="zoomToAsset('${result.type}', ${result.index})" 
-           style="display: flex; align-items: center; padding: 12px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef; transition: all 0.2s ease;"
-           onmouseover="this.style.background='#e9ecef'"
-           onmouseout="this.style.background='#f8f9fa'">
-        <div style="width: 24px; height: 24px; background: #2196F3; border-radius: 6px; margin-right: 12px; display: flex; align-items: center; justify-content: center;">
-          <i class="bi bi-geo-alt-fill" style="color: white; font-size: 0.8rem;"></i>
-        </div>
-        <div style="flex: 1;">
-          <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">${result.matchText}</div>
-          <div style="font-size: 0.8rem; color: #6c757d;">
-            ${result.data.estate ? 'Estate: ' + result.data.estate : ''} 
-            ${result.data.status ? '• Status: ' + result.data.status : ''}
-            ${result.data.layer ? '• Type: ' + result.data.layer : ''}
+    const resultsHTML = results.map(result => {
+      // Create a comprehensive info line
+      const infoItems = [];
+      if (result.data.street) infoItems.push(`Street: ${result.data.street}`);
+      if (result.data.estate) infoItems.push(`Estate: ${result.data.estate}`);
+      if (result.data.area) infoItems.push(`Area: ${result.data.area}`);
+      if (result.data.status) infoItems.push(`Status: ${result.data.status}`);
+      if (result.data.layer) infoItems.push(`Type: ${result.data.layer}`);
+      
+      // Choose icon color based on layer type
+      const iconColors = {
+        'gullies': '#2196F3',
+        'playgrounds': '#4CAF50', 
+        'walkways': '#F44336',
+        'signage': '#FF9800',
+        'lining': '#9C27B0'
+      };
+      const iconColor = iconColors[result.data.layer] || '#2196F3';
+      
+      return `
+        <div onclick="zoomToAsset(${result.index})" 
+             style="display: flex; align-items: center; padding: 12px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef; transition: all 0.2s ease;"
+             onmouseover="this.style.background='#e9ecef'"
+             onmouseout="this.style.background='#f8f9fa'">
+          <div style="width: 24px; height: 24px; background: ${iconColor}; border-radius: 6px; margin-right: 12px; display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-geo-alt-fill" style="color: white; font-size: 0.8rem;"></i>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">${result.matchText}</div>
+            <div style="font-size: 0.8rem; color: #6c757d;">
+              ID: ${result.data.id}${infoItems.length > 0 ? ' • ' + infoItems.join(' • ') : ''}
+            </div>
+          </div>
+          <div style="color: #6c757d; font-size: 0.9rem;">
+            <i class="bi bi-arrow-right"></i>
           </div>
         </div>
-        <div style="color: #6c757d; font-size: 0.9rem;">
-          <i class="bi bi-arrow-right"></i>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
     
     resultsContainer.innerHTML = `
       <div style="margin-bottom: 12px; padding: 8px 12px; background: #e3f2fd; border-radius: 6px; border-left: 4px solid #2196F3;">
@@ -3526,46 +3608,79 @@ function performSearch() {
   }
 }
 
-function zoomToAsset(type, index) {
-  console.log('zoomToAsset: Zooming to', type, 'at index', index);
+function zoomToAsset(index) {
+  console.log('zoomToAsset: Zooming to asset at index', index);
   
-  if (type === 'gully' && window.gullyData && window.gullyData[index]) {
-    const gully = window.gullyData[index];
+  if (window.gullyData && window.gullyData[index]) {
+    const asset = window.gullyData[index];
     
-    if (gully.lat && gully.lng) {
+    // Get coordinates from the marker
+    let coords = null;
+    if (asset.marker && typeof asset.marker.getLatLng === 'function') {
+      coords = asset.marker.getLatLng();
+    }
+    
+    if (coords) {
       // Close search popup
       const searchPopup = document.getElementById('searchPopupContainer');
       if (searchPopup) {
         searchPopup.remove();
       }
       
-      // Zoom to the gully location
-      window.map.setView([gully.lat, gully.lng], 18);
+      // Zoom to the asset location
+      window.map.setView([coords.lat, coords.lng], 18);
       
-      // Highlight the gully marker if it exists
-      if (gully.marker) {
-        // Flash the marker
-        const originalStyle = gully.marker.options;
-        gully.marker.setStyle({
-          radius: 12,
-          weight: 3,
-          color: '#ff0000',
-          fillColor: '#ff0000',
-          fillOpacity: 0.8
-        });
-        
-        setTimeout(() => {
-          if (gully.marker) {
-            gully.marker.setStyle(originalStyle);
-          }
-        }, 3000);
+      // Highlight the asset marker if it exists
+      if (asset.marker) {
+        // Flash the marker differently based on asset type
+        if (asset.layer === 'gullies' && typeof asset.marker.setStyle === 'function') {
+          // For circle markers (gullies)
+          const originalOptions = asset.marker.options;
+          asset.marker.setStyle({
+            radius: 15,
+            weight: 4,
+            color: '#ff0000',
+            fillColor: '#ff0000',
+            fillOpacity: 0.8
+          });
+          
+          setTimeout(() => {
+            if (asset.marker && typeof asset.marker.setStyle === 'function') {
+              asset.marker.setStyle(originalOptions);
+            }
+          }, 3000);
+        } else {
+          // For regular markers (other asset types)
+          // Create a temporary pulsing effect
+          const originalIcon = asset.marker.getIcon ? asset.marker.getIcon() : null;
+          
+          // Add a temporary red circle around the marker
+          const highlightCircle = L.circleMarker([coords.lat, coords.lng], {
+            radius: 20,
+            weight: 4,
+            color: '#ff0000',
+            fillColor: '#ff0000',
+            fillOpacity: 0.3
+          }).addTo(window.map);
+          
+          setTimeout(() => {
+            if (window.map.hasLayer(highlightCircle)) {
+              window.map.removeLayer(highlightCircle);
+            }
+          }, 3000);
+        }
       }
       
-      // Show a brief notification
-      showNotification(`Zoomed to ${gully.name || 'Gully'}`, 'success');
+      // Show a brief notification with asset details
+      const assetName = asset.name || asset.street || asset.estate || asset.id || 'Asset';
+      showNotification(`Zoomed to ${assetName}`, 'success');
     } else {
+      console.warn('zoomToAsset: No location data available for asset:', asset);
       showNotification('Location data not available for this asset', 'error');
     }
+  } else {
+    console.warn('zoomToAsset: Asset not found at index:', index);
+    showNotification('Asset not found', 'error');
   }
 }
 
