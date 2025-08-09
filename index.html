@@ -1191,7 +1191,7 @@
 
 <div class="toggle-layers" onclick="toggleLayerControl()">🗺️ Show Layers</div>
 
-<div class="bottom-toolbar bg-light border-top" id="functionToolbar">
+<div class="bottom-toolbar bg-light border-top" id="functionToolbar" style="display: none;">
   <div class="toolbar-header d-flex align-items-center justify-content-between p-2" onclick="toggleToolbar()">
     <h3 class="m-0 d-flex align-items-center gap-2">
       <span>Gully Inspection System</span>
@@ -3527,7 +3527,17 @@ function showNotification(message, type = 'info') {
 // Update the window.onload to include new initialization
 window.onload = () => {
   const loginScreen = document.getElementById("loginScreen");
+  const functionToolbar = document.getElementById("functionToolbar");
+  const map = document.getElementById("map");
+  const summary = document.getElementById("summary");
+  
+  // Ensure login screen is visible and other elements are hidden on initial load
   if (loginScreen) loginScreen.style.display = "block";
+  if (functionToolbar) functionToolbar.style.display = "none";
+  if (map) map.style.display = "none";
+  if (summary) summary.style.display = "none";
+  
+  console.log('window.onload: Initial UI state set - login screen visible, toolbar hidden');
   
   // Initialize users
   Promise.all([
