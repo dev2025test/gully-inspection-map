@@ -1544,6 +1544,10 @@ function login(isAutoLogin = false) {
   console.log('login: Starting login process...', new Date().toISOString());
   console.log('login: isAutoLogin =', isAutoLogin);
   
+  // Set flag to indicate user has explicitly initiated login
+  userExplicitlyLoggedIn = true;
+  console.log('login: Set userExplicitlyLoggedIn to true');
+  
   try {
     // Check if required elements exist
     const emailElement = document.getElementById("email");
@@ -1686,6 +1690,11 @@ function logout() {
   if (auth.currentUser && auth.currentUser.email) {
     logUserEvent('logout', auth.currentUser.email);
   }
+  
+  // Reset the explicit login flag
+  userExplicitlyLoggedIn = false;
+  console.log('logout: Reset userExplicitlyLoggedIn to false');
+  
   auth.signOut().then(() => {
     window.location.reload();
   }).catch(error => {
@@ -2699,11 +2708,16 @@ async function viewGullyHistory(gullyId) {
   }
 }
 
+// Flag to track if user has explicitly initiated login during this session
+let userExplicitlyLoggedIn = false;
+
 // Initialize auth state listener
 auth.onAuthStateChanged(user => {
   console.log('Auth state changed, user:', user); 
-  if (user) {
-    console.log('Auth state changed: User authenticated, getting user data...');
+  console.log('Auth state changed: userExplicitlyLoggedIn flag:', userExplicitlyLoggedIn);
+  
+  if (user && userExplicitlyLoggedIn) {
+    console.log('Auth state changed: User authenticated and explicitly logged in, getting user data...');
     db.ref('users/' + user.uid).once('value').then(snapshot => {
       const userData = snapshot.val();
       if (!userData) {
@@ -2737,6 +2751,15 @@ auth.onAuthStateChanged(user => {
       if (map) map.style.display = 'none';
       if (functionToolbar) functionToolbar.style.display = 'none';
       if (summary) summary.style.display = 'none';
+    });
+  } else if (user && !userExplicitlyLoggedIn) {
+    console.log('Auth state changed: User authenticated but not explicitly logged in, signing out...');
+    // User has an existing session but hasn't explicitly logged in during this visit
+    // Force logout to require explicit login
+    auth.signOut().then(() => {
+      console.log('Auth state changed: Forced logout successful');
+    }).catch(error => {
+      console.error('Auth state changed: Error during forced logout:', error);
     });
   } else {
     console.log('Auth state changed: No user logged in, showing login screen');
@@ -3530,6 +3553,10 @@ window.onload = () => {
   const functionToolbar = document.getElementById("functionToolbar");
   const map = document.getElementById("map");
   const summary = document.getElementById("summary");
+  
+  // Reset explicit login flag on page load
+  userExplicitlyLoggedIn = false;
+  console.log('window.onload: Reset userExplicitlyLoggedIn to false');
   
   // Ensure login screen is visible and other elements are hidden on initial load
   if (loginScreen) loginScreen.style.display = "block";
