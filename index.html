@@ -373,6 +373,14 @@
       display: flex;
       flex-direction: column;
       padding: 0;
+      /* Ensure ribbon stays together during zoom */
+      min-width: 0;
+      max-width: 100vw;
+      box-sizing: border-box;
+      /* Prevent layout breaking during zoom */
+      transform-origin: bottom left;
+      /* Ensure proper scaling */
+      will-change: transform;
     }
     .bottom-toolbar.minimized {
       transform: translateY(calc(100% - 40px));
@@ -417,6 +425,13 @@
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       background: none;
+      /* Ensure content stays together during zoom */
+      min-width: 0;
+      flex-wrap: nowrap;
+      box-sizing: border-box;
+      /* Prevent horizontal scrolling issues during zoom */
+      scrollbar-width: thin;
+      scrollbar-color: #ccc transparent;
     }
     .button-group {
       display: flex;
@@ -426,6 +441,12 @@
       border: none;
       align-items: center;
       margin: 0;
+      /* Ensure button groups stay together during zoom */
+      flex-shrink: 0;
+      min-width: 0;
+      box-sizing: border-box;
+      /* Prevent wrapping during zoom */
+      flex-wrap: nowrap;
     }
     .button-group.admin-only {
       margin-right: 0;
@@ -441,6 +462,15 @@
       align-items: center;
       gap: 5px;
       transition: all 0.2s ease;
+      /* Ensure buttons maintain integrity during zoom */
+      flex-shrink: 0;
+      min-width: 0;
+      box-sizing: border-box;
+      /* Prevent text wrapping and maintain button size */
+      font-size: 14px;
+      line-height: 1.2;
+      /* Ensure proper scaling */
+      transform-origin: center;
     }
     .toolbar-button:hover {
       background: #f0f0f0;
@@ -449,6 +479,101 @@
     .toolbar-button:active {
       background: #e8e8e8;
       transform: translateY(1px);
+    }
+    
+    /* Ensure ribbon integrity during browser zoom */
+    @media screen and (max-resolution: 1dppx) {
+      .bottom-toolbar {
+        /* Force hardware acceleration for better zoom performance */
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+        /* Ensure proper scaling */
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
+    }
+    
+    /* Prevent ribbon from breaking apart during zoom */
+    .bottom-toolbar {
+      /* Ensure the ribbon container maintains its structure */
+      contain: layout style paint;
+      /* Prevent any layout shifts during zoom */
+      isolation: isolate;
+    }
+    
+    /* Ensure all ribbon elements scale together */
+    .bottom-toolbar * {
+      /* Prevent individual elements from breaking layout */
+      box-sizing: border-box;
+      /* Ensure proper scaling inheritance */
+      transform-origin: inherit;
+    }
+    
+    /* Handle high DPI displays and zoom levels */
+    @media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi) {
+      .toolbar-button {
+        /* Ensure crisp rendering during zoom */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+    }
+    
+    /* Ensure ribbon stays together at different zoom levels */
+    @media screen and (max-width: 1200px) {
+      .toolbar-content {
+        justify-content: flex-start;
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      
+      .button-group {
+        gap: 6px;
+      }
+      
+      .toolbar-button {
+        padding: 6px 12px;
+        font-size: 13px;
+      }
+    }
+    
+    @media screen and (max-width: 768px) {
+      .toolbar-content {
+        justify-content: flex-start;
+        padding-left: 5px;
+        padding-right: 5px;
+      }
+      
+      .button-group {
+        gap: 4px;
+      }
+      
+      .toolbar-button {
+        padding: 5px 10px;
+        font-size: 12px;
+      }
+      
+      .toolbar-button span {
+        display: none;
+      }
+      
+      .toolbar-button i {
+        font-size: 16px;
+      }
+    }
+    
+    /* Zoom adjustment class for smooth transitions */
+    .bottom-toolbar.zoom-adjusting {
+      transition: none;
+      /* Force hardware acceleration during zoom adjustments */
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+    }
+    
+    /* Ensure ribbon buttons maintain proper spacing during zoom */
+    .bottom-toolbar.zoom-adjusting .toolbar-button {
+      transition: none;
+      /* Prevent layout shifts during zoom */
+      transform: translateZ(0);
     }
     .summary-popup {
         position: fixed;
@@ -3791,6 +3916,48 @@ window.addEventListener('load', function() {
     if (savedEmail) {
       document.getElementById('email').value = savedEmail;
       document.getElementById('rememberMe').checked = true;
+    }
+  }
+});
+
+// Handle browser zoom to ensure ribbon integrity
+window.addEventListener('resize', function() {
+  // Debounce the resize event to avoid excessive calls
+  clearTimeout(window.zoomTimeout);
+  window.zoomTimeout = setTimeout(function() {
+    const toolbar = document.getElementById('functionToolbar');
+    if (toolbar) {
+      // Force reflow to ensure proper layout after zoom
+      toolbar.style.display = 'none';
+      toolbar.offsetHeight; // Force reflow
+      toolbar.style.display = '';
+      
+      // Ensure toolbar content maintains proper layout
+      const toolbarContent = toolbar.querySelector('.toolbar-content');
+      if (toolbarContent) {
+        toolbarContent.style.overflowX = 'auto';
+        // Reset any transform that might have been applied
+        toolbarContent.style.transform = 'none';
+      }
+    }
+  }, 100);
+});
+
+// Handle zoom events specifically
+let lastZoomLevel = window.devicePixelRatio;
+window.addEventListener('resize', function() {
+  const currentZoom = window.devicePixelRatio;
+  if (Math.abs(currentZoom - lastZoomLevel) > 0.1) {
+    lastZoomLevel = currentZoom;
+    
+    // Force ribbon to maintain integrity during zoom
+    const toolbar = document.getElementById('functionToolbar');
+    if (toolbar) {
+      // Add a temporary class to force re-render
+      toolbar.classList.add('zoom-adjusting');
+      setTimeout(() => {
+        toolbar.classList.remove('zoom-adjusting');
+      }, 50);
     }
   }
 });
