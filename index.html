@@ -1353,6 +1353,7 @@
   <button onclick="showToolbar()" style="margin: 5px;">Show Toolbar</button>
   <button onclick="hideToolbar()" style="margin: 5px;">Hide Toolbar</button>
   <button onclick="checkToolbarState()" style="margin: 5px;">Check State</button>
+  <button onclick="fixButtonVisibility()" style="margin: 5px;">Fix Buttons</button>
 </div>
 
 <!-- LOGIN PAGE HEADER -->
@@ -1984,8 +1985,17 @@ function setupUIForRole(role, adminPrivileges = null) {
   
   // Show/hide admin-only elements
   document.querySelectorAll('.admin-only').forEach(element => {
-    element.style.display = isAdmin ? 'block' : 'none';
-    console.log('setupUIForRole: Set admin-only element display to:', isAdmin ? 'block' : 'none');
+    // Check if the element is a flex container (like button groups)
+    const computedStyle = window.getComputedStyle(element);
+    const isFlexContainer = computedStyle.display === 'flex' || element.classList.contains('button-group');
+    
+    if (isFlexContainer) {
+      element.style.display = isAdmin ? 'flex' : 'none';
+      console.log('setupUIForRole: Set admin-only flex element display to:', isAdmin ? 'flex' : 'none');
+    } else {
+      element.style.display = isAdmin ? 'block' : 'none';
+      console.log('setupUIForRole: Set admin-only block element display to:', isAdmin ? 'block' : 'none');
+    }
   });
   
   // Toolbar button group (non-admin)
@@ -2277,6 +2287,11 @@ function handleLoginSuccess(userData) {
     }
     
     console.log('Toolbar should now be visible');
+    
+    // Fix button visibility after showing toolbar
+    setTimeout(() => {
+      fixButtonVisibility();
+    }, 100);
   }
   
   // Make map container visible immediately
@@ -6859,8 +6874,56 @@ if (forgotLink) {
         console.log('Offset height:', functionToolbar.offsetHeight);
         console.log('Client height:', functionToolbar.clientHeight);
         console.log('Scroll height:', functionToolbar.scrollHeight);
+        
+        // Check button groups
+        const buttonGroups = functionToolbar.querySelectorAll('.button-group');
+        console.log('Button groups found:', buttonGroups.length);
+        buttonGroups.forEach((group, index) => {
+          console.log(`Button Group ${index + 1}:`);
+          console.log('  - Display:', window.getComputedStyle(group).display);
+          console.log('  - Visibility:', window.getComputedStyle(group).visibility);
+          console.log('  - Has admin-only class:', group.classList.contains('admin-only'));
+          console.log('  - Buttons in group:', group.querySelectorAll('.toolbar-button').length);
+        });
+        
+        // Check individual buttons
+        const buttons = functionToolbar.querySelectorAll('.toolbar-button');
+        console.log('Total buttons found:', buttons.length);
+        buttons.forEach((button, index) => {
+          console.log(`Button ${index + 1}: ${button.textContent.trim()}`);
+          console.log('  - Display:', window.getComputedStyle(button).display);
+          console.log('  - Visibility:', window.getComputedStyle(button).visibility);
+        });
       } else {
         console.log('Toolbar element not found');
+      }
+    };
+    
+    // Add a global function to fix button visibility
+    window.fixButtonVisibility = function() {
+      const functionToolbar = document.getElementById('functionToolbar');
+      if (functionToolbar) {
+        console.log('=== Fixing Button Visibility ===');
+        
+        // Fix button groups
+        const buttonGroups = functionToolbar.querySelectorAll('.button-group');
+        buttonGroups.forEach((group, index) => {
+          group.style.display = 'flex';
+          group.style.visibility = 'visible';
+          group.style.opacity = '1';
+          console.log(`Fixed button group ${index + 1}`);
+        });
+        
+        // Fix individual buttons
+        const buttons = functionToolbar.querySelectorAll('.toolbar-button');
+        buttons.forEach((button, index) => {
+          button.style.display = 'inline-flex';
+          button.style.visibility = 'visible';
+          button.style.opacity = '1';
+          console.log(`Fixed button ${index + 1}: ${button.textContent.trim()}`);
+        });
+        
+        console.log('Button visibility fix completed');
       }
     };
 
