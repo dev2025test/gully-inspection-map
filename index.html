@@ -496,7 +496,7 @@
     /* Prevent ribbon from breaking apart during zoom */
     .bottom-toolbar {
       /* Ensure the ribbon container maintains its structure */
-      contain: layout style paint;
+      contain: layout style;
       /* Prevent any layout shifts during zoom */
       isolation: isolate;
     }
@@ -507,6 +507,27 @@
       box-sizing: border-box;
       /* Ensure proper scaling inheritance */
       transform-origin: inherit;
+    }
+    
+    /* Ensure buttons are always visible */
+    .toolbar-button {
+      display: inline-flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    
+    /* Ensure button groups are visible */
+    .button-group {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    
+    /* Ensure toolbar content is visible */
+    .toolbar-content {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
     
     /* Handle high DPI displays and zoom levels */
@@ -2090,7 +2111,35 @@ function handleLoginSuccess(userData) {
   
   // Show toolbar
   const functionToolbar = document.getElementById('functionToolbar');
-  if (functionToolbar) functionToolbar.style.display = 'block';
+  if (functionToolbar) {
+    functionToolbar.style.display = 'block';
+    functionToolbar.style.visibility = 'visible';
+    functionToolbar.style.opacity = '1';
+    
+    // Ensure all buttons are visible
+    const buttons = functionToolbar.querySelectorAll('.toolbar-button');
+    buttons.forEach(button => {
+      button.style.display = 'inline-flex';
+      button.style.visibility = 'visible';
+      button.style.opacity = '1';
+    });
+    
+    // Ensure button groups are visible
+    const buttonGroups = functionToolbar.querySelectorAll('.button-group');
+    buttonGroups.forEach(group => {
+      group.style.display = 'flex';
+      group.style.visibility = 'visible';
+      group.style.opacity = '1';
+    });
+    
+    // Ensure toolbar content is visible
+    const toolbarContent = functionToolbar.querySelector('.toolbar-content');
+    if (toolbarContent) {
+      toolbarContent.style.display = 'flex';
+      toolbarContent.style.visibility = 'visible';
+      toolbarContent.style.opacity = '1';
+    }
+  }
   
   // Make map container visible immediately
   const mapDiv = document.getElementById('map');
@@ -2101,11 +2150,14 @@ function handleLoginSuccess(userData) {
   void mapDiv.offsetWidth; // Accessing offsetWidth forces reflow
   console.log('handleLoginSuccess: Forced map div reflow.');
 
-  // Update user info
-  updateUserInfo(userData);
-  console.log('handleLoginSuccess: User data:', userData);
-  console.log('handleLoginSuccess: Setting up UI for role:', userData.role);
-  setupUIForRole(userData.role, userData.adminPrivileges);
+      // Update user info
+    updateUserInfo(userData);
+    console.log('handleLoginSuccess: User data:', userData);
+    console.log('handleLoginSuccess: Setting up UI for role:', userData.role);
+    setupUIForRole(userData.role, userData.adminPrivileges);
+    
+    // Ensure toolbar is properly displayed
+    ensureToolbarVisibility();
   
   console.log('handleLoginSuccess: Reached point before setTimeout.'); // New diagnostic log
 
@@ -6518,6 +6570,54 @@ if (forgotLink) {
     }
 
     // Duplicate login function removed - using main login function instead
+
+    // Function to ensure toolbar is properly displayed
+    function ensureToolbarVisibility() {
+      const functionToolbar = document.getElementById('functionToolbar');
+      if (functionToolbar) {
+        // Ensure toolbar is visible
+        functionToolbar.style.display = 'block';
+        functionToolbar.style.visibility = 'visible';
+        functionToolbar.style.opacity = '1';
+        
+        // Ensure all buttons are visible
+        const buttons = functionToolbar.querySelectorAll('.toolbar-button');
+        buttons.forEach(button => {
+          button.style.display = 'inline-flex';
+          button.style.visibility = 'visible';
+          button.style.opacity = '1';
+        });
+        
+        // Ensure button groups are visible
+        const buttonGroups = functionToolbar.querySelectorAll('.button-group');
+        buttonGroups.forEach(group => {
+          group.style.display = 'flex';
+          group.style.visibility = 'visible';
+          group.style.opacity = '1';
+        });
+        
+        // Ensure toolbar content is visible
+        const toolbarContent = functionToolbar.querySelector('.toolbar-content');
+        if (toolbarContent) {
+          toolbarContent.style.display = 'flex';
+          toolbarContent.style.visibility = 'visible';
+          toolbarContent.style.opacity = '1';
+        }
+        
+        console.log('Toolbar visibility ensured - buttons should be visible');
+      }
+    }
+    
+    // Call this function after login and also on page load if user is already logged in
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if user is already logged in
+      auth.onAuthStateChanged(function(user) {
+        if (user) {
+          // User is logged in, ensure toolbar is visible
+          setTimeout(ensureToolbarVisibility, 100);
+        }
+      });
+    });
 
 </script>
 </body>
