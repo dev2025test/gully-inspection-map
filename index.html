@@ -1321,6 +1321,11 @@
       display: flex !important;
       visibility: visible !important;
       opacity: 1 !important;
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      z-index: 1001 !important;
     }
     
     /* Ensure toolbar content is visible when toolbar is shown */
@@ -1354,6 +1359,7 @@
   <button onclick="hideToolbar()" style="margin: 5px;">Hide Toolbar</button>
   <button onclick="checkToolbarState()" style="margin: 5px;">Check State</button>
   <button onclick="fixButtonVisibility()" style="margin: 5px;">Fix Buttons</button>
+  <button onclick="resetToolbar()" style="margin: 5px;">Reset Toolbar</button>
 </div>
 
 <!-- LOGIN PAGE HEADER -->
@@ -2249,11 +2255,19 @@ function handleLoginSuccess(userData) {
   if (functionToolbar) {
     console.log('Showing toolbar...');
     
-    // Add the show class to make toolbar visible
+    // Remove any conflicting classes or styles
+    functionToolbar.classList.remove('minimized');
     functionToolbar.classList.add('show');
     
-    // Force the display to be flex
+    // Force all display properties
     functionToolbar.style.setProperty('display', 'flex', 'important');
+    functionToolbar.style.setProperty('visibility', 'visible', 'important');
+    functionToolbar.style.setProperty('opacity', '1', 'important');
+    functionToolbar.style.setProperty('position', 'fixed', 'important');
+    functionToolbar.style.setProperty('bottom', '0', 'important');
+    functionToolbar.style.setProperty('left', '0', 'important');
+    functionToolbar.style.setProperty('right', '0', 'important');
+    functionToolbar.style.setProperty('z-index', '1001', 'important');
     
     // Ensure all buttons are visible
     const buttons = functionToolbar.querySelectorAll('.toolbar-button');
@@ -6835,14 +6849,27 @@ if (forgotLink) {
     window.showToolbar = function() {
       const functionToolbar = document.getElementById('functionToolbar');
       if (functionToolbar) {
+        // Remove any conflicting classes or styles
+        functionToolbar.classList.remove('minimized');
         functionToolbar.classList.add('show');
+        
+        // Force all display properties
         functionToolbar.style.setProperty('display', 'flex', 'important');
         functionToolbar.style.setProperty('visibility', 'visible', 'important');
         functionToolbar.style.setProperty('opacity', '1', 'important');
+        functionToolbar.style.setProperty('position', 'fixed', 'important');
+        functionToolbar.style.setProperty('bottom', '0', 'important');
+        functionToolbar.style.setProperty('left', '0', 'important');
+        functionToolbar.style.setProperty('right', '0', 'important');
+        functionToolbar.style.setProperty('z-index', '1001', 'important');
+        
         console.log('Toolbar manually shown');
         console.log('Toolbar display style:', functionToolbar.style.display);
         console.log('Toolbar visibility style:', functionToolbar.style.visibility);
         console.log('Toolbar computed display:', window.getComputedStyle(functionToolbar).display);
+        
+        // Force a reflow
+        functionToolbar.offsetHeight;
       }
     };
     
@@ -6924,6 +6951,36 @@ if (forgotLink) {
         });
         
         console.log('Button visibility fix completed');
+      }
+    };
+    
+    // Add a global function to completely reset toolbar
+    window.resetToolbar = function() {
+      const functionToolbar = document.getElementById('functionToolbar');
+      if (functionToolbar) {
+        console.log('=== Resetting Toolbar ===');
+        
+        // Clear all inline styles
+        functionToolbar.removeAttribute('style');
+        
+        // Remove all classes
+        functionToolbar.className = 'bottom-toolbar bg-light border-top';
+        
+        // Re-add the show class and force display
+        functionToolbar.classList.add('show');
+        functionToolbar.style.setProperty('display', 'flex', 'important');
+        functionToolbar.style.setProperty('visibility', 'visible', 'important');
+        functionToolbar.style.setProperty('opacity', '1', 'important');
+        functionToolbar.style.setProperty('position', 'fixed', 'important');
+        functionToolbar.style.setProperty('bottom', '0', 'important');
+        functionToolbar.style.setProperty('left', '0', 'important');
+        functionToolbar.style.setProperty('right', '0', 'important');
+        functionToolbar.style.setProperty('z-index', '1001', 'important');
+        
+        // Fix all buttons
+        fixButtonVisibility();
+        
+        console.log('Toolbar reset completed');
       }
     };
 
