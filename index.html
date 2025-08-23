@@ -419,9 +419,9 @@
       display: flex;
       flex-direction: row;
       align-items: center;
-      justify-content: space-evenly;
+      justify-content: flex-start;
       gap: 10px;
-      padding: 10px 0 10px 0;
+      padding: 10px 15px;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       background: none;
@@ -432,12 +432,15 @@
       /* Prevent horizontal scrolling issues during zoom */
       scrollbar-width: thin;
       scrollbar-color: #ccc transparent;
+      /* Ensure proper spacing between button groups */
+      padding-left: 20px;
+      padding-right: 20px;
     }
     .button-group {
       display: flex;
       flex-direction: row;
       gap: 8px;
-      padding: 0;
+      padding: 0 10px;
       border: none;
       align-items: center;
       margin: 0;
@@ -447,6 +450,12 @@
       box-sizing: border-box;
       /* Prevent wrapping during zoom */
       flex-wrap: nowrap;
+      /* Add visual separation between groups */
+      border-right: 1px solid #e0e0e0;
+    }
+    
+    .button-group:last-child {
+      border-right: none;
     }
     .button-group.admin-only {
       margin-right: 0;
@@ -549,12 +558,31 @@
       
       .button-group {
         gap: 6px;
+        padding: 0 8px;
       }
       
       .toolbar-button {
         padding: 6px 12px;
         font-size: 13px;
       }
+    }
+    
+    /* Ensure toolbar has proper height and all buttons are visible */
+    .bottom-toolbar {
+      min-height: 80px;
+    }
+    
+    .toolbar-content {
+      min-height: 60px;
+      align-items: center;
+    }
+    
+    /* Ensure all buttons are properly sized and visible */
+    .toolbar-button {
+      min-height: 36px;
+      min-width: 80px;
+      white-space: nowrap;
+      overflow: visible;
     }
     
     @media screen and (max-width: 768px) {
@@ -1349,14 +1377,14 @@
     <span id="toolbarToggleIcon">▼</span>
   </div>
   <div class="toolbar-content d-flex flex-nowrap gap-2 p-2 w-100">
-    <div class="button-group admin-only d-flex flex-nowrap gap-2 w-100">
+    <div class="button-group admin-only d-flex flex-nowrap gap-2" style="flex-shrink: 0;">
       <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center" onclick="showUserManagement()" title="Manage users"><i class="bi bi-person"></i> <span>Users</span></button>
       <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center" onclick="logout()" title="Log out of your account"><i class="bi bi-box-arrow-right"></i> <span>Logout</span></button>
       <button class="btn btn-warning toolbar-button d-inline-flex align-items-center" onclick="enableEditMode()" title="Enable edit mode"><i class="bi bi-pencil"></i> <span>Edit</span></button>
       <button class="btn btn-danger toolbar-button d-inline-flex align-items-center" onclick="enableDeleteMode()" title="Enable delete mode"><i class="bi bi-trash"></i> <span>Delete</span></button>
       <button class="btn btn-success toolbar-button d-inline-flex align-items-center" onclick="console.log('Add New button clicked'); enableAddMode()" title="Add a new item"><i class="bi bi-plus"></i> <span>Add New</span></button>
     </div>
-    <div class="button-group d-flex flex-nowrap gap-2 w-100">
+    <div class="button-group d-flex flex-nowrap gap-2" style="flex-shrink: 0;">
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="printMap()" title="Print the current map view"><i class="bi bi-printer"></i> <span>Print</span></button>
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="resetMap()" title="Reset the map to its default state"><i class="bi bi-arrow-repeat"></i> <span>Reset</span></button>
       <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSummaryPopup()" title="Show summary statistics"><i class="bi bi-bar-chart"></i> <span>Summary</span></button>
@@ -6586,6 +6614,8 @@ if (forgotLink) {
           button.style.display = 'inline-flex';
           button.style.visibility = 'visible';
           button.style.opacity = '1';
+          button.style.minHeight = '36px';
+          button.style.minWidth = '80px';
         });
         
         // Ensure button groups are visible
@@ -6594,6 +6624,7 @@ if (forgotLink) {
           group.style.display = 'flex';
           group.style.visibility = 'visible';
           group.style.opacity = '1';
+          group.style.flexShrink = '0';
         });
         
         // Ensure toolbar content is visible
@@ -6602,9 +6633,16 @@ if (forgotLink) {
           toolbarContent.style.display = 'flex';
           toolbarContent.style.visibility = 'visible';
           toolbarContent.style.opacity = '1';
+          toolbarContent.style.overflowX = 'auto';
+          toolbarContent.style.justifyContent = 'flex-start';
         }
         
-        console.log('Toolbar visibility ensured - buttons should be visible');
+        // Force a reflow to ensure proper layout
+        functionToolbar.offsetHeight;
+        
+        console.log('Toolbar visibility ensured - all buttons should be visible');
+        console.log('Total buttons found:', buttons.length);
+        console.log('Total button groups found:', buttonGroups.length);
       }
     }
     
@@ -6618,6 +6656,37 @@ if (forgotLink) {
         }
       });
     });
+    
+    // Function to check and log button status
+    function checkButtonStatus() {
+      const functionToolbar = document.getElementById('functionToolbar');
+      if (functionToolbar) {
+        const buttons = functionToolbar.querySelectorAll('.toolbar-button');
+        const buttonGroups = functionToolbar.querySelectorAll('.button-group');
+        
+        console.log('=== Button Status Check ===');
+        console.log('Toolbar visible:', functionToolbar.style.display !== 'none');
+        console.log('Total buttons:', buttons.length);
+        console.log('Total button groups:', buttonGroups.length);
+        
+        buttons.forEach((button, index) => {
+          const isVisible = button.style.display !== 'none' && 
+                           button.style.visibility !== 'hidden' && 
+                           button.style.opacity !== '0';
+          console.log(`Button ${index + 1}: ${button.textContent.trim()} - Visible: ${isVisible}`);
+        });
+        
+        buttonGroups.forEach((group, index) => {
+          const isVisible = group.style.display !== 'none' && 
+                           group.style.visibility !== 'hidden' && 
+                           group.style.opacity !== '0';
+          console.log(`Button Group ${index + 1} - Visible: ${isVisible}`);
+        });
+      }
+    }
+    
+    // Call button status check after toolbar visibility is ensured
+    setTimeout(checkButtonStatus, 200);
 
 </script>
 </body>
