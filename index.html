@@ -1309,11 +1309,39 @@
     /* Ensure toolbar is hidden by default */
     .bottom-toolbar {
       display: none !important;
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      z-index: 1001 !important;
     }
     
     /* Show toolbar only when explicitly enabled */
     .bottom-toolbar.show {
       display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    
+    /* Ensure toolbar content is visible when toolbar is shown */
+    .bottom-toolbar.show .toolbar-content {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    
+    /* Ensure buttons are visible when toolbar is shown */
+    .bottom-toolbar.show .toolbar-button {
+      display: inline-flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    
+    /* Ensure button groups are visible when toolbar is shown */
+    .bottom-toolbar.show .button-group {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
   </style>
 </head>
@@ -1380,7 +1408,7 @@
 
 <div class="toggle-layers" onclick="toggleLayerControl()">🗺️ Show Layers</div>
 
-<div class="bottom-toolbar bg-light border-top" id="functionToolbar" style="display: none; z-index: 1000;">
+<div class="bottom-toolbar bg-light border-top" id="functionToolbar" style="z-index: 1000;">
   <div class="toolbar-header d-flex align-items-center justify-content-between p-2" onclick="toggleToolbar()">
     <h3 class="m-0 d-flex align-items-center gap-2">
       <span>Gully Inspection System</span>
@@ -2201,12 +2229,17 @@ function handleLoginSuccess(userData) {
   // Show toolbar
   const functionToolbar = document.getElementById('functionToolbar');
   if (functionToolbar) {
-    // Remove any inline display styles and add the show class
-    functionToolbar.style.removeProperty('display');
+    console.log('Showing toolbar...');
+    
+    // Add the show class to make toolbar visible
     functionToolbar.classList.add('show');
+    
+    // Force the display to be flex
+    functionToolbar.style.setProperty('display', 'flex', 'important');
     
     // Ensure all buttons are visible
     const buttons = functionToolbar.querySelectorAll('.toolbar-button');
+    console.log('Found buttons:', buttons.length);
     buttons.forEach(button => {
       button.style.display = 'inline-flex';
       button.style.visibility = 'visible';
@@ -2217,6 +2250,7 @@ function handleLoginSuccess(userData) {
     
     // Ensure button groups are visible
     const buttonGroups = functionToolbar.querySelectorAll('.button-group');
+    console.log('Found button groups:', buttonGroups.length);
     buttonGroups.forEach(group => {
       group.style.display = 'flex';
       group.style.visibility = 'visible';
@@ -2233,6 +2267,8 @@ function handleLoginSuccess(userData) {
       toolbarContent.style.overflowX = 'auto';
       toolbarContent.style.justifyContent = 'flex-start';
     }
+    
+    console.log('Toolbar should now be visible');
   }
   
   // Make map container visible immediately
@@ -6669,12 +6705,17 @@ if (forgotLink) {
     function ensureToolbarVisibility() {
       const functionToolbar = document.getElementById('functionToolbar');
       if (functionToolbar) {
-        // Remove any inline display styles and add the show class
-        functionToolbar.style.removeProperty('display');
+        console.log('Ensuring toolbar visibility...');
+        
+        // Add the show class to make toolbar visible
         functionToolbar.classList.add('show');
+        
+        // Force the display to be flex
+        functionToolbar.style.setProperty('display', 'flex', 'important');
         
         // Ensure all buttons are visible
         const buttons = functionToolbar.querySelectorAll('.toolbar-button');
+        console.log('Found buttons:', buttons.length);
         buttons.forEach(button => {
           button.style.display = 'inline-flex';
           button.style.visibility = 'visible';
@@ -6685,6 +6726,7 @@ if (forgotLink) {
         
         // Ensure button groups are visible
         const buttonGroups = functionToolbar.querySelectorAll('.button-group');
+        console.log('Found button groups:', buttonGroups.length);
         buttonGroups.forEach(group => {
           group.style.display = 'flex';
           group.style.visibility = 'visible';
@@ -6765,6 +6807,26 @@ if (forgotLink) {
     
     // Call button status check after toolbar visibility is ensured
     setTimeout(checkButtonStatus, 200);
+    
+    // Add a global function to manually show toolbar for debugging
+    window.showToolbar = function() {
+      const functionToolbar = document.getElementById('functionToolbar');
+      if (functionToolbar) {
+        functionToolbar.classList.add('show');
+        functionToolbar.style.setProperty('display', 'flex', 'important');
+        console.log('Toolbar manually shown');
+      }
+    };
+    
+    // Add a global function to manually hide toolbar for debugging
+    window.hideToolbar = function() {
+      const functionToolbar = document.getElementById('functionToolbar');
+      if (functionToolbar) {
+        functionToolbar.classList.remove('show');
+        functionToolbar.style.setProperty('display', 'none', 'important');
+        console.log('Toolbar manually hidden');
+      }
+    };
 
 </script>
 </body>
