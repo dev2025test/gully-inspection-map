@@ -1300,6 +1300,21 @@
     #loginScreen.login-background ~ .toggle-layers {
       display: none !important;
     }
+    
+    /* Hide toolbar when login screen is visible */
+    #loginScreen.login-background ~ .bottom-toolbar {
+      display: none !important;
+    }
+    
+    /* Ensure toolbar is hidden by default */
+    .bottom-toolbar {
+      display: none !important;
+    }
+    
+    /* Show toolbar only when explicitly enabled */
+    .bottom-toolbar.show {
+      display: flex !important;
+    }
   </style>
 </head>
 <body>
@@ -1365,7 +1380,7 @@
 
 <div class="toggle-layers" onclick="toggleLayerControl()">🗺️ Show Layers</div>
 
-<div class="bottom-toolbar bg-light border-top" id="functionToolbar" style="display: none;">
+<div class="bottom-toolbar bg-light border-top" id="functionToolbar" style="display: none; z-index: 1000;">
   <div class="toolbar-header d-flex align-items-center justify-content-between p-2" onclick="toggleToolbar()">
     <h3 class="m-0 d-flex align-items-center gap-2">
       <span>Gully Inspection System</span>
@@ -1377,28 +1392,67 @@
     <span id="toolbarToggleIcon">▼</span>
   </div>
   <div class="toolbar-content d-flex flex-nowrap gap-2 p-2 w-100">
+    <!-- Admin Buttons Group -->
     <div class="button-group admin-only d-flex flex-nowrap gap-2" style="flex-shrink: 0;">
-      <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center" onclick="showUserManagement()" title="Manage users"><i class="bi bi-person"></i> <span>Users</span></button>
-      <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center" onclick="logout()" title="Log out of your account"><i class="bi bi-box-arrow-right"></i> <span>Logout</span></button>
-      <button class="btn btn-warning toolbar-button d-inline-flex align-items-center" onclick="enableEditMode()" title="Enable edit mode"><i class="bi bi-pencil"></i> <span>Edit</span></button>
-      <button class="btn btn-danger toolbar-button d-inline-flex align-items-center" onclick="enableDeleteMode()" title="Enable delete mode"><i class="bi bi-trash"></i> <span>Delete</span></button>
-      <button class="btn btn-success toolbar-button d-inline-flex align-items-center" onclick="console.log('Add New button clicked'); enableAddMode()" title="Add a new item"><i class="bi bi-plus"></i> <span>Add New</span></button>
+      <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center" onclick="showUserManagement()" title="Manage users">
+        <i class="bi bi-person"></i> <span>Users</span>
+      </button>
+      <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center" onclick="logout()" title="Log out of your account">
+        <i class="bi bi-box-arrow-right"></i> <span>Logout</span>
+      </button>
+      <button class="btn btn-warning toolbar-button d-inline-flex align-items-center" onclick="enableEditMode()" title="Enable edit mode">
+        <i class="bi bi-pencil"></i> <span>Edit</span>
+      </button>
+      <button class="btn btn-danger toolbar-button d-inline-flex align-items-center" onclick="enableDeleteMode()" title="Enable delete mode">
+        <i class="bi bi-trash"></i> <span>Delete</span>
+      </button>
+      <button class="btn btn-success toolbar-button d-inline-flex align-items-center" onclick="enableAddMode()" title="Add a new item">
+        <i class="bi bi-plus"></i> <span>Add New</span>
+      </button>
     </div>
+    
+    <!-- Function Buttons Group -->
     <div class="button-group d-flex flex-nowrap gap-2" style="flex-shrink: 0;">
-      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="printMap()" title="Print the current map view"><i class="bi bi-printer"></i> <span>Print</span></button>
-      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="resetMap()" title="Reset the map to its default state"><i class="bi bi-arrow-repeat"></i> <span>Reset</span></button>
-      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSummaryPopup()" title="Show summary statistics"><i class="bi bi-bar-chart"></i> <span>Summary</span></button>
-      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="showLayerControl()" title="Show or hide map layers"><i class="bi bi-layers"></i> <span>Layers</span></button>
-      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSearchPopup()" title="Search by street name, estate, gully ID, or area"><i class="bi bi-search"></i> <span>Search</span></button>
-      <label for="importFile" class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" title="Import data from a file"><i class="bi bi-upload"></i> <span>Import</span></label>
+      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="printMap()" title="Print the current map view">
+        <i class="bi bi-printer"></i> <span>Print</span>
+      </button>
+      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="resetMap()" title="Reset the map to its default state">
+        <i class="bi bi-arrow-repeat"></i> <span>Reset</span>
+      </button>
+      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSummaryPopup()" title="Show summary statistics">
+        <i class="bi bi-bar-chart"></i> <span>Summary</span>
+      </button>
+      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="showLayerControl()" title="Show or hide map layers">
+        <i class="bi bi-layers"></i> <span>Layers</span>
+      </button>
+      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSearchPopup()" title="Search by street name, estate, gully ID, or area">
+        <i class="bi bi-search"></i> <span>Search</span>
+      </button>
+      <label for="importFile" class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" title="Import data from a file">
+        <i class="bi bi-upload"></i> <span>Import</span>
+      </label>
       <input type="file" id="importFile" onchange="handleImportFile(event)" style="display: none;">
-      <button class="btn btn-outline-success toolbar-button d-inline-flex align-items-center" onclick="exportData()" title="Export data as CSV file"><i class="bi bi-download"></i> <span>Export CSV</span></button>
-      <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" onclick="saveGullyData()" title="Backup all gully data"><i class="bi bi-save"></i> <span>Backup</span></button>
-      <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" onclick="loadFromBackup()" title="Load data from a backup file"><i class="bi bi-folder"></i> <i class="bi bi-arrow-up"></i> <span>Load Backup</span></button>
-      <button class="btn btn-outline-dark toolbar-button d-inline-flex align-items-center" onclick="exportAuditHistory()" title="Export audit history of all modifications"><i class="bi bi-journal-text"></i> <span>Audit History</span></button>
-      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" id="toggleMapLayerBtn" onclick="toggleMapLayer()" title="Switch between Map and Satellite"><i class="bi bi-globe"></i> Satellite</button>
-      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" id="toggleOuterBoundaryBtn" onclick="toggleOuterBoundary()" title="Show/Hide Cork City Council outer boundary"><i class="bi bi-geo"></i> <span>Outer Boundary</span></button>
-      <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" id="toggleInnerBoundariesBtn" onclick="toggleInnerBoundaries()" title="Show/Hide Local Electoral Areas (inner boundaries)"><i class="bi bi-map"></i> <span>Electoral Areas</span></button>
+      <button class="btn btn-outline-success toolbar-button d-inline-flex align-items-center" onclick="exportData()" title="Export data as CSV file">
+        <i class="bi bi-download"></i> <span>Export CSV</span>
+      </button>
+      <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" onclick="saveGullyData()" title="Backup all gully data">
+        <i class="bi bi-save"></i> <span>Backup</span>
+      </button>
+      <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" onclick="loadFromBackup()" title="Load data from a backup file">
+        <i class="bi bi-folder"></i> <i class="bi bi-arrow-up"></i> <span>Load Backup</span>
+      </button>
+      <button class="btn btn-outline-dark toolbar-button d-inline-flex align-items-center" onclick="exportAuditHistory()" title="Export audit history of all modifications">
+        <i class="bi bi-journal-text"></i> <span>Audit History</span>
+      </button>
+      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" id="toggleMapLayerBtn" onclick="toggleMapLayer()" title="Switch between Map and Satellite">
+        <i class="bi bi-globe"></i> <span>Satellite</span>
+      </button>
+      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" id="toggleOuterBoundaryBtn" onclick="toggleOuterBoundary()" title="Show/Hide Cork City Council outer boundary">
+        <i class="bi bi-geo"></i> <span>Outer Boundary</span>
+      </button>
+      <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" id="toggleInnerBoundariesBtn" onclick="toggleInnerBoundaries()" title="Show/Hide Local Electoral Areas (inner boundaries)">
+        <i class="bi bi-map"></i> <span>Electoral Areas</span>
+      </button>
     </div>
   </div>
 </div>
@@ -1868,6 +1922,13 @@ function logout() {
     logUserEvent('logout', auth.currentUser.email);
   }
   
+  // Hide toolbar before logout
+  const functionToolbar = document.getElementById('functionToolbar');
+  if (functionToolbar) {
+    functionToolbar.classList.remove('show');
+    functionToolbar.style.display = 'none';
+  }
+  
   // Reset the explicit login flag
   userExplicitlyLoggedIn = false;
   console.log('logout: Reset userExplicitlyLoggedIn to false');
@@ -2140,9 +2201,9 @@ function handleLoginSuccess(userData) {
   // Show toolbar
   const functionToolbar = document.getElementById('functionToolbar');
   if (functionToolbar) {
-    functionToolbar.style.display = 'block';
-    functionToolbar.style.visibility = 'visible';
-    functionToolbar.style.opacity = '1';
+    // Remove any inline display styles and add the show class
+    functionToolbar.style.removeProperty('display');
+    functionToolbar.classList.add('show');
     
     // Ensure all buttons are visible
     const buttons = functionToolbar.querySelectorAll('.toolbar-button');
@@ -2150,6 +2211,8 @@ function handleLoginSuccess(userData) {
       button.style.display = 'inline-flex';
       button.style.visibility = 'visible';
       button.style.opacity = '1';
+      button.style.minHeight = '36px';
+      button.style.minWidth = '80px';
     });
     
     // Ensure button groups are visible
@@ -2158,6 +2221,7 @@ function handleLoginSuccess(userData) {
       group.style.display = 'flex';
       group.style.visibility = 'visible';
       group.style.opacity = '1';
+      group.style.flexShrink = '0';
     });
     
     // Ensure toolbar content is visible
@@ -2166,6 +2230,8 @@ function handleLoginSuccess(userData) {
       toolbarContent.style.display = 'flex';
       toolbarContent.style.visibility = 'visible';
       toolbarContent.style.opacity = '1';
+      toolbarContent.style.overflowX = 'auto';
+      toolbarContent.style.justifyContent = 'flex-start';
     }
   }
   
@@ -6603,10 +6669,9 @@ if (forgotLink) {
     function ensureToolbarVisibility() {
       const functionToolbar = document.getElementById('functionToolbar');
       if (functionToolbar) {
-        // Ensure toolbar is visible
-        functionToolbar.style.display = 'block';
-        functionToolbar.style.visibility = 'visible';
-        functionToolbar.style.opacity = '1';
+        // Remove any inline display styles and add the show class
+        functionToolbar.style.removeProperty('display');
+        functionToolbar.classList.add('show');
         
         // Ensure all buttons are visible
         const buttons = functionToolbar.querySelectorAll('.toolbar-button');
@@ -6648,11 +6713,24 @@ if (forgotLink) {
     
     // Call this function after login and also on page load if user is already logged in
     document.addEventListener('DOMContentLoaded', function() {
+      // Ensure toolbar is hidden by default
+      const functionToolbar = document.getElementById('functionToolbar');
+      if (functionToolbar) {
+        functionToolbar.classList.remove('show');
+        functionToolbar.style.display = 'none';
+      }
+      
       // Check if user is already logged in
       auth.onAuthStateChanged(function(user) {
         if (user) {
           // User is logged in, ensure toolbar is visible
           setTimeout(ensureToolbarVisibility, 100);
+        } else {
+          // User is not logged in, ensure toolbar is hidden
+          if (functionToolbar) {
+            functionToolbar.classList.remove('show');
+            functionToolbar.style.display = 'none';
+          }
         }
       });
     });
