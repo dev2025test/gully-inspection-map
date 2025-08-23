@@ -1348,6 +1348,13 @@
 <body>
 <div id="map" style="width:100vw; height:100vh; min-height:400px;"></div>
 
+<!-- Debug button for testing toolbar visibility -->
+<div style="position: fixed; top: 10px; right: 10px; z-index: 9999; background: red; color: white; padding: 10px; border-radius: 5px;">
+  <button onclick="showToolbar()" style="margin: 5px;">Show Toolbar</button>
+  <button onclick="hideToolbar()" style="margin: 5px;">Hide Toolbar</button>
+  <button onclick="checkToolbarState()" style="margin: 5px;">Check State</button>
+</div>
+
 <!-- LOGIN PAGE HEADER -->
 <div id="loginScreen" class="login-background" style="min-height:100vh;">
   <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh;">
@@ -1860,6 +1867,7 @@ window.login = function login(isAutoLogin = false) {
     auth.signInWithEmailAndPassword(validation.normalizedEmail, password)
     .then(async userCredential => {
       console.log('login: Firebase sign in successful, getting user data...');
+      console.log('login: User credential:', userCredential);
       
       try {
         const userRef = db.ref(`users/${userCredential.user.uid}`);
@@ -6814,7 +6822,12 @@ if (forgotLink) {
       if (functionToolbar) {
         functionToolbar.classList.add('show');
         functionToolbar.style.setProperty('display', 'flex', 'important');
+        functionToolbar.style.setProperty('visibility', 'visible', 'important');
+        functionToolbar.style.setProperty('opacity', '1', 'important');
         console.log('Toolbar manually shown');
+        console.log('Toolbar display style:', functionToolbar.style.display);
+        console.log('Toolbar visibility style:', functionToolbar.style.visibility);
+        console.log('Toolbar computed display:', window.getComputedStyle(functionToolbar).display);
       }
     };
     
@@ -6825,6 +6838,29 @@ if (forgotLink) {
         functionToolbar.classList.remove('show');
         functionToolbar.style.setProperty('display', 'none', 'important');
         console.log('Toolbar manually hidden');
+      }
+    };
+    
+    // Add a global function to check toolbar state
+    window.checkToolbarState = function() {
+      const functionToolbar = document.getElementById('functionToolbar');
+      if (functionToolbar) {
+        console.log('=== Toolbar State Check ===');
+        console.log('Element exists:', !!functionToolbar);
+        console.log('Has show class:', functionToolbar.classList.contains('show'));
+        console.log('Inline display style:', functionToolbar.style.display);
+        console.log('Inline visibility style:', functionToolbar.style.visibility);
+        console.log('Computed display:', window.getComputedStyle(functionToolbar).display);
+        console.log('Computed visibility:', window.getComputedStyle(functionToolbar).visibility);
+        console.log('Computed opacity:', window.getComputedStyle(functionToolbar).opacity);
+        console.log('Computed position:', window.getComputedStyle(functionToolbar).position);
+        console.log('Computed bottom:', window.getComputedStyle(functionToolbar).bottom);
+        console.log('Computed z-index:', window.getComputedStyle(functionToolbar).zIndex);
+        console.log('Offset height:', functionToolbar.offsetHeight);
+        console.log('Client height:', functionToolbar.clientHeight);
+        console.log('Scroll height:', functionToolbar.scrollHeight);
+      } else {
+        console.log('Toolbar element not found');
       }
     };
 
