@@ -515,7 +515,7 @@
     }
 
     .status-item {
-        min-height: 120px;
+        min-height: 140px;
     }
 
     .status-card {
@@ -525,7 +525,7 @@
         transition: all 0.3s ease;
         height: 100%;
         position: relative;
-        overflow: hidden;
+        overflow: visible;
     }
 
     .status-card:hover {
@@ -538,6 +538,7 @@
         display: flex;
         flex-direction: column;
         height: 100%;
+        overflow: visible;
     }
 
     .status-count {
@@ -1989,6 +1990,7 @@ function loadGullyData() {
     console.log('loadGullyData: Loading data for layer:', layerType);
     db.ref(layerType).on('value', snapshot => {
       const data = snapshot.val() || {};
+      console.log(`loadGullyData: Raw data for ${layerType}:`, data);
       
       Object.entries(data).forEach(([id, item]) => {
         if (item.location) {
@@ -2002,6 +2004,7 @@ function loadGullyData() {
       // Update summary after loading data
       updateSummary();
       console.log(`loadGullyData: Loaded ${Object.keys(data).length} items for ${layerType}`);
+      console.log(`loadGullyData: Current gullyData length: ${gullyData.length}`);
     });
   });
 }
@@ -2181,6 +2184,7 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies', status = 'Unmarke
         layer: layerType,
         status: status
     });
+    console.log(`addGullyToMap: Added gully ${gullyId} to gullyData. Total count: ${gullyData.length}`);
     return marker;
 }
 
@@ -3334,6 +3338,10 @@ function resetMap() {
 }
 
 function showSummaryPopup() {
+  console.log('showSummaryPopup: Starting summary calculation...');
+  console.log('showSummaryPopup: gullyData length:', gullyData.length);
+  console.log('showSummaryPopup: gullyData sample:', gullyData.slice(0, 3));
+  
   // Calculate summary data
   const summary = {
     total: 0,
@@ -3347,14 +3355,51 @@ function showSummaryPopup() {
 
   // Count gullies by status
   gullyData.forEach(gully => {
+    console.log('showSummaryPopup: Processing gully:', gully);
     if (gully.layer === 'gullies') {
       summary.total++;
       const status = gully.status || 'Unmarked';
+      console.log('showSummaryPopup: Gully status:', status);
       if (summary.hasOwnProperty(status)) {
         summary[status]++;
       }
     }
   });
+  
+  console.log('showSummaryPopup: Final summary:', summary);
+  
+  // Debug: Check Firebase directly
+  db.ref('gullies').once('value').then(snapshot => {
+    const data = snapshot.val() || {};
+    console.log('showSummaryPopup: Direct Firebase gullies data:', data);
+    console.log('showSummaryPopup: Number of gullies in Firebase:', Object.keys(data).length);
+  }).catch(error => {
+    console.error('showSummaryPopup: Error checking Firebase:', error);
+  });
+}
+
+// Function to refresh summary data
+function refreshSummaryData() {
+  console.log('refreshSummaryData: Refreshing gully data...');
+  loadGullyData();
+  setTimeout(() => {
+    showSummaryPopup();
+  }, 1000);
+}
+
+// Function to add test data for debugging
+function addTestGullyData() {
+  console.log('addTestGullyData: Adding test gully data...');
+  const testGully = {
+    marker: null,
+    id: 'test-gully-1',
+    layer: 'gullies',
+    status: 'Clear'
+  };
+  gullyData.push(testGully);
+  console.log('addTestGullyData: Added test gully. Total count:', gullyData.length);
+  showSummaryPopup();
+}
 
   // Create popup HTML
   let html = `
@@ -3372,6 +3417,18 @@ function showSummaryPopup() {
       <div class="mb-3">
         <button class="btn btn-primary w-100 py-2" onclick="filterFromSummary('All')">
           <i class="bi bi-eye-fill me-2"></i> Show All Gullies
+        </button>
+      </div>
+      
+      <div class="mb-3">
+        <button class="btn btn-outline-secondary w-100 py-2" onclick="refreshSummaryData()">
+          <i class="bi bi-arrow-clockwise me-2"></i> Refresh Data
+        </button>
+      </div>
+      
+      <div class="mb-3">
+        <button class="btn btn-outline-warning w-100 py-2" onclick="addTestGullyData()">
+          <i class="bi bi-plus-circle me-2"></i> Add Test Data
         </button>
       </div>
       
@@ -3402,12 +3459,12 @@ function showSummaryPopup() {
                   </div>
                   <div class="status-count fw-bold" style="color: ${getStatusColor(status)}; font-size: 1.3rem;">${count}</div>
                   <div class="status-description text-muted small mb-1">${{
-                    Clear: 'Clean and functioning properly',
-                    Blocked: 'Obstructed and need cleaning',
-                    Broken: 'Damaged and not functioning',
-                    Remediation: 'Require maintenance work',
-                    Replacement: 'Need to be completely replaced',
-                    Unmarked: 'Have not been inspected yet'
+                    Clear: 'Clean and functioning',
+                    Blocked: 'Obstructed - needs cleaning',
+                    Broken: 'Damaged - not functioning',
+                    Remediation: 'Requires maintenance',
+                    Replacement: 'Needs replacement',
+                    Unmarked: 'Not inspected yet'
                   }[status] || ''}</div>
                   <div class="mt-auto">
                     <small class="text-primary fw-semibold" style="font-size: 0.7rem;">
