@@ -373,14 +373,6 @@
       display: flex;
       flex-direction: column;
       padding: 0;
-      /* Ensure ribbon stays together during zoom */
-      min-width: 0;
-      max-width: 100vw;
-      box-sizing: border-box;
-      /* Prevent layout breaking during zoom */
-      transform-origin: bottom left;
-      /* Ensure proper scaling */
-      will-change: transform;
     }
     .bottom-toolbar.minimized {
       transform: translateY(calc(100% - 40px));
@@ -432,7 +424,7 @@
       /* Prevent horizontal scrolling issues during zoom */
       scrollbar-width: thin;
       scrollbar-color: #ccc transparent;
-      /* Ensure proper spacing between button groups */
+      /* Ensure proper spacing */
       padding-left: 20px;
       padding-right: 20px;
     }
@@ -444,18 +436,15 @@
       border: none;
       align-items: center;
       margin: 0;
-      /* Ensure button groups stay together during zoom */
+      /* Ensure button group stays together during zoom */
       flex-shrink: 0;
       min-width: 0;
       box-sizing: border-box;
       /* Prevent wrapping during zoom */
       flex-wrap: nowrap;
-      /* Add visual separation between groups */
-      border-right: 1px solid #e0e0e0;
-    }
-    
-    .button-group:last-child {
-      border-right: none;
+      /* Ensure all buttons stay in one cohesive group */
+      width: 100%;
+      justify-content: flex-start;
     }
     .button-group.admin-only {
       margin-right: 0;
@@ -471,15 +460,6 @@
       align-items: center;
       gap: 5px;
       transition: all 0.2s ease;
-      /* Ensure buttons maintain integrity during zoom */
-      flex-shrink: 0;
-      min-width: 0;
-      box-sizing: border-box;
-      /* Prevent text wrapping and maintain button size */
-      font-size: 14px;
-      line-height: 1.2;
-      /* Ensure proper scaling */
-      transform-origin: center;
     }
     .toolbar-button:hover {
       background: #f0f0f0;
@@ -488,141 +468,6 @@
     .toolbar-button:active {
       background: #e8e8e8;
       transform: translateY(1px);
-    }
-    
-    /* Ensure ribbon integrity during browser zoom */
-    @media screen and (max-resolution: 1dppx) {
-      .bottom-toolbar {
-        /* Force hardware acceleration for better zoom performance */
-        -webkit-transform: translateZ(0);
-        transform: translateZ(0);
-        /* Ensure proper scaling */
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-      }
-    }
-    
-    /* Prevent ribbon from breaking apart during zoom */
-    .bottom-toolbar {
-      /* Ensure the ribbon container maintains its structure */
-      contain: layout style;
-      /* Prevent any layout shifts during zoom */
-      isolation: isolate;
-    }
-    
-    /* Ensure all ribbon elements scale together */
-    .bottom-toolbar * {
-      /* Prevent individual elements from breaking layout */
-      box-sizing: border-box;
-      /* Ensure proper scaling inheritance */
-      transform-origin: inherit;
-    }
-    
-    /* Ensure buttons are always visible */
-    .toolbar-button {
-      display: inline-flex !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
-    
-    /* Ensure button groups are visible */
-    .button-group {
-      display: flex !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
-    
-    /* Ensure toolbar content is visible */
-    .toolbar-content {
-      display: flex !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
-    
-    /* Handle high DPI displays and zoom levels */
-    @media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi) {
-      .toolbar-button {
-        /* Ensure crisp rendering during zoom */
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-    }
-    
-    /* Ensure ribbon stays together at different zoom levels */
-    @media screen and (max-width: 1200px) {
-      .toolbar-content {
-        justify-content: flex-start;
-        padding-left: 10px;
-        padding-right: 10px;
-      }
-      
-      .button-group {
-        gap: 6px;
-        padding: 0 8px;
-      }
-      
-      .toolbar-button {
-        padding: 6px 12px;
-        font-size: 13px;
-      }
-    }
-    
-    /* Ensure toolbar has proper height and all buttons are visible */
-    .bottom-toolbar {
-      min-height: 80px;
-    }
-    
-    .toolbar-content {
-      min-height: 60px;
-      align-items: center;
-    }
-    
-    /* Ensure all buttons are properly sized and visible */
-    .toolbar-button {
-      min-height: 36px;
-      min-width: 80px;
-      white-space: nowrap;
-      overflow: visible;
-    }
-    
-    @media screen and (max-width: 768px) {
-      .toolbar-content {
-        justify-content: flex-start;
-        padding-left: 5px;
-        padding-right: 5px;
-      }
-      
-      .button-group {
-        gap: 4px;
-      }
-      
-      .toolbar-button {
-        padding: 5px 10px;
-        font-size: 12px;
-      }
-      
-      .toolbar-button span {
-        display: none;
-      }
-      
-      .toolbar-button i {
-        font-size: 16px;
-      }
-    }
-    
-    /* Zoom adjustment class for smooth transitions */
-    .bottom-toolbar.zoom-adjusting {
-      transition: none;
-      /* Force hardware acceleration during zoom adjustments */
-      -webkit-transform: translateZ(0);
-      transform: translateZ(0);
-    }
-    
-    /* Ensure ribbon buttons maintain proper spacing during zoom */
-    .bottom-toolbar.zoom-adjusting .toolbar-button {
-      transition: none;
-      /* Prevent layout shifts during zoom */
-      transform: translateZ(0);
     }
     .summary-popup {
         position: fixed;
@@ -1300,67 +1145,10 @@
     #loginScreen.login-background ~ .toggle-layers {
       display: none !important;
     }
-    
-    /* Hide toolbar when login screen is visible */
-    #loginScreen.login-background ~ .bottom-toolbar {
-      display: none !important;
-    }
-    
-    /* Ensure toolbar is hidden by default */
-    .bottom-toolbar {
-      display: none !important;
-      position: fixed !important;
-      bottom: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      z-index: 1001 !important;
-    }
-    
-    /* Show toolbar only when explicitly enabled */
-    .bottom-toolbar.show {
-      display: flex !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-      position: fixed !important;
-      bottom: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      z-index: 1001 !important;
-    }
-    
-    /* Ensure toolbar content is visible when toolbar is shown */
-    .bottom-toolbar.show .toolbar-content {
-      display: flex !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
-    
-    /* Ensure buttons are visible when toolbar is shown */
-    .bottom-toolbar.show .toolbar-button {
-      display: inline-flex !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
-    
-    /* Ensure button groups are visible when toolbar is shown */
-    .bottom-toolbar.show .button-group {
-      display: flex !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
   </style>
 </head>
 <body>
 <div id="map" style="width:100vw; height:100vh; min-height:400px;"></div>
-
-<!-- Debug button for testing toolbar visibility -->
-<div style="position: fixed; top: 10px; right: 10px; z-index: 9999; background: red; color: white; padding: 10px; border-radius: 5px;">
-  <button onclick="showToolbar()" style="margin: 5px;">Show Toolbar</button>
-  <button onclick="hideToolbar()" style="margin: 5px;">Hide Toolbar</button>
-  <button onclick="checkToolbarState()" style="margin: 5px;">Check State</button>
-  <button onclick="fixButtonVisibility()" style="margin: 5px;">Fix Buttons</button>
-  <button onclick="resetToolbar()" style="margin: 5px;">Reset Toolbar</button>
-</div>
 
 <!-- LOGIN PAGE HEADER -->
 <div id="loginScreen" class="login-background" style="min-height:100vh;">
@@ -1422,7 +1210,7 @@
 
 <div class="toggle-layers" onclick="toggleLayerControl()">🗺️ Show Layers</div>
 
-<div class="bottom-toolbar bg-light border-top" id="functionToolbar" style="z-index: 1000;">
+<div class="bottom-toolbar bg-light border-top" id="functionToolbar" style="display: none;">
   <div class="toolbar-header d-flex align-items-center justify-content-between p-2" onclick="toggleToolbar()">
     <h3 class="m-0 d-flex align-items-center gap-2">
       <span>Gully Inspection System</span>
@@ -1434,67 +1222,30 @@
     <span id="toolbarToggleIcon">▼</span>
   </div>
   <div class="toolbar-content d-flex flex-nowrap gap-2 p-2 w-100">
-    <!-- Admin Buttons Group -->
-    <div class="button-group admin-only d-flex flex-nowrap gap-2" style="flex-shrink: 0;">
-      <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center" onclick="showUserManagement()" title="Manage users">
-        <i class="bi bi-person"></i> <span>Users</span>
-      </button>
-      <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center" onclick="logout()" title="Log out of your account">
-        <i class="bi bi-box-arrow-right"></i> <span>Logout</span>
-      </button>
-      <button class="btn btn-warning toolbar-button d-inline-flex align-items-center" onclick="enableEditMode()" title="Enable edit mode">
-        <i class="bi bi-pencil"></i> <span>Edit</span>
-      </button>
-      <button class="btn btn-danger toolbar-button d-inline-flex align-items-center" onclick="enableDeleteMode()" title="Enable delete mode">
-        <i class="bi bi-trash"></i> <span>Delete</span>
-      </button>
-      <button class="btn btn-success toolbar-button d-inline-flex align-items-center" onclick="enableAddMode()" title="Add a new item">
-        <i class="bi bi-plus"></i> <span>Add New</span>
-      </button>
-    </div>
-    
-    <!-- Function Buttons Group -->
-    <div class="button-group d-flex flex-nowrap gap-2" style="flex-shrink: 0;">
-      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="printMap()" title="Print the current map view">
-        <i class="bi bi-printer"></i> <span>Print</span>
-      </button>
-      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="resetMap()" title="Reset the map to its default state">
-        <i class="bi bi-arrow-repeat"></i> <span>Reset</span>
-      </button>
-      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSummaryPopup()" title="Show summary statistics">
-        <i class="bi bi-bar-chart"></i> <span>Summary</span>
-      </button>
-      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="showLayerControl()" title="Show or hide map layers">
-        <i class="bi bi-layers"></i> <span>Layers</span>
-      </button>
-      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSearchPopup()" title="Search by street name, estate, gully ID, or area">
-        <i class="bi bi-search"></i> <span>Search</span>
-      </button>
-      <label for="importFile" class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" title="Import data from a file">
-        <i class="bi bi-upload"></i> <span>Import</span>
-      </label>
+    <!-- Single Button Group - All buttons together -->
+    <div class="button-group d-flex flex-nowrap gap-2" style="flex-shrink: 0; flex-wrap: nowrap;">
+      <!-- Admin Buttons -->
+      <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center admin-only" onclick="showUserManagement()" title="Manage users"><i class="bi bi-person"></i> <span>Users</span></button>
+      <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center admin-only" onclick="logout()" title="Log out of your account"><i class="bi bi-box-arrow-right"></i> <span>Logout</span></button>
+      <button class="btn btn-warning toolbar-button d-inline-flex align-items-center admin-only" onclick="enableEditMode()" title="Enable edit mode"><i class="bi bi-pencil"></i> <span>Edit</span></button>
+      <button class="btn btn-danger toolbar-button d-inline-flex align-items-center admin-only" onclick="enableDeleteMode()" title="Enable delete mode"><i class="bi bi-trash"></i> <span>Delete</span></button>
+      <button class="btn btn-success toolbar-button d-inline-flex align-items-center admin-only" onclick="enableAddMode()" title="Add a new item"><i class="bi bi-plus"></i> <span>Add New</span></button>
+      
+      <!-- Function Buttons -->
+      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="printMap()" title="Print the current map view"><i class="bi bi-printer"></i> <span>Print</span></button>
+      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="resetMap()" title="Reset the map to its default state"><i class="bi bi-arrow-repeat"></i> <span>Reset</span></button>
+      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSummaryPopup()" title="Show summary statistics"><i class="bi bi-bar-chart"></i> <span>Summary</span></button>
+      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="showLayerControl()" title="Show or hide map layers"><i class="bi bi-layers"></i> <span>Layers</span></button>
+      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSearchPopup()" title="Search by street name, estate, gully ID, or area"><i class="bi bi-search"></i> <span>Search</span></button>
+      <label for="importFile" class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" title="Import data from a file"><i class="bi bi-upload"></i> <span>Import</span></label>
       <input type="file" id="importFile" onchange="handleImportFile(event)" style="display: none;">
-      <button class="btn btn-outline-success toolbar-button d-inline-flex align-items-center" onclick="exportData()" title="Export data as CSV file">
-        <i class="bi bi-download"></i> <span>Export CSV</span>
-      </button>
-      <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" onclick="saveGullyData()" title="Backup all gully data">
-        <i class="bi bi-save"></i> <span>Backup</span>
-      </button>
-      <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" onclick="loadFromBackup()" title="Load data from a backup file">
-        <i class="bi bi-folder"></i> <i class="bi bi-arrow-up"></i> <span>Load Backup</span>
-      </button>
-      <button class="btn btn-outline-dark toolbar-button d-inline-flex align-items-center" onclick="exportAuditHistory()" title="Export audit history of all modifications">
-        <i class="bi bi-journal-text"></i> <span>Audit History</span>
-      </button>
-      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" id="toggleMapLayerBtn" onclick="toggleMapLayer()" title="Switch between Map and Satellite">
-        <i class="bi bi-globe"></i> <span>Satellite</span>
-      </button>
-      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" id="toggleOuterBoundaryBtn" onclick="toggleOuterBoundary()" title="Show/Hide Cork City Council outer boundary">
-        <i class="bi bi-geo"></i> <span>Outer Boundary</span>
-      </button>
-      <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" id="toggleInnerBoundariesBtn" onclick="toggleInnerBoundaries()" title="Show/Hide Local Electoral Areas (inner boundaries)">
-        <i class="bi bi-map"></i> <span>Electoral Areas</span>
-      </button>
+      <button class="btn btn-outline-success toolbar-button d-inline-flex align-items-center" onclick="exportData()" title="Export data as CSV file"><i class="bi bi-download"></i> <span>Export CSV</span></button>
+      <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" onclick="saveGullyData()" title="Backup all gully data"><i class="bi bi-save"></i> <span>Backup</span></button>
+      <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" onclick="loadFromBackup()" title="Load data from a backup file"><i class="bi bi-folder"></i> <i class="bi bi-arrow-up"></i> <span>Load Backup</span></button>
+      <button class="btn btn-outline-dark toolbar-button d-inline-flex align-items-center" onclick="exportAuditHistory()" title="Export audit history of all modifications"><i class="bi bi-journal-text"></i> <span>Audit History</span></button>
+      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" id="toggleMapLayerBtn" onclick="toggleMapLayer()" title="Switch between Map and Satellite"><i class="bi bi-globe"></i> <span>Satellite</span></button>
+      <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" id="toggleOuterBoundaryBtn" onclick="toggleOuterBoundary()" title="Show/Hide Cork City Council outer boundary"><i class="bi bi-geo"></i> <span>Outer Boundary</span></button>
+      <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" id="toggleInnerBoundariesBtn" onclick="toggleInnerBoundaries()" title="Show/Hide Local Electoral Areas (inner boundaries)"><i class="bi bi-map"></i> <span>Electoral Areas</span></button>
     </div>
   </div>
 </div>
@@ -1874,7 +1625,6 @@ window.login = function login(isAutoLogin = false) {
     auth.signInWithEmailAndPassword(validation.normalizedEmail, password)
     .then(async userCredential => {
       console.log('login: Firebase sign in successful, getting user data...');
-      console.log('login: User credential:', userCredential);
       
       try {
         const userRef = db.ref(`users/${userCredential.user.uid}`);
@@ -1965,13 +1715,6 @@ function logout() {
     logUserEvent('logout', auth.currentUser.email);
   }
   
-  // Hide toolbar before logout
-  const functionToolbar = document.getElementById('functionToolbar');
-  if (functionToolbar) {
-    functionToolbar.classList.remove('show');
-    functionToolbar.style.display = 'none';
-  }
-  
   // Reset the explicit login flag
   userExplicitlyLoggedIn = false;
   console.log('logout: Reset userExplicitlyLoggedIn to false');
@@ -1991,56 +1734,60 @@ function setupUIForRole(role, adminPrivileges = null) {
   
   // Show/hide admin-only elements
   document.querySelectorAll('.admin-only').forEach(element => {
-    // Check if the element is a flex container (like button groups)
-    const computedStyle = window.getComputedStyle(element);
-    const isFlexContainer = computedStyle.display === 'flex' || element.classList.contains('button-group');
+    // Check if the element is a button
+    const isButton = element.classList.contains('toolbar-button');
     
-    if (isFlexContainer) {
-      element.style.display = isAdmin ? 'flex' : 'none';
-      console.log('setupUIForRole: Set admin-only flex element display to:', isAdmin ? 'flex' : 'none');
+    if (isButton) {
+      // For buttons, use inline-flex to maintain proper button layout
+      element.style.display = isAdmin ? 'inline-flex' : 'none';
+      console.log('setupUIForRole: Set admin-only button display to:', isAdmin ? 'inline-flex' : 'none');
     } else {
+      // For other elements, use block
       element.style.display = isAdmin ? 'block' : 'none';
-      console.log('setupUIForRole: Set admin-only block element display to:', isAdmin ? 'block' : 'none');
+      console.log('setupUIForRole: Set admin-only element display to:', isAdmin ? 'block' : 'none');
     }
   });
   
-  // Toolbar button group (non-admin)
+  // Toolbar button group (single group now)
   const toolbarContent = document.querySelector('.toolbar-content');
   if (toolbarContent) {
-    const buttonGroups = toolbarContent.querySelectorAll('.button-group');
-    if (buttonGroups.length > 1) {
-      const mainGroup = buttonGroups[1];
+    const buttonGroup = toolbarContent.querySelector('.button-group');
+    if (buttonGroup) {
       // Remove any previous operator-only logout button
-      const oldLogout = mainGroup.querySelector('.toolbar-button.operator-logout');
+      const oldLogout = buttonGroup.querySelector('.toolbar-button.operator-logout');
       if (oldLogout) oldLogout.remove();
+      
       // Remove Reset button for operators
-      const resetBtn = mainGroup.querySelector('button[onclick="resetMap()"]');
+      const resetBtn = buttonGroup.querySelector('button[onclick="resetMap()"]');
       if (resetBtn && !isAdmin) resetBtn.remove();
+      
       // Add Logout button for operators if not present
-      if (!isAdmin && !mainGroup.querySelector('.toolbar-button.operator-logout')) {
+      if (!isAdmin && !buttonGroup.querySelector('.toolbar-button.operator-logout')) {
         const logoutBtn = document.createElement('button');
         logoutBtn.className = 'toolbar-button operator-logout';
         logoutBtn.innerHTML = '🚪 Logout';
         logoutBtn.onclick = logout;
-        mainGroup.appendChild(logoutBtn);
+        buttonGroup.appendChild(logoutBtn);
       }
+      
       // If admin, ensure Reset is present and Logout is not duplicated
-      if (isAdmin && !mainGroup.querySelector('button[onclick="resetMap()"]')) {
+      if (isAdmin && !buttonGroup.querySelector('button[onclick="resetMap()"]')) {
         const resetBtn = document.createElement('button');
         resetBtn.className = 'toolbar-button';
         resetBtn.setAttribute('onclick', 'resetMap()');
         resetBtn.innerHTML = '🔄 Reset';
         // Insert after Print button (first in group)
-        const printBtn = mainGroup.querySelector('button[onclick="printMap()"]');
+        const printBtn = buttonGroup.querySelector('button[onclick="printMap()"]');
         if (printBtn && printBtn.nextSibling) {
-          mainGroup.insertBefore(resetBtn, printBtn.nextSibling);
+          buttonGroup.insertBefore(resetBtn, printBtn.nextSibling);
         } else {
-          mainGroup.appendChild(resetBtn);
+          buttonGroup.appendChild(resetBtn);
         }
       }
+      
       // Remove operator logout for admin
       if (isAdmin) {
-        const opLogout = mainGroup.querySelector('.toolbar-button.operator-logout');
+        const opLogout = buttonGroup.querySelector('.toolbar-button.operator-logout');
         if (opLogout) opLogout.remove();
       }
     }
@@ -2252,61 +1999,7 @@ function handleLoginSuccess(userData) {
   
   // Show toolbar
   const functionToolbar = document.getElementById('functionToolbar');
-  if (functionToolbar) {
-    console.log('Showing toolbar...');
-    
-    // Remove any conflicting classes or styles
-    functionToolbar.classList.remove('minimized');
-    functionToolbar.classList.add('show');
-    
-    // Force all display properties
-    functionToolbar.style.setProperty('display', 'flex', 'important');
-    functionToolbar.style.setProperty('visibility', 'visible', 'important');
-    functionToolbar.style.setProperty('opacity', '1', 'important');
-    functionToolbar.style.setProperty('position', 'fixed', 'important');
-    functionToolbar.style.setProperty('bottom', '0', 'important');
-    functionToolbar.style.setProperty('left', '0', 'important');
-    functionToolbar.style.setProperty('right', '0', 'important');
-    functionToolbar.style.setProperty('z-index', '1001', 'important');
-    
-    // Ensure all buttons are visible
-    const buttons = functionToolbar.querySelectorAll('.toolbar-button');
-    console.log('Found buttons:', buttons.length);
-    buttons.forEach(button => {
-      button.style.display = 'inline-flex';
-      button.style.visibility = 'visible';
-      button.style.opacity = '1';
-      button.style.minHeight = '36px';
-      button.style.minWidth = '80px';
-    });
-    
-    // Ensure button groups are visible
-    const buttonGroups = functionToolbar.querySelectorAll('.button-group');
-    console.log('Found button groups:', buttonGroups.length);
-    buttonGroups.forEach(group => {
-      group.style.display = 'flex';
-      group.style.visibility = 'visible';
-      group.style.opacity = '1';
-      group.style.flexShrink = '0';
-    });
-    
-    // Ensure toolbar content is visible
-    const toolbarContent = functionToolbar.querySelector('.toolbar-content');
-    if (toolbarContent) {
-      toolbarContent.style.display = 'flex';
-      toolbarContent.style.visibility = 'visible';
-      toolbarContent.style.opacity = '1';
-      toolbarContent.style.overflowX = 'auto';
-      toolbarContent.style.justifyContent = 'flex-start';
-    }
-    
-    console.log('Toolbar should now be visible');
-    
-    // Fix button visibility after showing toolbar
-    setTimeout(() => {
-      fixButtonVisibility();
-    }, 100);
-  }
+  if (functionToolbar) functionToolbar.style.display = 'block';
   
   // Make map container visible immediately
   const mapDiv = document.getElementById('map');
@@ -2317,14 +2010,11 @@ function handleLoginSuccess(userData) {
   void mapDiv.offsetWidth; // Accessing offsetWidth forces reflow
   console.log('handleLoginSuccess: Forced map div reflow.');
 
-      // Update user info
-    updateUserInfo(userData);
-    console.log('handleLoginSuccess: User data:', userData);
-    console.log('handleLoginSuccess: Setting up UI for role:', userData.role);
-    setupUIForRole(userData.role, userData.adminPrivileges);
-    
-    // Ensure toolbar is properly displayed
-    ensureToolbarVisibility();
+  // Update user info
+  updateUserInfo(userData);
+  console.log('handleLoginSuccess: User data:', userData);
+  console.log('handleLoginSuccess: Setting up UI for role:', userData.role);
+  setupUIForRole(userData.role, userData.adminPrivileges);
   
   console.log('handleLoginSuccess: Reached point before setTimeout.'); // New diagnostic log
 
@@ -4135,48 +3825,6 @@ window.addEventListener('load', function() {
     if (savedEmail) {
       document.getElementById('email').value = savedEmail;
       document.getElementById('rememberMe').checked = true;
-    }
-  }
-});
-
-// Handle browser zoom to ensure ribbon integrity
-window.addEventListener('resize', function() {
-  // Debounce the resize event to avoid excessive calls
-  clearTimeout(window.zoomTimeout);
-  window.zoomTimeout = setTimeout(function() {
-    const toolbar = document.getElementById('functionToolbar');
-    if (toolbar) {
-      // Force reflow to ensure proper layout after zoom
-      toolbar.style.display = 'none';
-      toolbar.offsetHeight; // Force reflow
-      toolbar.style.display = '';
-      
-      // Ensure toolbar content maintains proper layout
-      const toolbarContent = toolbar.querySelector('.toolbar-content');
-      if (toolbarContent) {
-        toolbarContent.style.overflowX = 'auto';
-        // Reset any transform that might have been applied
-        toolbarContent.style.transform = 'none';
-      }
-    }
-  }, 100);
-});
-
-// Handle zoom events specifically
-let lastZoomLevel = window.devicePixelRatio;
-window.addEventListener('resize', function() {
-  const currentZoom = window.devicePixelRatio;
-  if (Math.abs(currentZoom - lastZoomLevel) > 0.1) {
-    lastZoomLevel = currentZoom;
-    
-    // Force ribbon to maintain integrity during zoom
-    const toolbar = document.getElementById('functionToolbar');
-    if (toolbar) {
-      // Add a temporary class to force re-render
-      toolbar.classList.add('zoom-adjusting');
-      setTimeout(() => {
-        toolbar.classList.remove('zoom-adjusting');
-      }, 50);
     }
   }
 });
@@ -6737,252 +6385,6 @@ if (forgotLink) {
     }
 
     // Duplicate login function removed - using main login function instead
-
-    // Function to ensure toolbar is properly displayed
-    function ensureToolbarVisibility() {
-      const functionToolbar = document.getElementById('functionToolbar');
-      if (functionToolbar) {
-        console.log('Ensuring toolbar visibility...');
-        
-        // Add the show class to make toolbar visible
-        functionToolbar.classList.add('show');
-        
-        // Force the display to be flex
-        functionToolbar.style.setProperty('display', 'flex', 'important');
-        
-        // Ensure all buttons are visible
-        const buttons = functionToolbar.querySelectorAll('.toolbar-button');
-        console.log('Found buttons:', buttons.length);
-        buttons.forEach(button => {
-          button.style.display = 'inline-flex';
-          button.style.visibility = 'visible';
-          button.style.opacity = '1';
-          button.style.minHeight = '36px';
-          button.style.minWidth = '80px';
-        });
-        
-        // Ensure button groups are visible
-        const buttonGroups = functionToolbar.querySelectorAll('.button-group');
-        console.log('Found button groups:', buttonGroups.length);
-        buttonGroups.forEach(group => {
-          group.style.display = 'flex';
-          group.style.visibility = 'visible';
-          group.style.opacity = '1';
-          group.style.flexShrink = '0';
-        });
-        
-        // Ensure toolbar content is visible
-        const toolbarContent = functionToolbar.querySelector('.toolbar-content');
-        if (toolbarContent) {
-          toolbarContent.style.display = 'flex';
-          toolbarContent.style.visibility = 'visible';
-          toolbarContent.style.opacity = '1';
-          toolbarContent.style.overflowX = 'auto';
-          toolbarContent.style.justifyContent = 'flex-start';
-        }
-        
-        // Force a reflow to ensure proper layout
-        functionToolbar.offsetHeight;
-        
-        console.log('Toolbar visibility ensured - all buttons should be visible');
-        console.log('Total buttons found:', buttons.length);
-        console.log('Total button groups found:', buttonGroups.length);
-      }
-    }
-    
-    // Call this function after login and also on page load if user is already logged in
-    document.addEventListener('DOMContentLoaded', function() {
-      // Ensure toolbar is hidden by default
-      const functionToolbar = document.getElementById('functionToolbar');
-      if (functionToolbar) {
-        functionToolbar.classList.remove('show');
-        functionToolbar.style.display = 'none';
-      }
-      
-      // Check if user is already logged in
-      auth.onAuthStateChanged(function(user) {
-        if (user) {
-          // User is logged in, ensure toolbar is visible
-          setTimeout(ensureToolbarVisibility, 100);
-        } else {
-          // User is not logged in, ensure toolbar is hidden
-          if (functionToolbar) {
-            functionToolbar.classList.remove('show');
-            functionToolbar.style.display = 'none';
-          }
-        }
-      });
-    });
-    
-    // Function to check and log button status
-    function checkButtonStatus() {
-      const functionToolbar = document.getElementById('functionToolbar');
-      if (functionToolbar) {
-        const buttons = functionToolbar.querySelectorAll('.toolbar-button');
-        const buttonGroups = functionToolbar.querySelectorAll('.button-group');
-        
-        console.log('=== Button Status Check ===');
-        console.log('Toolbar visible:', functionToolbar.style.display !== 'none');
-        console.log('Total buttons:', buttons.length);
-        console.log('Total button groups:', buttonGroups.length);
-        
-        buttons.forEach((button, index) => {
-          const isVisible = button.style.display !== 'none' && 
-                           button.style.visibility !== 'hidden' && 
-                           button.style.opacity !== '0';
-          console.log(`Button ${index + 1}: ${button.textContent.trim()} - Visible: ${isVisible}`);
-        });
-        
-        buttonGroups.forEach((group, index) => {
-          const isVisible = group.style.display !== 'none' && 
-                           group.style.visibility !== 'hidden' && 
-                           group.style.opacity !== '0';
-          console.log(`Button Group ${index + 1} - Visible: ${isVisible}`);
-        });
-      }
-    }
-    
-    // Call button status check after toolbar visibility is ensured
-    setTimeout(checkButtonStatus, 200);
-    
-    // Add a global function to manually show toolbar for debugging
-    window.showToolbar = function() {
-      const functionToolbar = document.getElementById('functionToolbar');
-      if (functionToolbar) {
-        // Remove any conflicting classes or styles
-        functionToolbar.classList.remove('minimized');
-        functionToolbar.classList.add('show');
-        
-        // Force all display properties
-        functionToolbar.style.setProperty('display', 'flex', 'important');
-        functionToolbar.style.setProperty('visibility', 'visible', 'important');
-        functionToolbar.style.setProperty('opacity', '1', 'important');
-        functionToolbar.style.setProperty('position', 'fixed', 'important');
-        functionToolbar.style.setProperty('bottom', '0', 'important');
-        functionToolbar.style.setProperty('left', '0', 'important');
-        functionToolbar.style.setProperty('right', '0', 'important');
-        functionToolbar.style.setProperty('z-index', '1001', 'important');
-        
-        console.log('Toolbar manually shown');
-        console.log('Toolbar display style:', functionToolbar.style.display);
-        console.log('Toolbar visibility style:', functionToolbar.style.visibility);
-        console.log('Toolbar computed display:', window.getComputedStyle(functionToolbar).display);
-        
-        // Force a reflow
-        functionToolbar.offsetHeight;
-      }
-    };
-    
-    // Add a global function to manually hide toolbar for debugging
-    window.hideToolbar = function() {
-      const functionToolbar = document.getElementById('functionToolbar');
-      if (functionToolbar) {
-        functionToolbar.classList.remove('show');
-        functionToolbar.style.setProperty('display', 'none', 'important');
-        console.log('Toolbar manually hidden');
-      }
-    };
-    
-    // Add a global function to check toolbar state
-    window.checkToolbarState = function() {
-      const functionToolbar = document.getElementById('functionToolbar');
-      if (functionToolbar) {
-        console.log('=== Toolbar State Check ===');
-        console.log('Element exists:', !!functionToolbar);
-        console.log('Has show class:', functionToolbar.classList.contains('show'));
-        console.log('Inline display style:', functionToolbar.style.display);
-        console.log('Inline visibility style:', functionToolbar.style.visibility);
-        console.log('Computed display:', window.getComputedStyle(functionToolbar).display);
-        console.log('Computed visibility:', window.getComputedStyle(functionToolbar).visibility);
-        console.log('Computed opacity:', window.getComputedStyle(functionToolbar).opacity);
-        console.log('Computed position:', window.getComputedStyle(functionToolbar).position);
-        console.log('Computed bottom:', window.getComputedStyle(functionToolbar).bottom);
-        console.log('Computed z-index:', window.getComputedStyle(functionToolbar).zIndex);
-        console.log('Offset height:', functionToolbar.offsetHeight);
-        console.log('Client height:', functionToolbar.clientHeight);
-        console.log('Scroll height:', functionToolbar.scrollHeight);
-        
-        // Check button groups
-        const buttonGroups = functionToolbar.querySelectorAll('.button-group');
-        console.log('Button groups found:', buttonGroups.length);
-        buttonGroups.forEach((group, index) => {
-          console.log(`Button Group ${index + 1}:`);
-          console.log('  - Display:', window.getComputedStyle(group).display);
-          console.log('  - Visibility:', window.getComputedStyle(group).visibility);
-          console.log('  - Has admin-only class:', group.classList.contains('admin-only'));
-          console.log('  - Buttons in group:', group.querySelectorAll('.toolbar-button').length);
-        });
-        
-        // Check individual buttons
-        const buttons = functionToolbar.querySelectorAll('.toolbar-button');
-        console.log('Total buttons found:', buttons.length);
-        buttons.forEach((button, index) => {
-          console.log(`Button ${index + 1}: ${button.textContent.trim()}`);
-          console.log('  - Display:', window.getComputedStyle(button).display);
-          console.log('  - Visibility:', window.getComputedStyle(button).visibility);
-        });
-      } else {
-        console.log('Toolbar element not found');
-      }
-    };
-    
-    // Add a global function to fix button visibility
-    window.fixButtonVisibility = function() {
-      const functionToolbar = document.getElementById('functionToolbar');
-      if (functionToolbar) {
-        console.log('=== Fixing Button Visibility ===');
-        
-        // Fix button groups
-        const buttonGroups = functionToolbar.querySelectorAll('.button-group');
-        buttonGroups.forEach((group, index) => {
-          group.style.display = 'flex';
-          group.style.visibility = 'visible';
-          group.style.opacity = '1';
-          console.log(`Fixed button group ${index + 1}`);
-        });
-        
-        // Fix individual buttons
-        const buttons = functionToolbar.querySelectorAll('.toolbar-button');
-        buttons.forEach((button, index) => {
-          button.style.display = 'inline-flex';
-          button.style.visibility = 'visible';
-          button.style.opacity = '1';
-          console.log(`Fixed button ${index + 1}: ${button.textContent.trim()}`);
-        });
-        
-        console.log('Button visibility fix completed');
-      }
-    };
-    
-    // Add a global function to completely reset toolbar
-    window.resetToolbar = function() {
-      const functionToolbar = document.getElementById('functionToolbar');
-      if (functionToolbar) {
-        console.log('=== Resetting Toolbar ===');
-        
-        // Clear all inline styles
-        functionToolbar.removeAttribute('style');
-        
-        // Remove all classes
-        functionToolbar.className = 'bottom-toolbar bg-light border-top';
-        
-        // Re-add the show class and force display
-        functionToolbar.classList.add('show');
-        functionToolbar.style.setProperty('display', 'flex', 'important');
-        functionToolbar.style.setProperty('visibility', 'visible', 'important');
-        functionToolbar.style.setProperty('opacity', '1', 'important');
-        functionToolbar.style.setProperty('position', 'fixed', 'important');
-        functionToolbar.style.setProperty('bottom', '0', 'important');
-        functionToolbar.style.setProperty('left', '0', 'important');
-        functionToolbar.style.setProperty('right', '0', 'important');
-        functionToolbar.style.setProperty('z-index', '1001', 'important');
-        
-        // Fix all buttons
-        fixButtonVisibility();
-        
-        console.log('Toolbar reset completed');
-      }
-    };
 
 </script>
 </body>
