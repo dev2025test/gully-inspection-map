@@ -3376,30 +3376,6 @@ function showSummaryPopup() {
   }).catch(error => {
     console.error('showSummaryPopup: Error checking Firebase:', error);
   });
-}
-
-// Function to refresh summary data
-function refreshSummaryData() {
-  console.log('refreshSummaryData: Refreshing gully data...');
-  loadGullyData();
-  setTimeout(() => {
-    showSummaryPopup();
-  }, 1000);
-}
-
-// Function to add test data for debugging
-function addTestGullyData() {
-  console.log('addTestGullyData: Adding test gully data...');
-  const testGully = {
-    marker: null,
-    id: 'test-gully-1',
-    layer: 'gullies',
-    status: 'Clear'
-  };
-  gullyData.push(testGully);
-  console.log('addTestGullyData: Added test gully. Total count:', gullyData.length);
-  showSummaryPopup();
-}
 
   // Create popup HTML
   let html = `
@@ -3495,6 +3471,29 @@ function addTestGullyData() {
 
   // Close helper
   window.closeModal = () => backdrop.remove();
+}
+
+// Function to refresh summary data
+function refreshSummaryData() {
+  console.log('refreshSummaryData: Refreshing gully data...');
+  loadGullyData();
+  setTimeout(() => {
+    showSummaryPopup();
+  }, 1000);
+}
+
+// Function to add test data for debugging
+function addTestGullyData() {
+  console.log('addTestGullyData: Adding test gully data...');
+  const testGully = {
+    marker: null,
+    id: 'test-gully-1',
+    layer: 'gullies',
+    status: 'Clear'
+  };
+  gullyData.push(testGully);
+  console.log('addTestGullyData: Added test gully. Total count:', gullyData.length);
+  showSummaryPopup();
 }
 
 function showSearchPopup() {
