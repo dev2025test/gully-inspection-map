@@ -2771,6 +2771,32 @@ function updateLayerButtonStates() {
   });
 }
 
+// Function to remove duplicate gullies from gullyData array
+function removeDuplicateGullies() {
+  const seenIds = new Set();
+  const uniqueGullies = [];
+  
+  for (let i = gullyData.length - 1; i >= 0; i--) {
+    const gully = gullyData[i];
+    const uniqueKey = `${gully.id}-${gully.layer}`;
+    
+    if (!seenIds.has(uniqueKey)) {
+      seenIds.add(uniqueKey);
+      uniqueGullies.unshift(gully); // Add to beginning to maintain order
+    } else {
+      console.log(`removeDuplicateGullies: Removing duplicate gully: ${gully.id} (${gully.layer})`);
+      // Remove the marker from the map if it exists
+      if (gully.marker && window.dataLayers && window.dataLayers[gully.layer]) {
+        window.dataLayers[gully.layer].removeLayer(gully.marker);
+      }
+    }
+  }
+  
+  gullyData.length = 0;
+  gullyData.push(...uniqueGullies);
+  console.log(`removeDuplicateGullies: Cleaned up gullyData. New count: ${gullyData.length}`);
+}
+
 // Update loadGullyData function
 function loadGullyData() {
   console.log('loadGullyData: Loading gully data...');
@@ -2802,6 +2828,12 @@ function loadGullyData() {
       console.log(`loadGullyData: Layer ${layerType} data loaded but not automatically visible. Use layer control to show/hide.`);
     });
   });
+  
+  // Clean up any duplicates that might have been created during loading
+  setTimeout(() => {
+    removeDuplicateGullies();
+    console.log('loadGullyData: Duplicate cleanup completed');
+  }, 1000);
 }
 
 function toggleToolbar() {
@@ -2938,6 +2970,61 @@ const layerIcons = {
 };
 
 function addGullyToMap(latlng, gullyId, layerType = 'gullies', status = 'Unmarked') {
+    // Check if this gully already exists in gullyData to prevent duplicates
+    const existingGullyIndex = gullyData.findIndex(gully => gully.id === gullyId && gully.layer === layerType);
+    if (existingGullyIndex !== -1) {
+        console.log(`addGullyToMap: Gully ${gullyId} already exists in gullyData, updating status instead of adding duplicate`);
+        // Update the existing gully's status and marker
+        gullyData[existingGullyIndex].status = status;
+        if (gullyData[existingGullyIndex].marker) {
+            // Remove old marker from map
+            if (window.dataLayers && window.dataLayers[layerType]) {
+                window.dataLayers[layerType].removeLayer(gullyData[existingGullyIndex].marker);
+            }
+        }
+        // Create new marker with updated status
+        let marker;
+        if (layerType === 'gullies') {
+            marker = L.circleMarker([latlng.lat, latlng.lng], getMarkerOptions(status));
+        } else if (layerIcons[layerType]) {
+            marker = L.marker([latlng.lat, latlng.lng], { icon: layerIcons[layerType] });
+        } else {
+            marker = L.marker([latlng.lat, latlng.lng]); // fallback
+        }
+        // Add to the correct layer group
+        if (window.dataLayers && window.dataLayers[layerType]) {
+            window.dataLayers[layerType].addLayer(marker);
+        } else {
+            console.warn('Layer not found:', layerType);
+            marker.addTo(window.map);
+        }
+        // Set up marker events
+        marker.on('click', function(e) {
+            if (deleteMode) {
+                handleGullyDelete(gullyId, marker, layerType);
+            } else {
+                currentMarker = marker;
+                showInspectionPopup(marker, gullyId, latlng, layerType);
+            }
+        });
+        marker.on('mouseover', function() {
+            if (deleteMode && layerType === 'gullies') {
+                marker.setStyle({ radius: 10, color: '#000', weight: 2 });
+            }
+        });
+        marker.on('mouseout', function() {
+            if (deleteMode && layerType === 'gullies') {
+                marker.setStyle({ radius: 8, color: '#000', weight: 2 });
+            } else if (layerType === 'gullies') {
+                marker.setStyle({ radius: 6, color: '#000', weight: 2 });
+            }
+        });
+        // Update the existing gully data with new marker
+        gullyData[existingGullyIndex].marker = marker;
+        return marker;
+    }
+
+    // If gully doesn't exist, create new marker and add to gullyData
     let marker;
     if (layerType === 'gullies') {
         marker = L.circleMarker([latlng.lat, latlng.lng], getMarkerOptions(status));
@@ -2979,7 +3066,7 @@ function addGullyToMap(latlng, gullyId, layerType = 'gullies', status = 'Unmarke
         layer: layerType,
         status: status
     });
-    console.log(`addGullyToMap: Added gully ${gullyId} to gullyData. Total count: ${gullyData.length}`);
+    console.log(`addGullyToMap: Added new gully ${gullyId} to gullyData. Total count: ${gullyData.length}`);
     return marker;
 }
 
@@ -4148,20 +4235,29 @@ function showSummaryPopup() {
     Unmarked: 0
   };
 
-  // Count gullies by status
+  // Count unique gullies by status (prevent duplicate counting)
+  const uniqueGullyIds = new Set();
   gullyData.forEach(gully => {
     console.log('showSummaryPopup: Processing gully:', gully);
     if (gully.layer === 'gullies') {
-      summary.total++;
-      const status = gully.status || 'Unmarked';
-      console.log('showSummaryPopup: Gully status:', status);
-      if (summary.hasOwnProperty(status)) {
-        summary[status]++;
+      // Only count each gully ID once
+      if (!uniqueGullyIds.has(gully.id)) {
+        uniqueGullyIds.add(gully.id);
+        summary.total++;
+        const status = gully.status || 'Unmarked';
+        console.log('showSummaryPopup: Gully status:', status);
+        if (summary.hasOwnProperty(status)) {
+          summary[status]++;
+        }
+      } else {
+        console.log(`showSummaryPopup: Skipping duplicate gully ID: ${gully.id}`);
       }
     }
   });
   
   console.log('showSummaryPopup: Final summary:', summary);
+  console.log('showSummaryPopup: Unique gully IDs counted:', uniqueGullyIds.size);
+  console.log('showSummaryPopup: Total items in gullyData:', gullyData.length);
   
   // Debug: Check Firebase directly
   db.ref('gullies').once('value').then(snapshot => {
@@ -4195,6 +4291,9 @@ function showSummaryPopup() {
         <button class="btn btn-outline-warning flex-fill py-2" onclick="addTestGullyData()">
           <i class="bi bi-plus-circle me-2"></i> Test Data
         </button>
+        <button class="btn btn-outline-info flex-fill py-2" onclick="debugGullyData(); showSummaryPopup();">
+          <i class="bi bi-bug me-2"></i> Debug Data
+        </button>
       </div>
       
       <div class="mb-2">
@@ -4204,7 +4303,7 @@ function showSummaryPopup() {
             <h3 class="m-0 fw-bold" style="font-size: 1rem;">Total Gullies</h3>
           </div>
           <div class="status-count text-primary">${summary.total}</div>
-          <div class="status-description text-muted small">Total number of gullies in the system</div>
+          <div class="status-description text-muted small">Total unique gullies in the system (duplicates excluded)</div>
         </div>
       </div>
       <div class="status-grid">
@@ -4267,8 +4366,10 @@ function refreshSummaryData() {
   console.log('refreshSummaryData: Refreshing gully data...');
   loadGullyData();
   setTimeout(() => {
+    // Clean up duplicates before showing summary
+    removeDuplicateGullies();
     showSummaryPopup();
-  }, 1000);
+  }, 1500);
 }
 
 // Function to add test data for debugging
@@ -4283,6 +4384,42 @@ function addTestGullyData() {
   gullyData.push(testGully);
   console.log('addTestGullyData: Added test gully. Total count:', gullyData.length);
   showSummaryPopup();
+}
+
+// Function to debug and clean up gully data
+function debugGullyData() {
+  console.log('debugGullyData: Current gullyData analysis:');
+  console.log('Total items in gullyData:', gullyData.length);
+  
+  const gullyCounts = {};
+  const duplicateIds = [];
+  
+  gullyData.forEach((gully, index) => {
+    const key = `${gully.id}-${gully.layer}`;
+    if (!gullyCounts[key]) {
+      gullyCounts[key] = [];
+    }
+    gullyCounts[key].push(index);
+    
+    if (gullyCounts[key].length > 1) {
+      duplicateIds.push(key);
+    }
+  });
+  
+  console.log('Unique gully IDs:', Object.keys(gullyCounts).length);
+  console.log('Duplicate IDs found:', duplicateIds);
+  
+  if (duplicateIds.length > 0) {
+    console.log('Cleaning up duplicates...');
+    removeDuplicateGullies();
+    console.log('Cleanup completed. New count:', gullyData.length);
+  }
+  
+  return {
+    totalItems: gullyData.length,
+    uniqueIds: Object.keys(gullyCounts).length,
+    duplicates: duplicateIds.length
+  };
 }
 
 function showSearchPopup() {
