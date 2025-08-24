@@ -5356,6 +5356,41 @@ async function loadAuditHistory() {
   }
 }
 
+// Function to convert ITM coordinates to WGS84
+function convertITMToWGS84(itmCoordinates) {
+  console.log('convertITMToWGS84: Converting ITM coordinates to WGS84');
+  
+  function itmToWGS84(easting, northing) {
+    // Convert ITM to WGS84 (approximate conversion)
+    // ITM origin is at 53.5°N, 8°W
+    const lat0 = 53.5;
+    const lon0 = -8;
+    
+    // Approximate conversion factors (meters to degrees)
+    const metersToLat = 1 / 111320; // 1 degree latitude ≈ 111,320 meters
+    const metersToLon = 1 / (111320 * Math.cos(lat0 * Math.PI / 180)); // 1 degree longitude varies with latitude
+    
+    // Convert from ITM origin
+    const lat = lat0 + (northing - 750000) * metersToLat;
+    const lon = lon0 + (easting - 600000) * metersToLon;
+    
+    return [lat, lon];
+  }
+  
+  // Convert the coordinates
+  const convertedCoordinates = itmCoordinates.map(polygon => 
+    polygon.map(ring => 
+      ring.map(coord => {
+        const [easting, northing] = coord;
+        return itmToWGS84(easting, northing);
+      })
+    )
+  );
+  
+  console.log('convertITMToWGS84: Conversion complete');
+  return convertedCoordinates;
+}
+
 // Function to load Cork City Council boundary
 async function loadCorkBoundaries() {
   console.log('loadCorkBoundaries: Loading Cork City Council boundaries...');
@@ -5461,15 +5496,23 @@ async function loadCorkBoundaries() {
   } catch (error) {
     console.warn('loadCorkBoundaries: KML file failed, trying fallback options...', error);
     
-    // Fallback to GeoJSON or sample boundaries
+    // Fallback to official CorkCity_Boundary.geojson with ITM coordinates
     try {
-      const response = await fetch('./cork-city-boundary.geojson');
+      const response = await fetch('./CorkCity_Boundary.geojson');
       if (response.ok) {
         const data = await response.json();
-        console.log('loadCorkBoundaries: Fallback GeoJSON boundary data loaded');
+        console.log('loadCorkBoundaries: Official CorkCity_Boundary.geojson loaded with ITM coordinates');
         
-        if (data.type === 'FeatureCollection' || data.type === 'Feature') {
-          corkOuterBoundaryLayer = L.geoJSON(data, {
+        if (data.type === 'MultiPolygon' && data.coordinates) {
+          // Convert ITM coordinates to WGS84
+          const convertedCoordinates = convertITMToWGS84(data.coordinates);
+          
+          const convertedGeoJSON = {
+            type: 'MultiPolygon',
+            coordinates: convertedCoordinates
+          };
+          
+          corkOuterBoundaryLayer = L.geoJSON(convertedGeoJSON, {
             style: {
               color: '#FF6B35',
               weight: 4,
@@ -5483,18 +5526,54 @@ async function loadCorkBoundaries() {
               <h5 style="color: #FF6B35; margin-bottom: 10px;">
                 <i class="bi bi-geo-alt"></i> Cork City Council
               </h5>
-              <p style="margin: 0;"><strong>Administrative Boundary</strong></p>
+              <p style="margin: 0;"><strong>Official Administrative Boundary</strong></p>
               <p style="margin: 5px 0; font-size: 0.9em;">
-                Cork City Council administrative area (fallback data).
+                Cork City Council official administrative area from ITM coordinates.
               </p>
             </div>
           `);
-          console.log('loadCorkBoundaries: Fallback outer boundary created');
+          console.log('loadCorkBoundaries: Official boundary created from ITM coordinates');
           return;
         }
       }
     } catch (fallbackError) {
-      console.warn('loadCorkBoundaries: Fallback also failed, creating sample boundaries');
+      console.warn('loadCorkBoundaries: Official boundary failed, trying simple fallback...', fallbackError);
+      
+      // Try simple fallback
+      try {
+        const response = await fetch('./cork-city-boundary.geojson');
+        if (response.ok) {
+          const data = await response.json();
+          console.log('loadCorkBoundaries: Simple fallback GeoJSON boundary data loaded');
+          
+          if (data.type === 'FeatureCollection' || data.type === 'Feature') {
+            corkOuterBoundaryLayer = L.geoJSON(data, {
+              style: {
+                color: '#FF6B35',
+                weight: 4,
+                opacity: 0.9,
+                fillColor: '#FF6B35',
+                fillOpacity: 0.15,
+                dashArray: '8, 4'
+              }
+            }).bindPopup(`
+              <div style="text-align: center;">
+                <h5 style="color: #FF6B35; margin-bottom: 10px;">
+                  <i class="bi bi-geo-alt"></i> Cork City Council
+                </h5>
+                <p style="margin: 0;"><strong>Administrative Boundary</strong></p>
+                <p style="margin: 5px 0; font-size: 0.9em;">
+                  Cork City Council administrative area (fallback data).
+                </p>
+              </div>
+            `);
+            console.log('loadCorkBoundaries: Simple fallback outer boundary created');
+            return;
+          }
+        }
+      } catch (simpleFallbackError) {
+        console.warn('loadCorkBoundaries: Simple fallback also failed, creating sample boundaries');
+      }
     }
     
     // Final fallback - create sample boundaries
