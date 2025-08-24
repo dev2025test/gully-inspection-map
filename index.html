@@ -475,12 +475,13 @@
         left: 50%;
         transform: translate(-50%, -50%);
         background: white;
-        padding: 20px;
+        padding: 16px;
         border-radius: 12px;
         box-shadow: 0 8px 32px rgba(0,0,0,0.15);
         z-index: 2000;
-        max-width: 95%;
-        max-height: 95vh;
+        width: 90%;
+        max-width: 1200px;
+        height: 90vh;
         overflow: hidden;
         border: 1px solid #e0e0e0;
         display: flex;
@@ -500,22 +501,22 @@
     .summary-content {
         display: flex;
         flex-direction: column;
-        gap: 15px;
+        gap: 12px;
         flex: 1;
         overflow: hidden;
     }
 
     .status-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
         margin-top: 8px;
         flex: 1;
         overflow: hidden;
     }
 
     .status-item {
-        min-height: 140px;
+        min-height: 120px;
     }
 
     .status-card {
@@ -568,13 +569,13 @@
     /* Responsive adjustments for summary popup */
     @media (max-width: 768px) {
         .summary-popup {
-            max-width: 98%;
-            max-height: 98vh;
-            padding: 15px;
+            width: 95%;
+            height: 95vh;
+            padding: 12px;
         }
         
         .status-grid {
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 8px;
         }
         
@@ -583,13 +584,29 @@
         }
         
         .summary-header h2 {
-            font-size: 1.2rem !important;
+            font-size: 1.1rem !important;
+        }
+        
+        .summary-content .d-flex.gap-2 {
+            flex-direction: column;
+            gap: 8px !important;
         }
     }
     
     @media (max-width: 480px) {
+        .summary-popup {
+            width: 98%;
+            height: 98vh;
+            padding: 10px;
+        }
+        
         .status-grid {
             grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+        
+        .status-item {
+            min-height: 90px;
         }
     }
 
@@ -3381,8 +3398,8 @@ function showSummaryPopup() {
   let html = `
     <div class="summary-header d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center">
-        <i class="bi bi-bar-chart-fill text-primary me-2" style="font-size: 1.3rem;"></i>
-        <h2 class="m-0 fw-bold" style="font-size: 1.4rem;">Gully Inspection Summary</h2>
+        <i class="bi bi-bar-chart-fill text-primary me-2" style="font-size: 1.2rem;"></i>
+        <h2 class="m-0 fw-bold" style="font-size: 1.3rem;">Gully Inspection Summary</h2>
       </div>
       <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()" title="Close">
         <i class="bi bi-x-lg"></i>
@@ -3390,32 +3407,26 @@ function showSummaryPopup() {
     </div>
     
     <div class="summary-content">
-      <div class="mb-3">
-        <button class="btn btn-primary w-100 py-2" onclick="filterFromSummary('All')">
+      <div class="d-flex gap-2 mb-2">
+        <button class="btn btn-primary flex-fill py-2" onclick="filterFromSummary('All')">
           <i class="bi bi-eye-fill me-2"></i> Show All Gullies
         </button>
-      </div>
-      
-      <div class="mb-3">
-        <button class="btn btn-outline-secondary w-100 py-2" onclick="refreshSummaryData()">
-          <i class="bi bi-arrow-clockwise me-2"></i> Refresh Data
+        <button class="btn btn-outline-secondary flex-fill py-2" onclick="refreshSummaryData()">
+          <i class="bi bi-arrow-clockwise me-2"></i> Refresh
+        </button>
+        <button class="btn btn-outline-warning flex-fill py-2" onclick="addTestGullyData()">
+          <i class="bi bi-plus-circle me-2"></i> Test Data
         </button>
       </div>
       
-      <div class="mb-3">
-        <button class="btn btn-outline-warning w-100 py-2" onclick="addTestGullyData()">
-          <i class="bi bi-plus-circle me-2"></i> Add Test Data
-        </button>
-      </div>
-      
-      <div class="mb-3">
+      <div class="mb-2">
         <div class="status-card card p-2 text-center border-primary">
           <div class="d-flex align-items-center justify-content-center mb-1">
-            <i class="bi bi-collection-fill text-primary me-2" style="font-size: 1rem;"></i>
-            <h3 class="m-0 fw-bold" style="font-size: 1.1rem;">Total Gullies</h3>
+            <i class="bi bi-collection-fill text-primary me-2" style="font-size: 0.9rem;"></i>
+            <h3 class="m-0 fw-bold" style="font-size: 1rem;">Total Gullies</h3>
           </div>
           <div class="status-count text-primary">${summary.total}</div>
-          <div class="status-description text-muted">Total number of gullies in the system</div>
+          <div class="status-description text-muted small">Total number of gullies in the system</div>
         </div>
       </div>
       <div class="status-grid">
@@ -3430,10 +3441,10 @@ function showSummaryPopup() {
                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">
                 <div class="card-body p-2">
                   <div class="d-flex align-items-center justify-content-center mb-1">
-                    <div class="status-icon me-2" style="background-color: ${getStatusColor(status)}; width: 10px; height: 10px; border-radius: 50%;"></div>
-                    <h4 class="m-0 fw-bold" style="font-size: 0.9rem;">${status}</h4>
+                    <div class="status-icon me-2" style="background-color: ${getStatusColor(status)}; width: 8px; height: 8px; border-radius: 50%;"></div>
+                    <h4 class="m-0 fw-bold" style="font-size: 0.85rem;">${status}</h4>
                   </div>
-                  <div class="status-count fw-bold" style="color: ${getStatusColor(status)}; font-size: 1.3rem;">${count}</div>
+                  <div class="status-count fw-bold" style="color: ${getStatusColor(status)}; font-size: 1.2rem;">${count}</div>
                   <div class="status-description text-muted small mb-1">${{
                     Clear: 'Clean and functioning',
                     Blocked: 'Obstructed - needs cleaning',
@@ -3443,7 +3454,7 @@ function showSummaryPopup() {
                     Unmarked: 'Not inspected yet'
                   }[status] || ''}</div>
                   <div class="mt-auto">
-                    <small class="text-primary fw-semibold" style="font-size: 0.7rem;">
+                    <small class="text-primary fw-semibold" style="font-size: 0.65rem;">
                       <i class="bi bi-funnel me-1"></i>Click to filter
                     </small>
                   </div>
