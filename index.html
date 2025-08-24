@@ -2683,9 +2683,16 @@ function initMap() {
     prefix: false
   }).addTo(window.map);
 
-  // Add gullies layer by default
-  window.dataLayers.gullies.addTo(window.map);
-  currentActiveLayer = 'gullies';
+  // Initialize layers but don't add them to map by default
+  // Layers will only be visible when explicitly clicked/selected
+  currentActiveLayer = null;
+  
+  // Ensure all layers are hidden by default
+  Object.keys(window.dataLayers).forEach(layerName => {
+    if (window.map.hasLayer(window.dataLayers[layerName])) {
+      window.dataLayers[layerName].removeFrom(window.map);
+    }
+  });
 
   // Force a map update after setup is complete
   window.map.invalidateSize();
@@ -2792,6 +2799,7 @@ function loadGullyData() {
       updateSummary();
       console.log(`loadGullyData: Loaded ${Object.keys(data).length} items for ${layerType}`);
       console.log(`loadGullyData: Current gullyData length: ${gullyData.length}`);
+      console.log(`loadGullyData: Layer ${layerType} data loaded but not automatically visible. Use layer control to show/hide.`);
     });
   });
 }
@@ -5923,11 +5931,13 @@ function toggleLayer(layerName) {
     if (!isVisible) {
       layer.addTo(window.map);
       currentActiveLayer = layerName;
+      console.log(`toggleLayer: Layer '${layerName}' is now visible`);
     } else {
       layer.removeFrom(window.map);
       if (currentActiveLayer === layerName) {
         currentActiveLayer = null;
       }
+      console.log(`toggleLayer: Layer '${layerName}' is now hidden`);
     }
     
     // Update visual state of buttons
@@ -5965,8 +5975,12 @@ function showLayerControl() {
     display: block;
   `;
 
-  // Create the layer list HTML
+  // Create the layer list HTML with clear indication that layers are not visible by default
   const layerListHTML = `
+    <div style="background: #e3f2fd; padding: 12px 16px; border-bottom: 1px solid #e9ecef; font-size: 0.9rem; color: #1976d2;">
+      <i class="bi bi-info-circle me-2"></i>
+      <strong>Layer Control:</strong> Click to show/hide layers. All layers are hidden by default.
+    </div>
     <div class="layer-item" onclick="toggleLayer('gullies')" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
       <div style="margin-right: 12px;">
         <input class="form-check-input" type="checkbox" id="gulliesLayer" onclick="event.stopPropagation(); toggleLayer('gullies')" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''} style="width: 18px; height: 18px;">
@@ -6962,7 +6976,7 @@ function loadFromBackup() {
       // Clear all layers and gullyData
       Object.values(window.dataLayers).forEach(layer => layer.clearLayers());
       gullyData.length = 0;
-      // Add features from backup
+      // Add features from backup but don't make layers visible automatically
       Object.keys(backup).forEach(layerType => {
         const items = backup[layerType] || {};
         Object.entries(items).forEach(([id, item]) => {
@@ -6971,7 +6985,8 @@ function loadFromBackup() {
           }
         });
       });
-      initializeLayerVisibility();
+      // Don't automatically show layers - they must be clicked to be visible
+      console.log('loadFromBackup: Backup loaded. Layers will only be visible when explicitly selected.');
       alert('Backup loaded successfully!');
     } catch (err) {
       alert('Error loading backup: ' + err.message);
