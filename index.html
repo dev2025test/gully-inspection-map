@@ -768,6 +768,776 @@
   align-items: center;
   justify-content: center;
 }
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Gully Inspection System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <script src="https://unpkg.com/togeojson@0.16.0/togeojson.js"></script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      background: #f0f0f0;
+    }
+
+    #loginScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    #loginBox {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 300px;
+    }
+
+    #summary { top: 10px; right: 10px; font-size: 0.9em; display: none; }
+    .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #000; }
+    .popup-form input, .popup-form select, .popup-form textarea { width: 100%; margin-bottom: 6px; }
+    .inspection-popup .leaflet-popup-content {
+      margin: 5px;
+      width: auto !important;
+    }
+    .popup-form input[type="text"],
+    .popup-form input[type="date"],
+    .popup-form select,
+    .popup-form textarea {
+      margin: 5px 0;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .popup-form button {
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .popup-form button:hover {
+      background: #e0e0e0;
+    }
+    .popup-form button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .layer-control {
+      left: 10px !important;
+      right: auto !important;
+      top: 10px;
+      z-index: 2000 !important;
+      background: #fff !important;
+      opacity: 1 !important;
+      border: 2px solid #888;
+      padding: 18px 16px 16px 16px;
+      border-radius: 8px;
+      min-width: 220px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+    }
+    .layer-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 8px;
+      border-radius: 4px;
+      background: #f8f8f8;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .layer-item:hover {
+      background: #f0f0f0;
+    }
+    .layer-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .layer-checkbox {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      cursor: pointer;
+    }
+    .layer-item label {
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .layer-control select {
+      padding: 5px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .layer-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+    .layer-content.expanded {
+      max-height: 500px;
+    }
+    .layer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      padding: 5px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      margin-bottom: 5px;
+    }
+    .layer-header:hover {
+      background: #e0e0e0;
+    }
+    .collapse-icon {
+      transition: transform 0.3s ease;
+    }
+    .collapse-icon.expanded {
+      transform: rotate(180deg);
+    }
+    .login-background {
+      background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
+                  url('cork_city_hall_night.jpg');
+      background-size: cover;
+      background-position: center;
+    }
+    .password-container {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+    .password-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      user-select: none;
+    }
+    .remember-me {
+      margin-top: 10px;
+      text-align: left;
+    }
+    .login-input {
+      width: 100%;
+      padding: 8px 12px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .login-button {
+      background: #2196F3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+      margin-top: 15px;
+    }
+    .login-button:hover {
+      background: #1976D2;
+    }
+    .ribbon-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .ribbon-group {
+      display: flex;
+      gap: 5px;
+      padding: 0 10px;
+      border-right: 1px solid #ddd;
+      flex-shrink: 0;
+    }
+    .ribbon-group:last-child {
+      border-right: none;
+    }
+    .map-controls {
+      position: fixed;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: white;
+      padding: 5px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+    .bottom-controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+      transition: transform 0.3s ease;
+    }
+    .bottom-controls.hidden {
+      transform: translateY(100%);
+    }
+    .toggle-controls {
+      position: fixed;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 5px 15px;
+      border-radius: 8px 8px 0 0;
+      box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+      cursor: pointer;
+      z-index: 1001;
+    }
+    .bottom-controls button,
+    .bottom-controls select,
+    .bottom-controls label.button {
+      padding: 8px 15px;
+      border-radius: 4px;
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .bottom-controls button:hover,
+    .bottom-controls select:hover,
+    .bottom-controls label.button:hover {
+      background: #f0f0f0;
+      border-color: #ccc;
+    }
+    .bottom-controls button:active,
+    .bottom-controls select:active,
+    .bottom-controls label.button:active {
+      background: #e8e8e8;
+      transform: translateY(1px);
+    }
+    .bottom-controls select {
+      padding-right: 25px;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 12px;
+    }
+    .function-tabs {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+      transition: transform 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .function-tabs.minimized {
+      transform: translateY(calc(100% - 40px));
+    }
+    .tab-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 15px;
+      background: #f0f0f0;
+      border-bottom: 1px solid #ddd;
+      cursor: pointer;
+    }
+    .tab-header h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+    .tab-content {
+      padding: 15px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .tab-group {
+      margin-bottom: 15px;
+    }
+    .tab-group h4 {
+      margin: 0 0 10px 0;
+      color: #666;
+    }
+    .function-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .input-group {
+      position: relative;
+      margin-bottom: 15px;
+    }
+    .input-group input {
+      width: 100%;
+    }
+    .input-group datalist {
+      position: absolute;
+      max-height: 200px;
+      overflow-y: auto;
+      width: 100%;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+    .bottom-toolbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      z-index: 1001;
+      transition: transform 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
+    .bottom-toolbar.minimized {
+      transform: translateY(calc(100% - 40px));
+    }
+    .toolbar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 15px;
+      background: #f0f0f0;
+      cursor: pointer;
+    }
+    .toolbar-header h3 {
+      margin: 0;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      padding: 4px 12px;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .user-role {
+      font-weight: bold;
+      color: #2196F3;
+    }
+    .toolbar-content {
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      padding: 10px 15px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: none;
+      /* Ensure content stays together during zoom */
+      min-width: 0;
+      flex-wrap: nowrap;
+      box-sizing: border-box;
+      /* Prevent horizontal scrolling issues during zoom */
+      scrollbar-width: thin;
+      scrollbar-color: #ccc transparent;
+      /* Ensure proper spacing */
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+    .button-group {
+      display: flex;
+      flex-direction: row;
+      gap: 8px;
+      padding: 0 10px;
+      border: none;
+      align-items: center;
+      margin: 0;
+      /* Ensure button group stays together during zoom */
+      flex-shrink: 0;
+      min-width: 0;
+      box-sizing: border-box;
+      /* Prevent wrapping during zoom */
+      flex-wrap: nowrap;
+      /* Ensure all buttons stay in one cohesive group */
+      width: 100%;
+      justify-content: flex-start;
+    }
+    .button-group.admin-only {
+      margin-right: 0;
+    }
+    .toolbar-button {
+      padding: 8px 15px;
+      border-radius: 4px;
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+    }
+    .toolbar-button:hover {
+      background: #f0f0f0;
+      border-color: #ccc;
+    }
+    .toolbar-button:active {
+      background: #e8e8e8;
+      transform: translateY(1px);
+    }
+    .summary-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 16px;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        z-index: 2000;
+        width: 90%;
+        max-width: 1200px;
+        height: 90vh;
+        overflow: hidden;
+        border: 1px solid #e0e0e0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .summary-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #f0f0f0;
+        flex-shrink: 0;
+    }
+
+    .summary-content {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        margin-top: 8px;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .status-item {
+        min-height: 120px;
+    }
+
+    .status-card {
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        transition: all 0.3s ease;
+        height: 100%;
+        position: relative;
+        overflow: visible;
+    }
+
+    .status-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        border-color: #007bff;
+    }
+
+    .status-card .card-body {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: visible;
+    }
+
+    .status-count {
+        font-size: 1.3rem;
+        font-weight: bold;
+        margin: 6px 0;
+    }
+
+    .status-description {
+        font-size: 0.8rem;
+        line-height: 1.3;
+        flex-grow: 1;
+    }
+
+    .status-icon {
+        border: 2px solid white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+
+
+    .status-description {
+        font-size: 0.9em;
+        color: #666;
+    }
+    
+    /* Responsive adjustments for summary popup */
+    @media (max-width: 768px) {
+        .summary-popup {
+            width: 95%;
+            height: 95vh;
+            padding: 12px;
+        }
+        
+        .status-grid {
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px;
+        }
+        
+        .status-item {
+            min-height: 100px;
+        }
+        
+        .summary-header h2 {
+            font-size: 1.1rem !important;
+        }
+        
+        .summary-content .d-flex.gap-2 {
+            flex-direction: column;
+            gap: 8px !important;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .summary-popup {
+            width: 98%;
+            height: 98vh;
+            padding: 10px;
+        }
+        
+        .status-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+        
+        .status-item {
+            min-height: 90px;
+        }
+    }
+
+    .loading-spinner {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        z-index: 2000;
+        text-align: center;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        margin: 10px auto;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    #add-tooltip {
+        display: none;
+        position: fixed;
+        background: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 1000;
+        pointer-events: none;
+        font-size: 12px;
+    }
+    .layer-button {
+      position: relative;
+      padding-left: 30px !important;
+    }
+
+    .layer-button.active {
+      background-color: #e3f2fd !important;
+      border-color: #2196F3 !important;
+    }
+
+    .layer-button:hover {
+      background-color: #f0f0f0;
+    }
+  </style>
+  <style>
+    .inspection-popup .leaflet-popup-content {
+      padding: 18px 14px 10px 14px !important;
+      border-radius: 12px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
+      font-size: 15px !important;
+      background: #fff !important;
+      min-width: 260px;
+      max-width: 340px;
+    }
+    .inspection-popup h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+    .inspection-popup .popup-form > div {
+      margin-bottom: 8px;
+    }
+    .inspection-popup input[type="text"],
+    .inspection-popup input[type="date"],
+    .inspection-popup select {
+      padding: 5px 8px;
+      border-radius: 5px;
+      border: 1px solid #bbb;
+      font-size: 1em;
+      margin-top: 2px;
+    }
+    .inspection-popup button {
+      border-radius: 5px;
+      border: 1px solid #bbb;
+      background: #f8f8f8;
+      padding: 5px 12px;
+      font-size: 1em;
+      margin-right: 6px;
+      margin-top: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .inspection-popup button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .inspection-popup button:hover:not(:disabled) {
+      background: #e0e0e0;
+    }
+    .inspection-popup label {
+      margin-bottom: 0;
+      font-size: 1em;
+    }
+    .inspection-popup img {
+      border-radius: 6px;
+      margin-top: 4px;
+      border: 1px solid #eee;
+    }
+  </style>
+  <style>
+/* Add responsive and modal styles for custom elements */
+@media (max-width: 900px) {
+  .bottom-toolbar, .toolbar-content, .toolbar-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+  }
+  .button-group {
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+  .toolbar-button, .login-button {
+    width: 100% !important;
+    font-size: 16px !important;
+  }
+  .summary-popup, .user-management-modal {
+    max-width: 98vw !important;
+    max-height: 90vh !important;
+    padding: 10px !important;
+  }
+}
+@media (max-width: 600px) {
+  #loginBox {
+    min-width: unset !important;
+    width: 95vw !important;
+    padding: 10px !important;
+  }
+  .summary-popup, .user-management-modal {
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 98vw !important;
+    max-width: 98vw !important;
+    padding: 5px !important;
+  }
+  .toolbar-header h3, .toolbar-header span {
+    font-size: 14px !important;
+  }
+}
+.modal-backdrop-custom {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 1999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
   </style>
   <style>
     html, body {
@@ -1282,7 +2052,7 @@
       <button class="btn btn-secondary toolbar-button d-inline-flex align-items-center admin-only" onclick="logout()" title="Log out of your account"><i class="bi bi-box-arrow-right"></i> <span>Logout</span></button>
       <button class="btn btn-warning toolbar-button d-inline-flex align-items-center admin-only" onclick="enableEditMode()" title="Enable edit mode"><i class="bi bi-pencil"></i> <span>Edit</span></button>
       <button class="btn btn-danger toolbar-button d-inline-flex align-items-center admin-only" onclick="enableDeleteMode()" title="Enable delete mode"><i class="bi bi-trash"></i> <span>Delete</span></button>
-      <button class="btn btn-success toolbar-button d-inline-flex align-items-center admin-only" onclick="enableAddMode()" title="Add a new item"><i class="bi bi-plus"></i> <span>Add New</span></button>
+      <button class="btn btn-success toolbar-button d-inline-flex align-items-center admin-only" onclick="enableAddMode()" title="Add a new asset"><i class="bi bi-plus"></i> <span>Add New Asset</span></button>
       
       <!-- Function Buttons -->
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="printMap()" title="Print the current map view"><i class="bi bi-printer"></i> <span>Print</span></button>
@@ -3600,6 +4370,8 @@ async function performSearch() {
   }
   
   console.log('performSearch: Searching for:', searchTerm);
+  console.log('performSearch: gullyData length:', gullyData ? gullyData.length : 'undefined');
+  console.log('performSearch: gullyData sample:', gullyData ? gullyData.slice(0, 2) : 'undefined');
   
   // Show loading spinner while searching
   resultsContainer.innerHTML = `
@@ -3612,9 +4384,9 @@ async function performSearch() {
   // Search through gully data and Firebase for additional details
   const results = [];
   
-  if (window.gullyData && Array.isArray(window.gullyData)) {
+  if (gullyData && Array.isArray(gullyData)) {
     // Create array of promises to fetch detailed data for each gully
-    const searchPromises = window.gullyData.map(async (gully, index) => {
+    const searchPromises = gullyData.map(async (gully, index) => {
       try {
         // Get additional details from Firebase
         const snapshot = await db.ref(`${gully.layer}/${gully.id}`).once('value');
@@ -3634,6 +4406,11 @@ async function performSearch() {
           fullData.area || '',
           fullData.zone || ''
         ].join(' ').toLowerCase();
+        
+        // Debug: Log searchable text for first few items
+        if (index < 3) {
+          console.log('performSearch: Searchable text for item', index, ':', searchableText);
+        }
         
         if (searchableText.includes(searchTerm)) {
           // Get coordinates from marker
@@ -3692,14 +4469,49 @@ async function performSearch() {
   
   // Display results
   if (results.length === 0) {
-    resultsContainer.innerHTML = `
-      <div style="text-align: center; color: #6c757d; padding: 20px;">
-        <i class="bi bi-exclamation-circle" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
-        No results found for "${searchTerm}"
-        <br><small>Try searching for a different term</small>
-      </div>
-    `;
-  } else {
+    // Try a simpler search as fallback
+    console.log('performSearch: No results found, trying fallback search...');
+    const fallbackResults = [];
+    
+    if (gullyData && Array.isArray(gullyData)) {
+      gullyData.forEach((gully, index) => {
+        const basicSearchText = [
+          gully.id || '',
+          gully.status || '',
+          gully.layer || ''
+        ].join(' ').toLowerCase();
+        
+        if (basicSearchText.includes(searchTerm)) {
+          const coords = gully.marker ? gully.marker.getLatLng() : null;
+          fallbackResults.push({
+            type: 'asset',
+            data: {
+              ...gully,
+              lat: coords ? coords.lat : null,
+              lng: coords ? coords.lng : null
+            },
+            index: index,
+            matchText: gully.id || 'Unnamed Asset'
+          });
+        }
+      });
+    }
+    
+    if (fallbackResults.length > 0) {
+      console.log('performSearch: Found', fallbackResults.length, 'results with fallback search');
+      results.push(...fallbackResults);
+    } else {
+      console.log('performSearch: No results found even with fallback search');
+      resultsContainer.innerHTML = `
+        <div style="text-align: center; color: #6c757d; padding: 20px;">
+          <i class="bi bi-exclamation-circle" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+          No results found for "${searchTerm}"
+          <br><small>Try searching for a different term</small>
+        </div>
+      `;
+      return;
+    }
+  }
     const resultsHTML = results.map(result => {
       // Create a comprehensive info line
       const infoItems = [];
@@ -3752,8 +4564,8 @@ async function performSearch() {
 function zoomToAsset(index) {
   console.log('zoomToAsset: Zooming to asset at index', index);
   
-  if (window.gullyData && window.gullyData[index]) {
-    const asset = window.gullyData[index];
+  if (gullyData && gullyData[index]) {
+    const asset = gullyData[index];
     
     // Get coordinates from the marker
     let coords = null;
