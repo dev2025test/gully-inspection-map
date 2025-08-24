@@ -2056,10 +2056,11 @@
       
       <!-- Function Buttons -->
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="printMap()" title="Print the current map view"><i class="bi bi-printer"></i> <span>Print</span></button>
-      <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="resetMap()" title="Reset the map to its default state"><i class="bi bi-arrow-repeat"></i> <span>Reset</span></button>
+      <button class="btn btn-outline-danger toolbar-button d-inline-flex align-items-center" onclick="resetMap()" title="⚠️ ERASE ALL DATA - This will permanently delete all data from the database"><i class="bi bi-trash"></i> <span>Erase All Data</span></button>
       <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSummaryPopup()" title="Show summary statistics"><i class="bi bi-bar-chart"></i> <span>Summary</span></button>
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="showLayerControl()" title="Show or hide map layers"><i class="bi bi-layers"></i> <span>Layers</span></button>
       <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSearchPopup()" title="Search by street name, estate, gully ID, or area"><i class="bi bi-search"></i> <span>Search</span></button>
+      <button class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" id="gullyFilterBtn" onclick="showGullyFilterPopup()" title="Filter gullies by status (Clear, Blocked, Remediation, etc.)"><i class="bi bi-funnel"></i> <span>Filter Gullies</span></button>
       <label for="importFile" class="btn btn-outline-primary toolbar-button d-inline-flex align-items-center" title="Import data from a file"><i class="bi bi-upload"></i> <span>Import</span></label>
       <input type="file" id="importFile" onchange="handleImportFile(event)" style="display: none;">
       <button class="btn btn-outline-success toolbar-button d-inline-flex align-items-center" onclick="exportData()" title="Export data as CSV file"><i class="bi bi-download"></i> <span>Export CSV</span></button>
@@ -4061,7 +4062,7 @@ function exportData() {
 }
 
 function resetMap() {
-  console.log('resetMap: Starting map reset...');
+  console.log('resetMap: Starting complete data erasure...');
   if (!auth.currentUser) {
     alert('You must be logged in to reset the map');
     return;
@@ -4078,8 +4079,22 @@ function resetMap() {
   auth.currentUser.reauthenticateWithCredential(credential)
     .then(() => {
       // Password correct, proceed with reset
-      const confirmReset = confirm('Are you sure you want to reset the map? This will:\n\n• Reset ALL gullies to "Unmarked" (unchecked) status\n• Clear all inspection data, comments, and photos\n• Reset the map view to default\n\nThis action cannot be undone and will be logged in the audit trail.');
+      const confirmReset = confirm('⚠️ WARNING: Complete Data Erasure ⚠️\n\nAre you sure you want to ERASE ALL DATA? This will:\n\n• DELETE ALL gullies, playgrounds, walkways, signage, and lining data\n• DELETE ALL audit logs and user activity logs\n• DELETE ALL inspection data, comments, and photos\n• DELETE ALL gully history and inspection records\n• Reset the map view to default\n\n⚠️ This action will PERMANENTLY DELETE ALL DATA and cannot be undone!');
+      
       if (!confirmReset) {
+        return;
+      }
+      
+      const eraseConfirmation = prompt('To confirm complete data erasure, please type "ERASE ALL" (case sensitive):');
+      if (eraseConfirmation !== 'ERASE ALL') {
+        alert('Data erasure cancelled. Incorrect confirmation text.');
+        return;
+      }
+      
+      // Final confirmation with data count
+      const finalConfirm = confirm('⚠️ FINAL WARNING ⚠️\n\nYou are about to PERMANENTLY DELETE ALL DATA from the database.\n\nThis includes:\n• All asset data (gullies, playgrounds, walkways, signage, lining)\n• All audit logs and user activity records\n• All inspection data and photos\n• All historical records\n\n⚠️ This action is IRREVERSIBLE and will result in complete data loss!\n\nAre you absolutely sure you want to proceed?');
+      if (!finalConfirm) {
+        alert('Data erasure cancelled at final confirmation.');
         return;
       }
       try {
@@ -4110,49 +4125,54 @@ function resetMap() {
           layer.clearLayers();
         });
 
-        // Reset all gullies to "Unmarked" status in Firebase
-        console.log('resetMap: Resetting all gullies to Unmarked status...');
-        db.ref('gullies').once('value').then(snapshot => {
-          const gullies = snapshot.val() || {};
-          const resetPromises = [];
-          
-          Object.keys(gullies).forEach(gullyId => {
-            // Log the reset action for audit trail
-            logAuditEvent('STATUS_CHANGE', 'gullies', gullyId, {
-              location: gullies[gullyId].location || null,
-              previousStatus: gullies[gullyId].status || 'Unknown',
-              newStatus: 'Unmarked',
-              method: 'Bulk reset via reset map function',
-              reason: 'Map reset - all gullies reverted to unchecked status'
-            });
-            
-            const resetPromise = db.ref(`gullies/${gullyId}`).update({
-              status: 'Unmarked',
-              comment: '',
-              date: '',
-              photoURL: '',
-              lastInspected: null,
-              inspections: null
-            });
-            resetPromises.push(resetPromise);
-          });
-          
-          return Promise.all(resetPromises);
-        }).then(() => {
-          console.log('resetMap: All gullies reset to Unmarked status in Firebase');
-          
-          // Reload data to show updated markers with Unmarked status
-          setTimeout(() => {
-            loadGullyData();
-            console.log('resetMap: Reloaded gully data with updated status');
-          }, 500);
-        }).catch(error => {
-          console.error('resetMap: Error resetting gullies status:', error);
+        // ERASE ALL DATA from Firebase database
+        console.log('resetMap: Erasing all data from Firebase...');
+        
+        // Log the complete reset action for audit trail before erasing audit logs
+        logAuditEvent('SYSTEM_RESET', 'system', 'all_data', {
+          method: 'Complete data erasure via reset map function',
+          reason: 'Complete system reset - all data erased',
+          user: auth.currentUser.email,
+          timestamp: new Date().toISOString()
         });
+        
+        // Define all data paths to erase
+        const dataPathsToErase = [
+          'gullies',
+          'playgrounds', 
+          'walkways',
+          'signage',
+          'lining',
+          'audit_log',
+          'user_logs',
+          'gully_history'
+        ];
+        
+        // Erase all data from all paths
+        const erasePromises = dataPathsToErase.map(path => {
+          console.log(`resetMap: Erasing data from path: ${path}`);
+          return db.ref(path).remove();
+        });
+        
+        Promise.all(erasePromises)
+          .then(() => {
+            console.log('resetMap: All data successfully erased from Firebase');
+            
+            // Reload data to show empty map
+            setTimeout(() => {
+              loadGullyData();
+              console.log('resetMap: Reloaded empty gully data');
+            }, 500);
+          })
+          .catch(error => {
+            console.error('resetMap: Error erasing data:', error);
+            alert('Error erasing data: ' + error.message);
+          });
 
-        // Clear the gullyData array
+        // Clear all local data arrays and variables
         gullyData.length = 0;
-        console.log('resetMap: Cleared gully data array');
+        auditLog.length = 0;
+        console.log('resetMap: Cleared all local data arrays');
 
         // Reset the map view with animation
         window.map.setView(defaultCenter, defaultZoom, {
@@ -4196,12 +4216,21 @@ function resetMap() {
         importedFiles.clear();
         importedPositions.clear();
         console.log('resetMap: Cleared imported files and positions sets.');
+        
+        // Clear any cached data or local storage
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          console.log('resetMap: Cleared browser storage and cache.');
+        } catch (error) {
+          console.log('resetMap: Could not clear browser storage:', error);
+        }
 
         // Remove loading spinner after a short delay
         setTimeout(() => {
           loadingDiv.remove();
-          console.log('resetMap: Map reset complete.');
-          alert('Map reset complete!\n\n✓ All gullies have been reset to "Unmarked" status\n✓ All inspection data cleared\n✓ Map view reset to default\n✓ Actions logged to audit trail');
+          console.log('resetMap: Complete data erasure finished.');
+          alert('⚠️ Complete Data Erasure Finished ⚠️\n\n✓ ALL DATA has been permanently deleted from the database\n✓ All gullies, playgrounds, walkways, signage, and lining data erased\n✓ All audit logs and user activity logs deleted\n✓ All inspection data, comments, and photos removed\n✓ All gully history and inspection records deleted\n✓ Map view reset to default\n✓ Database is now completely empty\n\n⚠️ This action cannot be undone!');
         }, 1500);
 
       } catch (error) {
@@ -4833,6 +4862,269 @@ function zoomToAsset(index) {
   } else {
     console.warn('zoomToAsset: Asset not found at index:', index);
     showNotification('Asset not found', 'error');
+  }
+}
+
+function showGullyFilterPopup() {
+  console.log('showGullyFilterPopup: Opening gully filter popup');
+  
+  // Remove any existing filter popup
+  const existingPopup = document.getElementById('gullyFilterPopupContainer');
+  if (existingPopup) {
+    existingPopup.remove();
+  }
+  
+  // Create filter popup container
+  const container = document.createElement('div');
+  container.id = 'gullyFilterPopupContainer';
+  container.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 400px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    border: 1px solid #e0e0e0;
+    z-index: 3001;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow: hidden;
+  `;
+
+  container.innerHTML = `
+    <div style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center;">
+        <i class="bi bi-funnel" style="font-size: 1.2rem; margin-right: 12px;"></i>
+        <span style="font-size: 1.1rem; font-weight: 600;">Filter Gullies by Status</span>
+      </div>
+      <button onclick="document.getElementById('gullyFilterPopupContainer').remove()" style="background: none; border: none; color: white; font-size: 1.1rem; cursor: pointer;">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div style="padding: 20px;">
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 12px; font-weight: 600; color: #2c3e50;">Select gully status to filter:</label>
+        <div style="display: grid; gap: 8px;">
+          <button onclick="filterGulliesByStatus('All')" class="filter-btn" style="background: #6c757d; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="bi bi-eye-fill" style="margin-right: 8px;"></i>Show All Gullies</span>
+            <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">All</span>
+          </button>
+          <button onclick="filterGulliesByStatus('Clear')" class="filter-btn" style="background: #4CAF50; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="bi bi-check-circle-fill" style="margin-right: 8px;"></i>Clear Gullies</span>
+            <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">0</span>
+          </button>
+          <button onclick="filterGulliesByStatus('Blocked')" class="filter-btn" style="background: #FF9800; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="bi bi-exclamation-triangle-fill" style="margin-right: 8px;"></i>Blocked Gullies</span>
+            <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">0</span>
+          </button>
+          <button onclick="filterGulliesByStatus('Broken')" class="filter-btn" style="background: #f44336; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="bi bi-x-circle-fill" style="margin-right: 8px;"></i>Broken Gullies</span>
+            <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">0</span>
+          </button>
+          <button onclick="filterGulliesByStatus('Remediation')" class="filter-btn" style="background: #9C27B0; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="bi bi-tools" style="margin-right: 8px;"></i>Remediation Gullies</span>
+            <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">0</span>
+          </button>
+          <button onclick="filterGulliesByStatus('Replacement')" class="filter-btn" style="background: #795548; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="bi bi-arrow-repeat" style="margin-right: 8px;"></i>Replacement Gullies</span>
+            <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">0</span>
+          </button>
+          <button onclick="filterGulliesByStatus('Unmarked')" class="filter-btn" style="background: #9E9E9E; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="bi bi-question-circle-fill" style="margin-right: 8px;"></i>Unmarked Gullies</span>
+            <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">0</span>
+          </button>
+        </div>
+      </div>
+      
+      <div style="margin-top: 16px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #2196F3;">
+        <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">Current Filter:</div>
+        <div id="currentFilterStatus" style="color: #6c757d; font-size: 0.9rem;">No filter applied</div>
+      </div>
+      
+      <div style="margin-top: 16px; display: flex; gap: 8px;">
+        <button onclick="clearGullyFilter()" style="flex: 1; padding: 10px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+          <i class="bi bi-x-circle" style="margin-right: 6px;"></i>Clear Filter
+        </button>
+        <button onclick="document.getElementById('gullyFilterPopupContainer').remove()" style="flex: 1; padding: 10px; background: #2196F3; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+          <i class="bi bi-check" style="margin-right: 6px;"></i>Close
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(container);
+  
+  // Update counts
+  updateGullyFilterCounts();
+}
+
+function updateGullyFilterCounts() {
+  console.log('updateGullyFilterCounts: Updating gully filter counts...');
+  
+  if (!gullyData || !Array.isArray(gullyData)) {
+    console.log('updateGullyFilterCounts: No gully data available');
+    return;
+  }
+  
+  // Count gullies by status
+  const counts = {
+    All: 0,
+    Clear: 0,
+    Blocked: 0,
+    Broken: 0,
+    Remediation: 0,
+    Replacement: 0,
+    Unmarked: 0
+  };
+  
+  // Count unique gully IDs by status
+  const uniqueGullyIds = new Set();
+  
+  gullyData.forEach(gully => {
+    if (gully.layer === 'gullies') {
+      if (!uniqueGullyIds.has(gully.id)) {
+        uniqueGullyIds.add(gully.id);
+        counts.All++;
+        const status = gully.status || 'Unmarked';
+        if (counts.hasOwnProperty(status)) {
+          counts[status]++;
+        }
+      }
+    }
+  });
+  
+  // Update the count badges
+  Object.keys(counts).forEach(status => {
+    const countBadge = document.querySelector(`button[onclick="filterGulliesByStatus('${status}')"] .count-badge`);
+    if (countBadge) {
+      countBadge.textContent = counts[status];
+    }
+  });
+  
+  console.log('updateGullyFilterCounts: Updated counts:', counts);
+}
+
+function filterGulliesByStatus(status) {
+  console.log('filterGulliesByStatus: Filtering gullies by status:', status);
+  
+  // Close the filter popup
+  const filterPopup = document.getElementById('gullyFilterPopupContainer');
+  if (filterPopup) {
+    filterPopup.remove();
+  }
+  
+  // Ensure the gullies layer is visible on the map
+  if (window.dataLayers && window.dataLayers.gullies && !window.map.hasLayer(window.dataLayers.gullies)) {
+    window.dataLayers.gullies.addTo(window.map);
+    console.log('filterGulliesByStatus: Made gullies layer visible');
+  }
+  
+  // Hide all gully markers first
+  gullyData.forEach(gully => {
+    if (gully.layer === 'gullies' && gully.marker) {
+      if (window.dataLayers && window.dataLayers.gullies) {
+        window.dataLayers.gullies.removeLayer(gully.marker);
+      }
+    }
+  });
+  
+  // Show only gullies with the selected status
+  let visibleCount = 0;
+  gullyData.forEach(gully => {
+    if (gully.layer === 'gullies') {
+      const gullyStatus = gully.status || 'Unmarked';
+      
+      if (status === 'All' || gullyStatus === status) {
+        if (gully.marker && window.dataLayers && window.dataLayers.gullies) {
+          window.dataLayers.gullies.addLayer(gully.marker);
+          visibleCount++;
+        }
+      }
+    }
+  });
+  
+  // Update current filter status
+  const currentFilterStatus = document.getElementById('currentFilterStatus');
+  if (currentFilterStatus) {
+    currentFilterStatus.textContent = `${status} gullies (${visibleCount} visible)`;
+  }
+  
+  // Show notification
+  const statusColors = {
+    'All': '#6c757d',
+    'Clear': '#4CAF50',
+    'Blocked': '#FF9800',
+    'Broken': '#f44336',
+    'Remediation': '#9C27B0',
+    'Replacement': '#795548',
+    'Unmarked': '#9E9E9E'
+  };
+  
+  const color = statusColors[status] || '#6c757d';
+  showNotification(`Showing ${status} gullies (${visibleCount} visible)`, 'success');
+  
+  // Update filter button appearance
+  updateFilterButtonAppearance(status, visibleCount);
+  
+  console.log(`filterGulliesByStatus: Showing ${visibleCount} ${status} gullies`);
+}
+
+function clearGullyFilter() {
+  console.log('clearGullyFilter: Clearing gully filter...');
+  
+  // Show all gully markers
+  gullyData.forEach(gully => {
+    if (gully.layer === 'gullies' && gully.marker) {
+      if (window.dataLayers && window.dataLayers.gullies) {
+        window.dataLayers.gullies.addLayer(gully.marker);
+      }
+    }
+  });
+  
+  // Update current filter status
+  const currentFilterStatus = document.getElementById('currentFilterStatus');
+  if (currentFilterStatus) {
+    currentFilterStatus.textContent = 'All gullies visible (no filter)';
+  }
+  
+  // Reset filter button appearance
+  updateFilterButtonAppearance('All', gullyData.filter(g => g.layer === 'gullies').length);
+  
+  showNotification('Gully filter cleared - showing all gullies', 'success');
+  console.log('clearGullyFilter: All gullies now visible');
+}
+
+function updateFilterButtonAppearance(status, count) {
+  const filterBtn = document.getElementById('gullyFilterBtn');
+  if (!filterBtn) return;
+  
+  const statusColors = {
+    'All': '#6c757d',
+    'Clear': '#4CAF50',
+    'Blocked': '#FF9800',
+    'Broken': '#f44336',
+    'Remediation': '#9C27B0',
+    'Replacement': '#795548',
+    'Unmarked': '#9E9E9E'
+  };
+  
+  const color = statusColors[status] || '#6c757d';
+  
+  if (status === 'All') {
+    // Reset to default appearance
+    filterBtn.className = 'btn btn-outline-primary toolbar-button d-inline-flex align-items-center';
+    filterBtn.innerHTML = '<i class="bi bi-funnel"></i> <span>Filter Gullies</span>';
+    filterBtn.title = 'Filter gullies by status (Clear, Blocked, Remediation, etc.)';
+  } else {
+    // Show active filter appearance
+    filterBtn.className = 'btn toolbar-button d-inline-flex align-items-center';
+    filterBtn.style.backgroundColor = color;
+    filterBtn.style.borderColor = color;
+    filterBtn.style.color = 'white';
+    filterBtn.innerHTML = `<i class="bi bi-funnel-fill"></i> <span>${status} (${count})</span>`;
+    filterBtn.title = `Currently showing ${status} gullies. Click to change filter.`;
   }
 }
 
