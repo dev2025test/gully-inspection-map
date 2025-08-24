@@ -4224,6 +4224,12 @@ function showSummaryPopup() {
   console.log('showSummaryPopup: gullyData length:', gullyData.length);
   console.log('showSummaryPopup: gullyData sample:', gullyData.slice(0, 3));
   
+  // Validate that we're only processing gully assets
+  const validation = validateGullyOnlySummary();
+  if (!validation.isValid) {
+    console.warn('showSummaryPopup: Non-gully assets detected in gullyData array');
+  }
+  
   // Calculate summary data
   const summary = {
     total: 0,
@@ -4235,10 +4241,14 @@ function showSummaryPopup() {
     Unmarked: 0
   };
 
-  // Count unique gullies by status (prevent duplicate counting)
+  // Count unique gully assets by status (exclude all non-gully assets)
   const uniqueGullyIds = new Set();
+  let nonGullyAssets = 0;
+  
   gullyData.forEach(gully => {
-    console.log('showSummaryPopup: Processing gully:', gully);
+    console.log('showSummaryPopup: Processing asset:', gully);
+    
+    // Only process assets that belong to the 'gullies' layer
     if (gully.layer === 'gullies') {
       // Only count each gully ID once
       if (!uniqueGullyIds.has(gully.id)) {
@@ -4252,12 +4262,19 @@ function showSummaryPopup() {
       } else {
         console.log(`showSummaryPopup: Skipping duplicate gully ID: ${gully.id}`);
       }
+    } else {
+      // Count non-gully assets for debugging
+      nonGullyAssets++;
+      console.log(`showSummaryPopup: Skipping non-gully asset: ${gully.id} (layer: ${gully.layer})`);
     }
   });
+  
+  console.log(`showSummaryPopup: Non-gully assets excluded: ${nonGullyAssets}`);
   
   console.log('showSummaryPopup: Final summary:', summary);
   console.log('showSummaryPopup: Unique gully IDs counted:', uniqueGullyIds.size);
   console.log('showSummaryPopup: Total items in gullyData:', gullyData.length);
+  console.log('showSummaryPopup: Summary validation - Only gully assets included:', validation.isValid);
   
   // Debug: Check Firebase directly
   db.ref('gullies').once('value').then(snapshot => {
@@ -4273,7 +4290,7 @@ function showSummaryPopup() {
     <div class="summary-header d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center">
         <i class="bi bi-bar-chart-fill text-primary me-2" style="font-size: 1.2rem;"></i>
-        <h2 class="m-0 fw-bold" style="font-size: 1.3rem;">Gully Inspection Summary</h2>
+        <h2 class="m-0 fw-bold" style="font-size: 1.3rem;">Gully Assets Summary</h2>
       </div>
       <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()" title="Close">
         <i class="bi bi-x-lg"></i>
@@ -4283,7 +4300,7 @@ function showSummaryPopup() {
     <div class="summary-content">
       <div class="d-flex gap-2 mb-2">
         <button class="btn btn-primary flex-fill py-2" onclick="filterFromSummary('All')">
-          <i class="bi bi-eye-fill me-2"></i> Show All Gullies
+          <i class="bi bi-eye-fill me-2"></i> Show All Gully Assets
         </button>
         <button class="btn btn-outline-secondary flex-fill py-2" onclick="refreshSummaryData()">
           <i class="bi bi-arrow-clockwise me-2"></i> Refresh
@@ -4293,6 +4310,9 @@ function showSummaryPopup() {
         </button>
         <button class="btn btn-outline-info flex-fill py-2" onclick="debugGullyData(); showSummaryPopup();">
           <i class="bi bi-bug me-2"></i> Debug Data
+        </button>
+        <button class="btn btn-outline-success flex-fill py-2" onclick="validateGullyOnlySummary();">
+          <i class="bi bi-check-circle me-2"></i> Validate Assets
         </button>
       </div>
       
@@ -4393,6 +4413,7 @@ function debugGullyData() {
   
   const gullyCounts = {};
   const duplicateIds = [];
+  const layerBreakdown = {};
   
   gullyData.forEach((gully, index) => {
     const key = `${gully.id}-${gully.layer}`;
@@ -4404,8 +4425,15 @@ function debugGullyData() {
     if (gullyCounts[key].length > 1) {
       duplicateIds.push(key);
     }
+    
+    // Track layer breakdown
+    if (!layerBreakdown[gully.layer]) {
+      layerBreakdown[gully.layer] = 0;
+    }
+    layerBreakdown[gully.layer]++;
   });
   
+  console.log('Layer breakdown:', layerBreakdown);
   console.log('Unique gully IDs:', Object.keys(gullyCounts).length);
   console.log('Duplicate IDs found:', duplicateIds);
   
@@ -4418,7 +4446,33 @@ function debugGullyData() {
   return {
     totalItems: gullyData.length,
     uniqueIds: Object.keys(gullyCounts).length,
-    duplicates: duplicateIds.length
+    duplicates: duplicateIds.length,
+    layerBreakdown: layerBreakdown
+  };
+}
+
+// Function to validate that only gully assets are included in summary
+function validateGullyOnlySummary() {
+  const nonGullyAssets = gullyData.filter(asset => asset.layer !== 'gullies');
+  const gullyAssets = gullyData.filter(asset => asset.layer === 'gullies');
+  
+  console.log('validateGullyOnlySummary: Validation results:');
+  console.log(`- Total assets in gullyData: ${gullyData.length}`);
+  console.log(`- Gully assets: ${gullyAssets.length}`);
+  console.log(`- Non-gully assets: ${nonGullyAssets.length}`);
+  
+  if (nonGullyAssets.length > 0) {
+    console.log('validateGullyOnlySummary: Non-gully assets found:');
+    nonGullyAssets.forEach(asset => {
+      console.log(`  - ${asset.id} (${asset.layer})`);
+    });
+  }
+  
+  return {
+    totalAssets: gullyData.length,
+    gullyAssets: gullyAssets.length,
+    nonGullyAssets: nonGullyAssets.length,
+    isValid: nonGullyAssets.length === 0
   };
 }
 
