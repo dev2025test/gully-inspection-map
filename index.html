@@ -2620,7 +2620,7 @@
               <button class="btn btn-outline-dark toolbar-button d-inline-flex align-items-center" onclick="showAuditHistory()" title="View audit history of modifications"><i class="bi bi-journal-text"></i> <span>Audit History</span></button>
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" id="toggleMapLayerBtn" onclick="toggleMapLayer()" title="Switch between Map and Satellite"><i class="bi bi-globe"></i> <span>Satellite</span></button>
       <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" id="toggleOuterBoundaryBtn" onclick="toggleOuterBoundary()" title="Show/Hide Cork City Council outer boundary"><i class="bi bi-geo"></i> <span>Outer Boundary</span></button>
-      <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" id="toggleInnerBoundariesBtn" onclick="toggleInnerBoundaries()" title="Show/Hide Local Electoral Areas (inner boundaries)"><i class="bi bi-map"></i> <span>Electoral Areas</span></button>
+      <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" id="toggleInnerBoundariesBtn" onclick="toggleInnerBoundaries()" title="Show/Hide Cork City Local Electoral Areas (LEAs)"><i class="bi bi-map"></i> <span>Electoral Areas</span></button>
     </div>
   </div>
 </div>
@@ -6975,28 +6975,52 @@ async function loadCorkBoundaries() {
         if (innerBoundaryFeatures.length > 0) {
           corkInnerBoundariesLayer = L.layerGroup();
           
+          // Define colors matching the ArcGIS map
+          const electoralAreaColors = {
+            'CORK CITY NORTH WEST LEA-6': '#2196F3',  // Blue
+            'CORK CITY NORTH EAST LEA-6': '#F44336',  // Red  
+            'CORK CITY SOUTH WEST LEA-7': '#FF9800',  // Orange
+            'CORK CITY SOUTH EAST LEA-6': '#9C27B0',  // Purple
+            'CORK CITY SOUTH CENTRAL LEA-6': '#4CAF50' // Green (center)
+          };
+          
           innerBoundaryFeatures.forEach((feature, index) => {
-            const colors = ['#2196F3', '#4CAF50', '#9C27B0', '#F44336', '#FF9800', '#607D8B'];
-            const color = colors[index % colors.length];
+            // Try to get the area name from feature properties
+            let areaName = 'Unknown Electoral Area';
+            let areaColor = '#607D8B'; // Default gray
+            
+            if (feature.properties && feature.properties.ENGLISH) {
+              areaName = feature.properties.ENGLISH;
+              areaColor = electoralAreaColors[areaName] || '#607D8B';
+            } else {
+              // Fallback to index-based colors
+              const colors = ['#2196F3', '#F44336', '#FF9800', '#9C27B0', '#4CAF50'];
+              areaColor = colors[index % colors.length];
+            }
             
             const layer = L.geoJSON(feature, {
               style: {
-                color: color,
+                color: areaColor,
                 weight: 3,
                 opacity: 0.8,
-                fillColor: color,
-                fillOpacity: 0.1,
+                fillColor: areaColor,
+                fillOpacity: 0.15,
                 dashArray: '5, 5'
               }
             }).bindPopup(`
               <div style="text-align: center;">
-                <h6 style="color: ${color}; margin-bottom: 8px;">
+                <h6 style="color: ${areaColor}; margin-bottom: 8px;">
                   <i class="bi bi-map"></i> Local Electoral Area
                 </h6>
-                <p style="margin: 0; font-size: 0.9em;">LEA ${index + 1}</p>
+                <p style="margin: 0; font-size: 0.9em; font-weight: bold;">${areaName}</p>
                 <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
                   Cork City Council Local Electoral Area
                 </p>
+                ${feature.properties && feature.properties.AREA ? 
+                  `<p style="margin: 5px 0; font-size: 0.7em; color: #888;">
+                    Area: ${(feature.properties.AREA / 1000000).toFixed(1)} km²
+                  </p>` : ''
+                }
               </div>
             `);
             
@@ -7095,6 +7119,14 @@ async function loadCorkBoundaries() {
       }
     }
     
+    // Try to load electoral areas from GeoJSON file
+    try {
+      await loadElectoralAreasFromGeoJSON();
+      return;
+    } catch (geoJsonError) {
+      console.warn('loadCorkBoundaries: GeoJSON electoral areas failed, creating sample boundaries...', geoJsonError);
+    }
+    
     // Final fallback - create sample boundaries
     createSampleBoundaries();
   }
@@ -7147,21 +7179,10 @@ function createSampleBoundaries() {
   // Create sample inner boundaries (electoral areas)
   corkInnerBoundariesLayer = L.layerGroup();
   
-  // Sample electoral areas within Cork City
+  // Sample electoral areas within Cork City (matching ArcGIS map colors)
   const electoralAreas = [
     {
-      name: "Cork City North East",
-      coords: [
-        [51.9000, -8.5000],
-        [51.9000, -8.4200],
-        [51.9200, -8.4200],
-        [51.9200, -8.5000],
-        [51.9000, -8.5000]
-      ],
-      color: '#2196F3'
-    },
-    {
-      name: "Cork City North West", 
+      name: "CORK CITY NORTH WEST LEA-6",
       coords: [
         [51.9000, -8.5900],
         [51.9000, -8.5000],
@@ -7169,21 +7190,21 @@ function createSampleBoundaries() {
         [51.9200, -8.5900],
         [51.9000, -8.5900]
       ],
-      color: '#4CAF50'
+      color: '#2196F3'  // Blue
     },
     {
-      name: "Cork City South East",
+      name: "CORK CITY NORTH EAST LEA-6", 
       coords: [
-        [51.8600, -8.5000],
-        [51.8600, -8.4200],
-        [51.9000, -8.4200],
         [51.9000, -8.5000],
-        [51.8600, -8.5000]
+        [51.9000, -8.4200],
+        [51.9200, -8.4200],
+        [51.9200, -8.5000],
+        [51.9000, -8.5000]
       ],
-      color: '#9C27B0'
+      color: '#F44336'  // Red
     },
     {
-      name: "Cork City South West",
+      name: "CORK CITY SOUTH WEST LEA-7",
       coords: [
         [51.8600, -8.5900],
         [51.8600, -8.5000],
@@ -7191,7 +7212,29 @@ function createSampleBoundaries() {
         [51.9000, -8.5900],
         [51.8600, -8.5900]
       ],
-      color: '#F44336'
+      color: '#FF9800'  // Orange
+    },
+    {
+      name: "CORK CITY SOUTH EAST LEA-6",
+      coords: [
+        [51.8600, -8.5000],
+        [51.8600, -8.4200],
+        [51.9000, -8.4200],
+        [51.9000, -8.5000],
+        [51.8600, -8.5000]
+      ],
+      color: '#9C27B0'  // Purple
+    },
+    {
+      name: "CORK CITY SOUTH CENTRAL LEA-6",
+      coords: [
+        [51.8700, -8.4800],
+        [51.8700, -8.4400],
+        [51.8900, -8.4400],
+        [51.8900, -8.4800],
+        [51.8700, -8.4800]
+      ],
+      color: '#4CAF50'  // Green (center)
     }
   ];
   
@@ -7210,9 +7253,12 @@ function createSampleBoundaries() {
         <h6 style="color: ${area.color}; margin-bottom: 8px;">
           <i class="bi bi-map"></i> Local Electoral Area
         </h6>
-        <p style="margin: 0; font-size: 0.9em;">${area.name}</p>
+        <p style="margin: 0; font-size: 0.9em; font-weight: bold;">${area.name}</p>
         <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
-          Sample electoral area boundary (approximate)
+          Cork City Council Local Electoral Area
+        </p>
+        <p style="margin: 5px 0; font-size: 0.7em; color: #888;">
+          Sample boundary (approximate)
         </p>
       </div>
     `);
@@ -7223,6 +7269,87 @@ function createSampleBoundaries() {
   console.log('createSampleBoundaries: Sample boundaries created with', electoralAreas.length, 'electoral areas');
   console.log('createSampleBoundaries: Inner boundaries layer created:', !!corkInnerBoundariesLayer);
   console.log('createSampleBoundaries: Inner boundaries layer has', corkInnerBoundariesLayer.getLayers().length, 'sub-layers');
+}
+
+// Function to load electoral areas from GeoJSON file
+async function loadElectoralAreasFromGeoJSON() {
+  console.log('loadElectoralAreasFromGeoJSON: Loading electoral areas from GeoJSON file');
+  
+  try {
+    const response = await fetch('./CorkCity_LEA.geojson');
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('loadElectoralAreasFromGeoJSON: GeoJSON data loaded:', data);
+    
+    if (!data.features || data.features.length === 0) {
+      throw new Error('No features found in GeoJSON data');
+    }
+    
+    // Create inner boundaries layer (LEAs)
+    corkInnerBoundariesLayer = L.layerGroup();
+    
+    // Define colors matching the ArcGIS map
+    const electoralAreaColors = {
+      'CORK CITY NORTH WEST LEA-6': '#2196F3',  // Blue
+      'CORK CITY NORTH EAST LEA-6': '#F44336',  // Red  
+      'CORK CITY SOUTH WEST LEA-7': '#FF9800',  // Orange
+      'CORK CITY SOUTH EAST LEA-6': '#9C27B0',  // Purple
+      'CORK CITY SOUTH CENTRAL LEA-6': '#4CAF50' // Green (center)
+    };
+    
+    data.features.forEach((feature, index) => {
+      // Get the area name from feature properties
+      let areaName = 'Unknown Electoral Area';
+      let areaColor = '#607D8B'; // Default gray
+      
+      if (feature.properties && feature.properties.ENGLISH) {
+        areaName = feature.properties.ENGLISH;
+        areaColor = electoralAreaColors[areaName] || '#607D8B';
+      } else {
+        // Fallback to index-based colors
+        const colors = ['#2196F3', '#F44336', '#FF9800', '#9C27B0', '#4CAF50'];
+        areaColor = colors[index % colors.length];
+      }
+      
+      const layer = L.geoJSON(feature, {
+        style: {
+          color: areaColor,
+          weight: 3,
+          opacity: 0.8,
+          fillColor: areaColor,
+          fillOpacity: 0.15,
+          dashArray: '5, 5'
+        }
+      }).bindPopup(`
+        <div style="text-align: center;">
+          <h6 style="color: ${areaColor}; margin-bottom: 8px;">
+            <i class="bi bi-map"></i> Local Electoral Area
+          </h6>
+          <p style="margin: 0; font-size: 0.9em; font-weight: bold;">${areaName}</p>
+          <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
+            Cork City Council Local Electoral Area
+          </p>
+          ${feature.properties && feature.properties.AREA ? 
+            `<p style="margin: 5px 0; font-size: 0.7em; color: #888;">
+              Area: ${(feature.properties.AREA / 1000000).toFixed(1)} km²
+            </p>` : ''
+          }
+        </div>
+      `);
+      
+      corkInnerBoundariesLayer.addLayer(layer);
+    });
+    
+    console.log('loadElectoralAreasFromGeoJSON: Electoral areas loaded successfully with', data.features.length, 'areas');
+    return true;
+    
+  } catch (error) {
+    console.error('loadElectoralAreasFromGeoJSON: Error loading electoral areas:', error);
+    throw error;
+  }
 }
 
 // Function to toggle outer boundary visibility
@@ -7660,10 +7787,10 @@ function showLayerControl() {
       <div style="margin-right: 12px;">
         <input class="form-check-input" type="checkbox" id="innerBoundariesLayer" onclick="event.stopPropagation(); toggleInnerBoundaries()" style="width: 18px; height: 18px;">
       </div>
-      <div style="margin-right: 12px; width: 24px; height: 24px; background: #FFC107; border-radius: 6px; border: 2px solid #FFB300; display: flex; align-items: center; justify-content: center; color: black; font-size: 0.75rem;">🗺️</div>
+      <div style="margin-right: 12px; width: 24px; height: 24px; background: linear-gradient(45deg, #2196F3, #F44336, #FF9800, #9C27B0, #4CAF50); border-radius: 6px; border: 2px solid #FFB300; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem;">🗺️</div>
       <div style="flex: 1;">
-        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">Electoral Areas</div>
-        <div style="font-size: 0.8rem; color: #6c757d;">Local Electoral Area boundaries</div>
+        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">Electoral Areas (LEAs)</div>
+        <div style="font-size: 0.8rem; color: #6c757d;">Cork City Local Electoral Areas</div>
       </div>
     </div>
   `;
