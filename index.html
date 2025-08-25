@@ -2554,6 +2554,7 @@
       <!-- Function Buttons -->
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="printMap()" title="Print the current map view"><i class="bi bi-printer"></i> <span>Print</span></button>
       <button class="btn btn-outline-danger toolbar-button d-inline-flex align-items-center" onclick="resetMap()" title="⚠️ ERASE ALL DATA - This will permanently delete all data from the database"><i class="bi bi-trash"></i> <span>Erase All Data</span></button>
+      <button class="btn btn-outline-warning toolbar-button d-inline-flex align-items-center" onclick="simpleReset()" title="Simple reset - Reset all gullies to Unmarked status"><i class="bi bi-arrow-clockwise"></i> <span>Simple Reset</span></button>
       <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSummaryPopup()" title="Show summary statistics"><i class="bi bi-bar-chart"></i> <span>Summary</span></button>
       <button class="btn btn-outline-secondary toolbar-button d-inline-flex align-items-center" onclick="showLayerControl()" title="Show or hide map layers"><i class="bi bi-layers"></i> <span>Layers</span></button>
       <button class="btn btn-outline-info toolbar-button d-inline-flex align-items-center" onclick="showSearchPopup()" title="Search by street name, estate, gully ID, or area"><i class="bi bi-search"></i> <span>Search</span></button>
@@ -4582,9 +4583,35 @@ function resetMap() {
         return;
       }
       
-      const eraseConfirmation = prompt('To confirm complete data erasure, please type "ERASE ALL" (case sensitive):');
-      if (eraseConfirmation !== 'ERASE ALL') {
-        alert('Data erasure cancelled. Incorrect confirmation text.');
+      // Provide two confirmation options
+      const confirmationMethod = confirm('Choose confirmation method:\n\nOK = Type "ERASE ALL"\nCancel = Use checkbox confirmation');
+      
+      let eraseConfirmed = false;
+      
+      if (confirmationMethod) {
+        // Text confirmation method
+        const eraseConfirmation = prompt('To confirm complete data erasure, please type "ERASE ALL" (case sensitive):');
+        console.log('resetMap: User entered confirmation text:', eraseConfirmation);
+        if (eraseConfirmation && eraseConfirmation.trim() === 'ERASE ALL') {
+          eraseConfirmed = true;
+        } else {
+          console.log('resetMap: Confirmation text mismatch. Expected: "ERASE ALL", Got:', eraseConfirmation);
+          alert('Data erasure cancelled. You must type "ERASE ALL" exactly (case sensitive).');
+          return;
+        }
+      } else {
+        // Checkbox confirmation method
+        const checkboxConfirmed = confirm('⚠️ FINAL CONFIRMATION ⚠️\n\nCheck this box to confirm you want to ERASE ALL DATA:\n\n☐ I understand this will permanently delete all data\n☐ I have backed up any important information\n☐ I want to proceed with complete data erasure\n\nClick OK to proceed or Cancel to abort.');
+        if (checkboxConfirmed) {
+          eraseConfirmed = true;
+        } else {
+          alert('Data erasure cancelled by user.');
+          return;
+        }
+      }
+      
+      if (!eraseConfirmed) {
+        alert('Data erasure cancelled. Confirmation not received.');
         return;
       }
       
@@ -4657,13 +4684,23 @@ function resetMap() {
             
             // Reload data to show empty map
             setTimeout(() => {
-              loadGullyData();
-              console.log('resetMap: Reloaded empty gully data');
+              try {
+                loadGullyData();
+                console.log('resetMap: Reloaded empty gully data');
+              } catch (loadError) {
+                console.error('resetMap: Error reloading data:', loadError);
+              }
             }, 500);
           })
           .catch(error => {
             console.error('resetMap: Error erasing data:', error);
             alert('Error erasing data: ' + error.message);
+            
+            // Remove loading spinner on error
+            const loadingDiv = document.querySelector('.loading-spinner');
+            if (loadingDiv) {
+              loadingDiv.remove();
+            }
           });
 
         // Clear all local data arrays and variables
@@ -8691,6 +8728,70 @@ if (forgotLink) {
     window.optimizeForDevice = optimizeForDevice;
     window.positionPopupOptimally = positionPopupOptimally;
     window.enhanceFormForMobile = enhanceFormForMobile;
+    
+    // Simple fallback reset function
+    window.simpleReset = function() {
+      if (!auth.currentUser) {
+        alert('You must be logged in to reset the map');
+        return;
+      }
+      
+      const confirmed = confirm('⚠️ SIMPLE RESET ⚠️\n\nThis will reset all gullies to "Unmarked" status.\n\nAre you sure you want to proceed?');
+      if (!confirmed) {
+        return;
+      }
+      
+      try {
+        // Show loading spinner
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading-spinner';
+        loadingDiv.innerHTML = `
+          <div class="spinner"></div>
+          <div>Resetting gullies...</div>
+        `;
+        document.body.appendChild(loadingDiv);
+        
+        // Reset all gullies to Unmarked
+        db.ref('gullies').once('value').then(snapshot => {
+          const gullies = snapshot.val() || {};
+          const resetPromises = [];
+          
+          Object.keys(gullies).forEach(gullyId => {
+            const resetPromise = db.ref(`gullies/${gullyId}`).update({
+              status: 'Unmarked',
+              comment: '',
+              date: '',
+              photoURL: '',
+              lastInspected: null,
+              inspections: null
+            });
+            resetPromises.push(resetPromise);
+          });
+          
+          return Promise.all(resetPromises);
+        }).then(() => {
+          console.log('simpleReset: All gullies reset to Unmarked');
+          
+          // Clear local data
+          gullyData.length = 0;
+          
+          // Reload data
+          setTimeout(() => {
+            loadGullyData();
+            loadingDiv.remove();
+            alert('Simple reset completed! All gullies are now "Unmarked".');
+          }, 500);
+        }).catch(error => {
+          console.error('simpleReset: Error:', error);
+          loadingDiv.remove();
+          alert('Error during simple reset: ' + error.message);
+        });
+        
+      } catch (error) {
+        console.error('simpleReset: Error:', error);
+        alert('Error during simple reset: ' + error.message);
+      }
+    };
 
 </script>
 </body>
