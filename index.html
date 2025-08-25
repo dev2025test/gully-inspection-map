@@ -7035,23 +7035,8 @@ async function loadCorkBoundaries() {
         
         console.log('loadCorkBoundaries: Cork boundary layers created from cork-city-boundary(1).kml file');
         
-        // Automatically show the outer boundary when loaded
-        if (corkOuterBoundaryLayer && window.map) {
-          console.log('loadCorkBoundaries: Automatically showing outer boundary');
-          corkOuterBoundaryLayer.addTo(window.map);
-          outerBoundaryVisible = true;
-          
-          // Update button appearance
-          const boundaryBtn = document.getElementById('toggleOuterBoundaryBtn');
-          if (boundaryBtn) {
-            boundaryBtn.style.backgroundColor = '#FF6B35';
-            boundaryBtn.style.color = 'white';
-            boundaryBtn.style.borderColor = '#FF6B35';
-          }
-          
-          // Update checkbox states
-          updateLayerCheckboxStates();
-        }
+        // Boundary loaded but not automatically shown - only button controls visibility
+        console.log('loadCorkBoundaries: Boundary loaded successfully - use Outer Boundary button to show/hide');
         return;
       }
     } else {
@@ -7570,9 +7555,6 @@ function showOuterBoundary() {
   
   console.log('showOuterBoundary: Outer boundary layer shown');
   showNotification('Cork City Council outer boundary shown', 'success');
-  
-  // Update checkbox states
-  updateLayerCheckboxStates();
 }
 
 // Function to hide the outer boundary layer
@@ -7593,9 +7575,6 @@ function hideOuterBoundary() {
   
   console.log('hideOuterBoundary: Outer boundary layer hidden');
   showNotification('Cork City Council outer boundary hidden', 'info');
-  
-  // Update checkbox states
-  updateLayerCheckboxStates();
 }
 
 // Function to show the inner boundaries layer (LEAs)
@@ -7897,16 +7876,7 @@ function showLayerControl() {
     
     <hr style="margin: 12px 16px; border: none; border-top: 1px solid #e9ecef;">
     
-    <div class="layer-item" onclick="toggleOuterBoundary()" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #fff8f0; border: 1px solid #FF6B35;">
-      <div style="margin-right: 12px;">
-        <input class="form-check-input" type="checkbox" id="outerBoundaryLayer" onclick="event.stopPropagation(); toggleOuterBoundary()" style="width: 18px; height: 18px;">
-      </div>
-      <div style="margin-right: 12px; width: 24px; height: 24px; background: #FF6B35; border-radius: 6px; border: 2px solid #E55A2B; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem;">🏛️</div>
-      <div style="flex: 1;">
-        <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 2px;">Outer Boundary</div>
-        <div style="font-size: 0.8rem; color: #6c757d;">Cork City Council main area</div>
-      </div>
-    </div>
+
     
     <div class="layer-item" onclick="toggleInnerBoundaries()" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #fffaf0; border: 1px solid #FFC107;">
       <div style="margin-right: 12px;">
@@ -7970,14 +7940,7 @@ function updateLayerCheckboxStates() {
     }
   });
   
-  // Update boundary layer checkboxes
-  const outerBoundaryCheckbox = document.getElementById('outerBoundaryLayer');
-  if (outerBoundaryCheckbox) {
-    outerBoundaryCheckbox.checked = outerBoundaryVisible;
-    console.log(`updateLayerCheckboxStates: outer boundary checkbox found and set to ${outerBoundaryVisible}`);
-  } else {
-    console.warn('updateLayerCheckboxStates: outer boundary checkbox not found');
-  }
+  // Update inner boundaries checkbox only (outer boundary controlled by button only)
   
   const innerBoundariesCheckbox = document.getElementById('innerBoundariesLayer');
   if (innerBoundariesCheckbox) {
