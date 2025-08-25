@@ -4840,10 +4840,17 @@ function showSummaryPopup() {
   console.log('showSummaryPopup: gullyData length:', gullyData.length);
   console.log('showSummaryPopup: gullyData sample:', gullyData.slice(0, 3));
   
+  // First, clean up any duplicates in gullyData
+  removeDuplicateGullies();
+  
   // Validate that we're only processing gully assets
   const validation = validateGullyOnlySummary();
   if (!validation.isValid) {
     console.warn('showSummaryPopup: Non-gully assets detected in gullyData array');
+    console.warn('showSummaryPopup: Cleaning up non-gully assets...');
+    // Remove non-gully assets from gullyData
+    gullyData = gullyData.filter(asset => asset.layer === 'gullies');
+    console.log('showSummaryPopup: After cleanup, gullyData length:', gullyData.length);
   }
   
   // Calculate summary data
@@ -4857,16 +4864,17 @@ function showSummaryPopup() {
     Unmarked: 0
   };
 
-  // Count unique gully assets by status (exclude all non-gully assets)
+  // Count unique gully assets by status (STRICTLY exclude all non-gully assets)
   const uniqueGullyIds = new Set();
   let nonGullyAssets = 0;
+  let duplicateGullies = 0;
   
   gullyData.forEach(gully => {
     console.log('showSummaryPopup: Processing asset:', gully);
     
-    // Only process assets that belong to the 'gullies' layer
-    if (gully.layer === 'gullies') {
-      // Only count each gully ID once
+    // STRICT FILTER: Only process assets that belong to the 'gullies' layer
+    if (gully.layer === 'gullies' && gully.id) {
+      // Only count each gully ID once (prevent duplicates)
       if (!uniqueGullyIds.has(gully.id)) {
         uniqueGullyIds.add(gully.id);
         summary.total++;
@@ -4876,6 +4884,7 @@ function showSummaryPopup() {
           summary[status]++;
         }
       } else {
+        duplicateGullies++;
         console.log(`showSummaryPopup: Skipping duplicate gully ID: ${gully.id}`);
       }
     } else {
@@ -4886,17 +4895,24 @@ function showSummaryPopup() {
   });
   
   console.log(`showSummaryPopup: Non-gully assets excluded: ${nonGullyAssets}`);
+  console.log(`showSummaryPopup: Duplicate gullies skipped: ${duplicateGullies}`);
   
   console.log('showSummaryPopup: Final summary:', summary);
   console.log('showSummaryPopup: Unique gully IDs counted:', uniqueGullyIds.size);
   console.log('showSummaryPopup: Total items in gullyData:', gullyData.length);
   console.log('showSummaryPopup: Summary validation - Only gully assets included:', validation.isValid);
   
-  // Debug: Check Firebase directly
+  // Debug: Check Firebase directly to verify our counts
   db.ref('gullies').once('value').then(snapshot => {
     const data = snapshot.val() || {};
+    const firebaseGullyCount = Object.keys(data).length;
     console.log('showSummaryPopup: Direct Firebase gullies data:', data);
-    console.log('showSummaryPopup: Number of gullies in Firebase:', Object.keys(data).length);
+    console.log('showSummaryPopup: Number of gullies in Firebase:', firebaseGullyCount);
+    console.log('showSummaryPopup: Summary total vs Firebase count:', summary.total, 'vs', firebaseGullyCount);
+    
+    if (summary.total !== firebaseGullyCount) {
+      console.warn('showSummaryPopup: Count mismatch detected! Summary:', summary.total, 'Firebase:', firebaseGullyCount);
+    }
   }).catch(error => {
     console.error('showSummaryPopup: Error checking Firebase:', error);
   });
@@ -4906,7 +4922,7 @@ function showSummaryPopup() {
     <div class="summary-header d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center">
         <i class="bi bi-bar-chart-fill text-primary me-2" style="font-size: 1.2rem;"></i>
-        <h2 class="m-0 fw-bold" style="font-size: 1.3rem;">Gully Assets Summary</h2>
+        <h2 class="m-0 fw-bold" style="font-size: 1.3rem;">Gully Layer Assets Summary</h2>
       </div>
       <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()" title="Close">
         <i class="bi bi-x-lg"></i>
@@ -4916,7 +4932,7 @@ function showSummaryPopup() {
     <div class="summary-content">
       <div class="d-flex gap-2 mb-2">
         <button class="btn btn-primary flex-fill py-2" onclick="filterFromSummary('All')">
-          <i class="bi bi-eye-fill me-2"></i> Show All Gully Assets
+          <i class="bi bi-eye-fill me-2"></i> Show All Gully Layer Assets
         </button>
         <button class="btn btn-outline-secondary flex-fill py-2" onclick="refreshSummaryData()">
           <i class="bi bi-arrow-clockwise me-2"></i> Refresh
@@ -4930,6 +4946,9 @@ function showSummaryPopup() {
         <button class="btn btn-outline-success flex-fill py-2" onclick="validateGullyOnlySummary();">
           <i class="bi bi-check-circle me-2"></i> Validate Assets
         </button>
+        <button class="btn btn-outline-danger flex-fill py-2" onclick="cleanGullyData(); showSummaryPopup();">
+          <i class="bi bi-trash me-2"></i> Clean Data
+        </button>
       </div>
       
       <div class="mb-2">
@@ -4939,7 +4958,7 @@ function showSummaryPopup() {
             <h3 class="m-0 fw-bold" style="font-size: 1rem;">Total Gullies</h3>
           </div>
           <div class="status-count text-primary">${summary.total}</div>
-          <div class="status-description text-muted small">Total unique gullies in the system (duplicates excluded)</div>
+          <div class="status-description text-muted small">Total unique gully layer assets (duplicates excluded)</div>
         </div>
       </div>
       <div class="status-grid">
@@ -5002,8 +5021,11 @@ function refreshSummaryData() {
   console.log('refreshSummaryData: Refreshing gully data...');
   loadGullyData();
   setTimeout(() => {
-    // Clean up duplicates before showing summary
+    // Clean up duplicates and non-gully assets before showing summary
     removeDuplicateGullies();
+    // Ensure only gully layer assets remain
+    gullyData = gullyData.filter(asset => asset.layer === 'gullies');
+    console.log('refreshSummaryData: After cleanup, gullyData length:', gullyData.length);
     showSummaryPopup();
   }, 1500);
 }
@@ -5020,6 +5042,26 @@ function addTestGullyData() {
   gullyData.push(testGully);
   console.log('addTestGullyData: Added test gully. Total count:', gullyData.length);
   showSummaryPopup();
+}
+
+// Function to clean gully data - remove duplicates and non-gully assets
+function cleanGullyData() {
+  console.log('cleanGullyData: Starting data cleanup...');
+  const originalLength = gullyData.length;
+  
+  // Remove duplicates
+  removeDuplicateGullies();
+  
+  // Remove non-gully assets
+  gullyData = gullyData.filter(asset => asset.layer === 'gullies');
+  
+  console.log(`cleanGullyData: Cleanup complete. Original: ${originalLength}, After cleanup: ${gullyData.length}`);
+  
+  // Validate the cleanup
+  const validation = validateGullyOnlySummary();
+  console.log('cleanGullyData: Validation after cleanup:', validation);
+  
+  alert(`Data cleanup complete!\nOriginal items: ${originalLength}\nAfter cleanup: ${gullyData.length}\nUnique gully assets: ${validation.uniqueGullyIds}`);
 }
 
 // Function to debug and clean up gully data
@@ -5072,10 +5114,17 @@ function validateGullyOnlySummary() {
   const nonGullyAssets = gullyData.filter(asset => asset.layer !== 'gullies');
   const gullyAssets = gullyData.filter(asset => asset.layer === 'gullies');
   
+  // Check for duplicates in gully assets
+  const gullyIds = gullyAssets.map(asset => asset.id);
+  const uniqueGullyIds = new Set(gullyIds);
+  const duplicateCount = gullyIds.length - uniqueGullyIds.size;
+  
   console.log('validateGullyOnlySummary: Validation results:');
   console.log(`- Total assets in gullyData: ${gullyData.length}`);
-  console.log(`- Gully assets: ${gullyAssets.length}`);
+  console.log(`- Gully layer assets: ${gullyAssets.length}`);
   console.log(`- Non-gully assets: ${nonGullyAssets.length}`);
+  console.log(`- Unique gully IDs: ${uniqueGullyIds.size}`);
+  console.log(`- Duplicate gully entries: ${duplicateCount}`);
   
   if (nonGullyAssets.length > 0) {
     console.log('validateGullyOnlySummary: Non-gully assets found:');
@@ -5084,11 +5133,21 @@ function validateGullyOnlySummary() {
     });
   }
   
+  if (duplicateCount > 0) {
+    console.log('validateGullyOnlySummary: Duplicate gully entries found:');
+    const duplicates = gullyIds.filter((id, index) => gullyIds.indexOf(id) !== index);
+    duplicates.forEach(id => {
+      console.log(`  - Duplicate ID: ${id}`);
+    });
+  }
+  
   return {
     totalAssets: gullyData.length,
     gullyAssets: gullyAssets.length,
     nonGullyAssets: nonGullyAssets.length,
-    isValid: nonGullyAssets.length === 0
+    uniqueGullyIds: uniqueGullyIds.size,
+    duplicateCount: duplicateCount,
+    isValid: nonGullyAssets.length === 0 && duplicateCount === 0
   };
 }
 
