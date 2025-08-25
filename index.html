@@ -6916,13 +6916,13 @@ async function loadCorkBoundaries() {
   console.log('loadCorkBoundaries: Current working directory:', window.location.href);
   
   try {
-    // First try the official KML file
-    console.log('loadCorkBoundaries: Attempting to fetch KML file...');
-    const response = await fetch('./Cork_City_Boundary_and_LEAs_SelfContained.kml');
+    // First try the cork-city-boundary(1).kml file
+    console.log('loadCorkBoundaries: Attempting to fetch cork-city-boundary(1).kml file...');
+    const response = await fetch('./cork-city-boundary(1).kml');
     
     if (response.ok) {
       const kmlText = await response.text();
-      console.log('loadCorkBoundaries: KML boundary data loaded, converting to GeoJSON...');
+      console.log('loadCorkBoundaries: cork-city-boundary(1).kml boundary data loaded, converting to GeoJSON...');
       
       // Parse KML to GeoJSON using toGeoJSON library
       const parser = new DOMParser();
@@ -6964,7 +6964,7 @@ async function loadCorkBoundaries() {
               </h5>
               <p style="margin: 0;"><strong>Official Administrative Boundary</strong></p>
               <p style="margin: 5px 0; font-size: 0.9em;">
-                Cork City Council main administrative area as defined by official boundaries.
+                Cork City Council main administrative area from cork-city-boundary(1).kml file.
               </p>
             </div>
           `);
@@ -7029,7 +7029,7 @@ async function loadCorkBoundaries() {
           console.log('loadCorkBoundaries: Inner boundaries layer created with', innerBoundaryFeatures.length, 'electoral areas');
         }
         
-        console.log('loadCorkBoundaries: Cork boundary layers created from official KML file');
+        console.log('loadCorkBoundaries: Cork boundary layers created from cork-city-boundary(1).kml file');
         return;
       }
     } else {
