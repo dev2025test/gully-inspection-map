@@ -7323,25 +7323,60 @@ async function loadElectoralAreasFromKML() {
     for (let i = 0; i < placemarks.length; i++) {
       const placemark = placemarks[i];
       
-      // Extract name from Placemark
-      const nameElement = placemark.getElementsByTagName('name')[0];
-      const name = nameElement ? nameElement.textContent : `Electoral Area ${i + 1}`;
+      // Get the area name from ExtendedData
+      let areaName = 'Unknown Electoral Area';
+      let areaColor = '#607D8B'; // Default gray
       
-      // Extract coordinates from Polygon
-      const polygonElement = placemark.getElementsByTagName('Polygon')[0];
-      if (!polygonElement) continue;
+      const simpleDataElements = placemark.getElementsByTagName('SimpleData');
+      for (let j = 0; j < simpleDataElements.length; j++) {
+        const simpleData = simpleDataElements[j];
+        if (simpleData.getAttribute('name') === 'ENGLISH') {
+          areaName = simpleData.textContent;
+          areaColor = electoralAreaColors[areaName] || '#607D8B';
+          break;
+        }
+      }
       
-      const coordinatesElement = polygonElement.getElementsByTagName('coordinates')[0];
-      if (!coordinatesElement) continue;
+      // Extract coordinates from Polygon - look for outerBoundaryIs > LinearRing > coordinates
+      const outerBoundaryIs = placemark.querySelector('outerBoundaryIs');
+      if (!outerBoundaryIs) {
+        console.warn('loadElectoralAreasFromKML: No outerBoundaryIs found for', areaName);
+        continue;
+      }
+      
+      const linearRing = outerBoundaryIs.querySelector('LinearRing');
+      if (!linearRing) {
+        console.warn('loadElectoralAreasFromKML: No LinearRing found for', areaName);
+        continue;
+      }
+      
+      const coordinatesElement = linearRing.querySelector('coordinates');
+      if (!coordinatesElement) {
+        console.warn('loadElectoralAreasFromKML: No coordinates found for', areaName);
+        continue;
+      }
       
       const coordinatesText = coordinatesElement.textContent.trim();
-      const coordinates = coordinatesText.split(' ').map(coord => {
-        const parts = coord.split(',');
-        return [parseFloat(parts[1]), parseFloat(parts[0])]; // KML is lon,lat, we need lat,lon
+      console.log('loadElectoralAreasFromKML: Raw coordinates for', areaName, ':', coordinatesText.substring(0, 100) + '...');
+      
+      // Split coordinates and filter out empty strings
+      const coordinatePairs = coordinatesText.split(/\s+/).filter(pair => pair.trim() !== '');
+      
+      if (coordinatePairs.length < 3) {
+        console.warn('loadElectoralAreasFromKML: Insufficient coordinates for', areaName, '(', coordinatePairs.length, 'pairs)');
+        continue;
+      }
+      
+      // Convert KML coordinates (lon,lat,altitude) to Leaflet coordinates (lat,lon)
+      const coordinates = coordinatePairs.map(pair => {
+        const parts = pair.split(',').map(coord => parseFloat(coord));
+        const lon = parts[0];
+        const lat = parts[1];
+        // Skip altitude (parts[2]) if present
+        return [lat, lon]; // Leaflet expects [lat, lon]
       });
       
-      // Get color for this area
-      let areaColor = electoralAreaColors[name] || '#607D8B'; // Default gray
+      console.log('loadElectoralAreasFromKML: Processed', coordinates.length, 'coordinates for', areaName);
       
       const layer = L.polygon(coordinates, {
         color: areaColor,
@@ -7355,12 +7390,12 @@ async function loadElectoralAreasFromKML() {
           <h6 style="color: ${areaColor}; margin-bottom: 8px;">
             <i class="bi bi-map"></i> Local Electoral Area
           </h6>
-          <p style="margin: 0; font-size: 0.9em; font-weight: bold;">${name}</p>
+          <p style="margin: 0; font-size: 0.9em; font-weight: bold;">${areaName}</p>
           <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
             Cork City Council Local Electoral Area
           </p>
           <p style="margin: 5px 0; font-size: 0.7em; color: #888;">
-            Official boundary data from corkcitylea(4).kml
+            Complex boundary shape with ${coordinates.length} coordinate points
           </p>
         </div>
       `);
