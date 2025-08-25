@@ -3446,7 +3446,11 @@ function handleLoginSuccess(userData) {
     // Load audit history
     loadAuditHistory();
     // Load boundary data
-    loadCorkBoundaries();
+    loadCorkBoundaries().then(() => {
+      console.log('handleLoginSuccess: Boundaries loaded successfully');
+    }).catch((error) => {
+      console.error('handleLoginSuccess: Error loading boundaries:', error);
+    });
     console.log('handleLoginSuccess: Map initialized, gully data loaded, audit history loaded, and boundaries loaded.');
     console.log('handleLoginSuccess: Map initialized. Waiting for user to load data.');
   }, 500);
@@ -7030,6 +7034,24 @@ async function loadCorkBoundaries() {
         }
         
         console.log('loadCorkBoundaries: Cork boundary layers created from cork-city-boundary(1).kml file');
+        
+        // Automatically show the outer boundary when loaded
+        if (corkOuterBoundaryLayer && window.map) {
+          console.log('loadCorkBoundaries: Automatically showing outer boundary');
+          corkOuterBoundaryLayer.addTo(window.map);
+          outerBoundaryVisible = true;
+          
+          // Update button appearance
+          const boundaryBtn = document.getElementById('toggleOuterBoundaryBtn');
+          if (boundaryBtn) {
+            boundaryBtn.style.backgroundColor = '#FF6B35';
+            boundaryBtn.style.color = 'white';
+            boundaryBtn.style.borderColor = '#FF6B35';
+          }
+          
+          // Update checkbox states
+          updateLayerCheckboxStates();
+        }
         return;
       }
     } else {
