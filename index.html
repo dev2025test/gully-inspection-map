@@ -8370,7 +8370,7 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
             await db.ref(`${layerType}/${gullyId}`).update({
               status: newStatus,
               comment: newComment,
-              date: newDate,
+              date: new Date(inspectionTimestamp).toISOString(),
               photoURL: newPhotoURL
             });
             alert('Inspection saved and logged to audit trail!');
