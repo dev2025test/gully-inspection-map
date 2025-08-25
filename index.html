@@ -1973,6 +1973,35 @@
       border-radius: 0 !important;
     }
     
+    /* ===== LAYER CONTROL - CHECKBOX ONLY ===== */
+    .layer-item {
+      cursor: default !important;
+      pointer-events: none !important;
+      user-select: none !important;
+    }
+    
+    .layer-item .form-check-input {
+      cursor: pointer !important;
+      pointer-events: auto !important;
+      user-select: none !important;
+      transform: scale(1.1) !important;
+      transition: transform 0.2s ease !important;
+    }
+    
+    .layer-item .form-check-input:hover {
+      transform: scale(1.2) !important;
+    }
+    
+    .layer-item:hover {
+      background-color: #f8f9fa !important;
+    }
+    
+    /* Visual indicator that only checkboxes are clickable */
+    .layer-item .form-check-input:focus {
+      box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3) !important;
+      outline: none !important;
+    }
+    
     html, body {
       height: 100%;
       margin: 0;
@@ -2130,6 +2159,30 @@
       .ribbon-group {
         flex-wrap: wrap !important;
         justify-content: center !important;
+      }
+      
+      /* Layer control styling - only checkboxes are clickable */
+      .layer-item {
+        cursor: default !important;
+        pointer-events: none !important;
+      }
+      
+      .layer-item .form-check-input {
+        cursor: pointer !important;
+        pointer-events: auto !important;
+      }
+      
+      /* Date validation error styling */
+      .date-error-message {
+        color: #dc3545 !important;
+        font-size: 0.875rem !important;
+        margin-top: 0.25rem !important;
+        display: block !important;
+      }
+      
+      .form-control.is-invalid {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
       }
     }
     
@@ -7039,6 +7092,13 @@ let mapLayers = {
 function toggleLayer(layerName) {
   console.log('toggleLayer: Toggling layer:', layerName);
   
+  // Validate that this function was called from a checkbox click
+  const event = window.event || arguments.callee.caller.arguments[0];
+  if (event && event.target && event.target.type !== 'checkbox') {
+    console.warn('toggleLayer: Function called from non-checkbox element. Ignoring.');
+    return;
+  }
+  
   if (window.dataLayers && window.dataLayers[layerName]) {
     const layer = window.dataLayers[layerName];
     const isVisible = window.map.hasLayer(layer);
@@ -7058,6 +7118,8 @@ function toggleLayer(layerName) {
     
     // Update visual state of buttons
     updateLayerButtonStates();
+  } else {
+    console.error(`toggleLayer: Layer '${layerName}' not found in dataLayers`);
   }
 }
 
@@ -7095,11 +7157,11 @@ function showLayerControl() {
   const layerListHTML = `
     <div style="background: #e3f2fd; padding: 12px 16px; border-bottom: 1px solid #e9ecef; font-size: 0.9rem; color: #1976d2;">
       <i class="bi bi-info-circle me-2"></i>
-      <strong>Layer Control:</strong> Click to show/hide layers. All layers are hidden by default.
+      <strong>Layer Control:</strong> Check/uncheck boxes to show/hide layers. All layers are hidden by default.
     </div>
-    <div class="layer-item" onclick="toggleLayer('gullies')" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
+    <div class="layer-item" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
       <div style="margin-right: 12px;">
-        <input class="form-check-input" type="checkbox" id="gulliesLayer" onclick="event.stopPropagation(); toggleLayer('gullies')" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''} style="width: 18px; height: 18px;">
+        <input class="form-check-input" type="checkbox" id="gulliesLayer" onclick="toggleLayer('gullies')" ${window.map && window.dataLayers.gullies && window.map.hasLayer(window.dataLayers.gullies) ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
       </div>
       <div style="margin-right: 12px; width: 24px; height: 24px; background: #2196F3; border-radius: 6px; border: 2px solid #1976D2;"></div>
       <div style="flex: 1;">
@@ -7108,9 +7170,9 @@ function showLayerControl() {
       </div>
     </div>
     
-    <div class="layer-item" onclick="toggleLayer('playgrounds')" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
+    <div class="layer-item" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
       <div style="margin-right: 12px;">
-        <input class="form-check-input" type="checkbox" id="playgroundsLayer" onclick="event.stopPropagation(); toggleLayer('playgrounds')" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''} style="width: 18px; height: 18px;">
+        <input class="form-check-input" type="checkbox" id="playgroundsLayer" onclick="toggleLayer('playgrounds')" ${window.map && window.dataLayers.playgrounds && window.map.hasLayer(window.dataLayers.playgrounds) ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
       </div>
       <div style="margin-right: 12px; width: 24px; height: 24px; background: #4CAF50; border-radius: 6px; border: 2px solid #388E3C;"></div>
       <div style="flex: 1;">
@@ -7119,9 +7181,9 @@ function showLayerControl() {
       </div>
     </div>
     
-    <div class="layer-item" onclick="toggleLayer('walkways')" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
+    <div class="layer-item" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
       <div style="margin-right: 12px;">
-        <input class="form-check-input" type="checkbox" id="walkwaysLayer" onclick="event.stopPropagation(); toggleLayer('walkways')" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''} style="width: 18px; height: 18px;">
+        <input class="form-check-input" type="checkbox" id="walkwaysLayer" onclick="toggleLayer('walkways')" ${window.map && window.dataLayers.walkways && window.map.hasLayer(window.dataLayers.walkways) ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
       </div>
       <div style="margin-right: 12px; width: 24px; height: 24px; background: #F44336; border-radius: 6px; border: 2px solid #D32F2F;"></div>
       <div style="flex: 1;">
@@ -7130,9 +7192,9 @@ function showLayerControl() {
       </div>
     </div>
     
-    <div class="layer-item" onclick="toggleLayer('signage')" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
+    <div class="layer-item" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
       <div style="margin-right: 12px;">
-        <input class="form-check-input" type="checkbox" id="signageLayer" onclick="event.stopPropagation(); toggleLayer('signage')" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''} style="width: 18px; height: 18px;">
+        <input class="form-check-input" type="checkbox" id="signageLayer" onclick="toggleLayer('signage')" ${window.map && window.dataLayers.signage && window.map.hasLayer(window.dataLayers.signage) ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
       </div>
       <div style="margin-right: 12px; width: 24px; height: 24px; background: #FF9800; border-radius: 6px; border: 2px solid #F57C00;"></div>
       <div style="flex: 1;">
@@ -7141,9 +7203,9 @@ function showLayerControl() {
       </div>
     </div>
     
-    <div class="layer-item" onclick="toggleLayer('lining')" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
+    <div class="layer-item" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; margin: 4px 0; background: #f8f9fa; border: 1px solid #e9ecef;">
       <div style="margin-right: 12px;">
-        <input class="form-check-input" type="checkbox" id="liningLayer" onclick="event.stopPropagation(); toggleLayer('lining')" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''} style="width: 18px; height: 18px;">
+        <input class="form-check-input" type="checkbox" id="liningLayer" onclick="toggleLayer('lining')" ${window.map && window.dataLayers.lining && window.map.hasLayer(window.dataLayers.lining) ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
       </div>
       <div style="margin-right: 12px; width: 24px; height: 24px; background: #9C27B0; border-radius: 6px; border: 2px solid #7B1FA2;"></div>
       <div style="flex: 1;">
@@ -7262,9 +7324,9 @@ function createLayerControlContainer() {
   ];
   layers.forEach(layer => {
     layerListHTML += `
-      <div class="layer-item" onclick="toggleLayer('${layer.key}')">
+      <div class="layer-item">
         <div class="layer-checkbox">
-          <input class="form-check-input" type="checkbox" id="${layer.key}Layer" ${window.map && window.dataLayers[layer.key] && window.map.hasLayer(window.dataLayers[layer.key]) ? 'checked' : ''}>
+          <input class="form-check-input" type="checkbox" id="${layer.key}Layer" onclick="toggleLayer('${layer.key}')" ${window.map && window.dataLayers[layer.key] && window.map.hasLayer(window.dataLayers[layer.key]) ? 'checked' : ''}>
         </div>
         <div class="layer-icon-container">
           <div class="layer-icon ${layer.iconClass}"></div>
@@ -7562,7 +7624,14 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
         const now = new Date();
         lastTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
       }
-      html += `<div class='mb-2'><label class='form-label'><b>Inspection Date & Time:</b></label><div style='display:flex;gap:8px;'><input type='date' id='inspection-date' class='form-control' max='${todayStr}' value='${lastDate}' required><input type='time' id='inspection-time' class='form-control' value='${lastTime}' required></div></div>`;
+      
+      // Calculate minimum date (3 months ago)
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const minDateStr = threeMonthsAgo.toISOString().split('T')[0];
+      
+      html += `<div class='mb-2'><label class='form-label'><b>Inspection Date & Time:</b></label><div style='display:flex;gap:8px;'><input type='date' id='inspection-date' class='form-control' min='${minDateStr}' max='${todayStr}' value='${lastDate}' required><input type='time' id='inspection-time' class='form-control' value='${lastTime}' required></div></div>`;
+      html += `<div class='mb-2'><small class='text-muted'><i class='bi bi-info-circle'></i> Inspection date must be within the last 3 months</small></div>`;
     } else {
       let timeStr = '12:00';
       if (timestamp) {
@@ -7679,6 +7748,38 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
           console.error('Save Inspection button not found in popup!');
           return;
         }
+        
+        // Add real-time date validation
+        const dateInput = document.getElementById('inspection-date');
+        if (dateInput) {
+          dateInput.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const now = new Date();
+            const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+            
+            if (selectedDate < threeMonthsAgo) {
+              this.setCustomValidity('Inspection date cannot be more than 3 months old');
+              this.classList.add('is-invalid');
+              // Show error message
+              let errorDiv = this.parentNode.querySelector('.date-error-message');
+              if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.className = 'date-error-message invalid-feedback';
+                errorDiv.textContent = 'Inspection date cannot be more than 3 months old';
+                this.parentNode.appendChild(errorDiv);
+              }
+            } else {
+              this.setCustomValidity('');
+              this.classList.remove('is-invalid');
+              // Remove error message
+              const errorDiv = this.parentNode.querySelector('.date-error-message');
+              if (errorDiv) {
+                errorDiv.remove();
+              }
+            }
+          });
+        }
+        
         if (confirmSave) {
           confirmSave.onchange = function() {
             saveBtn.disabled = !confirmSave.checked;
@@ -7714,6 +7815,16 @@ function showInspectionPopup(marker, gullyId, latlng, layerType) {
                 0
               );
               inspectionTimestamp = dateWithTime.getTime();
+              
+              // Validate that inspection date is not more than 3 months old
+              const now = new Date();
+              const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+              if (dateWithTime < threeMonthsAgo) {
+                alert('Error: Inspection date cannot be more than 3 months old. Please select a more recent date.');
+                saveBtn.textContent = 'Save Inspection';
+                saveBtn.disabled = false;
+                return;
+              }
             }
             let newPhotoURL = photoURL;
             if (photoInput && photoInput.files && photoInput.files[0]) {
