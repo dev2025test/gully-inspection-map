@@ -7119,12 +7119,18 @@ async function loadCorkBoundaries() {
       }
     }
     
-    // Try to load electoral areas from GeoJSON file
+    // Try to load electoral areas from corkcitylea(4).kml file
     try {
-      await loadElectoralAreasFromGeoJSON();
+      await loadElectoralAreasFromKML();
       return;
-    } catch (geoJsonError) {
-      console.warn('loadCorkBoundaries: GeoJSON electoral areas failed, creating sample boundaries...', geoJsonError);
+    } catch (kmlError) {
+      console.warn('loadCorkBoundaries: KML electoral areas failed, trying GeoJSON...', kmlError);
+      try {
+        await loadElectoralAreasFromGeoJSON();
+        return;
+      } catch (geoJsonError) {
+        console.warn('loadCorkBoundaries: GeoJSON electoral areas failed, creating sample boundaries...', geoJsonError);
+      }
     }
     
     // Final fallback - create sample boundaries
@@ -7269,6 +7275,103 @@ function createSampleBoundaries() {
   console.log('createSampleBoundaries: Sample boundaries created with', electoralAreas.length, 'electoral areas');
   console.log('createSampleBoundaries: Inner boundaries layer created:', !!corkInnerBoundariesLayer);
   console.log('createSampleBoundaries: Inner boundaries layer has', corkInnerBoundariesLayer.getLayers().length, 'sub-layers');
+}
+
+// Function to load electoral areas from KML file
+async function loadElectoralAreasFromKML() {
+  console.log('loadElectoralAreasFromKML: Loading electoral areas from corkcitylea(4).kml file');
+  
+  try {
+    const response = await fetch('./corkcitylea(4).kml');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const kmlText = await response.text();
+    console.log('loadElectoralAreasFromKML: KML data loaded, parsing...');
+    
+    // Parse KML using DOMParser
+    const parser = new DOMParser();
+    const kmlDoc = parser.parseFromString(kmlText, 'text/xml');
+    
+    if (kmlDoc.documentElement.nodeName === 'parsererror') {
+      throw new Error('Failed to parse KML XML');
+    }
+    
+    // Extract Placemark elements
+    const placemarks = kmlDoc.getElementsByTagName('Placemark');
+    console.log('loadElectoralAreasFromKML: Found', placemarks.length, 'placemarks');
+    
+    if (placemarks.length === 0) {
+      throw new Error('No placemarks found in KML data');
+    }
+    
+    // Create inner boundaries layer with real data
+    corkInnerBoundariesLayer = L.layerGroup();
+    
+    // Define colors matching the ArcGIS map
+    const electoralAreaColors = {
+      'CORK CITY NORTH WEST LEA-6': '#2196F3',  // Blue
+      'CORK CITY NORTH EAST LEA-6': '#F44336',  // Red  
+      'CORK CITY SOUTH WEST LEA-7': '#FF9800',  // Orange
+      'CORK CITY SOUTH EAST LEA-6': '#9C27B0',  // Purple
+      'CORK CITY SOUTH CENTRAL LEA-6': '#4CAF50' // Green (center)
+    };
+    
+    for (let i = 0; i < placemarks.length; i++) {
+      const placemark = placemarks[i];
+      
+      // Extract name from Placemark
+      const nameElement = placemark.getElementsByTagName('name')[0];
+      const name = nameElement ? nameElement.textContent : `Electoral Area ${i + 1}`;
+      
+      // Extract coordinates from Polygon
+      const polygonElement = placemark.getElementsByTagName('Polygon')[0];
+      if (!polygonElement) continue;
+      
+      const coordinatesElement = polygonElement.getElementsByTagName('coordinates')[0];
+      if (!coordinatesElement) continue;
+      
+      const coordinatesText = coordinatesElement.textContent.trim();
+      const coordinates = coordinatesText.split(' ').map(coord => {
+        const parts = coord.split(',');
+        return [parseFloat(parts[1]), parseFloat(parts[0])]; // KML is lon,lat, we need lat,lon
+      });
+      
+      // Get color for this area
+      let areaColor = electoralAreaColors[name] || '#607D8B'; // Default gray
+      
+      const layer = L.polygon(coordinates, {
+        color: areaColor,
+        weight: 3,
+        opacity: 0.8,
+        fillColor: areaColor,
+        fillOpacity: 0.1,
+        dashArray: '5, 5'
+      }).bindPopup(`
+        <div style="text-align: center;">
+          <h6 style="color: ${areaColor}; margin-bottom: 8px;">
+            <i class="bi bi-map"></i> Local Electoral Area
+          </h6>
+          <p style="margin: 0; font-size: 0.9em; font-weight: bold;">${name}</p>
+          <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
+            Cork City Council Local Electoral Area
+          </p>
+          <p style="margin: 5px 0; font-size: 0.7em; color: #888;">
+            Official boundary data from corkcitylea(4).kml
+          </p>
+        </div>
+      `);
+      
+      corkInnerBoundariesLayer.addLayer(layer);
+    }
+    
+    console.log('loadElectoralAreasFromKML: Electoral areas layer created with', corkInnerBoundariesLayer.getLayers().length, 'sub-layers');
+    return true;
+  } catch (error) {
+    console.error('loadElectoralAreasFromKML: Error loading electoral areas from KML:', error);
+    throw error;
+  }
 }
 
 // Function to load electoral areas from GeoJSON file
