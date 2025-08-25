@@ -1949,6 +1949,437 @@
         font-size: 1em !important;
         padding: 0.6em 0.7em !important;
       }
+    }
+  </style>
+  
+  <!-- Enhanced Responsive Design for All Devices -->
+  <style>
+    /* ===== UNIVERSAL RESPONSIVE SETTINGS ===== */
+    * {
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      touch-action: manipulation;
+    }
+    
+    /* ===== MOBILE DEVICES (320px - 767px) ===== */
+    @media (max-width: 767px) {
+      /* Toolbar adjustments */
+      #functionToolbar {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        transform: none !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(10px) !important;
+        border-top: 1px solid #ddd !important;
+        border-radius: 0 !important;
+        padding: 8px !important;
+        z-index: 1000 !important;
+        max-height: 60vh !important;
+        overflow-y: auto !important;
+      }
+      
+      .ribbon-bar {
+        flex-wrap: wrap !important;
+        gap: 4px !important;
+        padding: 4px !important;
+      }
+      
+      .ribbon-group {
+        flex-wrap: wrap !important;
+        gap: 4px !important;
+        padding: 2px 4px !important;
+        border-right: none !important;
+        border-bottom: 1px solid #eee !important;
+        margin-bottom: 4px !important;
+      }
+      
+      .toolbar-button {
+        font-size: 0.8rem !important;
+        padding: 6px 8px !important;
+        min-width: auto !important;
+        flex: 1 1 auto !important;
+        max-width: 120px !important;
+      }
+      
+      .toolbar-button span {
+        display: none !important;
+      }
+      
+      .toolbar-button i {
+        font-size: 1.1rem !important;
+      }
+      
+      /* Map adjustments */
+      #map {
+        height: calc(100vh - 60px) !important;
+        top: 0 !important;
+      }
+      
+      /* Popup adjustments */
+      .summary-popup, .user-management-modal, #searchPopupContainer, #gullyFilterPopupContainer {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        max-height: 80vh !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        border-radius: 12px !important;
+        font-size: 0.9rem !important;
+      }
+      
+      .summary-popup .summary-content,
+      .user-management-modal .modal-body {
+        padding: 12px !important;
+        max-height: 60vh !important;
+        overflow-y: auto !important;
+      }
+      
+      .status-grid {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+      }
+      
+      .status-card {
+        padding: 8px !important;
+      }
+      
+      /* Layer control adjustments */
+      .layer-control {
+        position: fixed !important;
+        top: 10px !important;
+        left: 10px !important;
+        right: 10px !important;
+        width: auto !important;
+        max-width: none !important;
+        z-index: 2000 !important;
+        max-height: 70vh !important;
+        overflow-y: auto !important;
+      }
+      
+      /* Button adjustments */
+      .btn {
+        font-size: 0.9rem !important;
+        padding: 8px 12px !important;
+        border-radius: 6px !important;
+      }
+      
+      /* Form adjustments */
+      input, select, textarea {
+        font-size: 16px !important; /* Prevents zoom on iOS */
+        padding: 10px !important;
+      }
+      
+      /* Touch-friendly spacing */
+      .popup-form input,
+      .popup-form select,
+      .popup-form textarea {
+        margin-bottom: 12px !important;
+        min-height: 44px !important; /* iOS minimum touch target */
+      }
+      
+      .popup-form button {
+        min-height: 44px !important;
+        margin-bottom: 8px !important;
+      }
+    }
+    
+    /* ===== TABLET DEVICES (768px - 1023px) ===== */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      /* Toolbar adjustments */
+      #functionToolbar {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        transform: none !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(10px) !important;
+        border-top: 1px solid #ddd !important;
+        border-radius: 0 !important;
+        padding: 12px !important;
+        z-index: 1000 !important;
+        max-height: 50vh !important;
+        overflow-y: auto !important;
+      }
+      
+      .ribbon-bar {
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        padding: 6px !important;
+      }
+      
+      .ribbon-group {
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        padding: 4px 8px !important;
+        border-right: 1px solid #ddd !important;
+        margin-bottom: 6px !important;
+      }
+      
+      .toolbar-button {
+        font-size: 0.85rem !important;
+        padding: 8px 10px !important;
+        min-width: auto !important;
+        flex: 1 1 auto !important;
+        max-width: 140px !important;
+      }
+      
+      .toolbar-button span {
+        display: inline !important;
+      }
+      
+      /* Map adjustments */
+      #map {
+        height: calc(100vh - 80px) !important;
+        top: 0 !important;
+      }
+      
+      /* Popup adjustments */
+      .summary-popup, .user-management-modal, #searchPopupContainer, #gullyFilterPopupContainer {
+        width: 90vw !important;
+        max-width: 600px !important;
+        max-height: 75vh !important;
+      }
+      
+      .status-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+      }
+      
+      /* Layer control adjustments */
+      .layer-control {
+        position: fixed !important;
+        top: 15px !important;
+        left: 15px !important;
+        width: 300px !important;
+        max-width: 40vw !important;
+        z-index: 2000 !important;
+        max-height: 60vh !important;
+        overflow-y: auto !important;
+      }
+    }
+    
+    /* ===== DESKTOP/LAPTOP DEVICES (1024px and above) ===== */
+    @media (min-width: 1024px) {
+      /* Toolbar positioning */
+      #functionToolbar {
+        position: fixed !important;
+        right: 10px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid #ddd !important;
+        border-radius: 8px !important;
+        padding: 15px !important;
+        z-index: 1000 !important;
+        max-height: 80vh !important;
+        overflow-y: auto !important;
+        width: auto !important;
+        min-width: 200px !important;
+      }
+      
+      .ribbon-bar {
+        flex-direction: column !important;
+        gap: 8px !important;
+        padding: 8px !important;
+      }
+      
+      .ribbon-group {
+        flex-direction: column !important;
+        gap: 6px !important;
+        padding: 6px 8px !important;
+        border-right: none !important;
+        border-bottom: 1px solid #ddd !important;
+        margin-bottom: 8px !important;
+      }
+      
+      .toolbar-button {
+        font-size: 0.9rem !important;
+        padding: 10px 12px !important;
+        min-width: 180px !important;
+        justify-content: flex-start !important;
+      }
+      
+      .toolbar-button span {
+        display: inline !important;
+      }
+      
+      /* Map adjustments */
+      #map {
+        height: 100vh !important;
+        top: 0 !important;
+      }
+      
+      /* Popup adjustments */
+      .summary-popup, .user-management-modal, #searchPopupContainer, #gullyFilterPopupContainer {
+        width: 80vw !important;
+        max-width: 800px !important;
+        max-height: 80vh !important;
+      }
+      
+      .status-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 15px !important;
+      }
+      
+      /* Layer control adjustments */
+      .layer-control {
+        position: fixed !important;
+        top: 20px !important;
+        left: 20px !important;
+        width: 350px !important;
+        z-index: 2000 !important;
+        max-height: 70vh !important;
+        overflow-y: auto !important;
+      }
+    }
+    
+    /* ===== LARGE DESKTOP SCREENS (1440px and above) ===== */
+    @media (min-width: 1440px) {
+      .summary-popup, .user-management-modal, #searchPopupContainer, #gullyFilterPopupContainer {
+        width: 70vw !important;
+        max-width: 1000px !important;
+      }
+      
+      .status-grid {
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 20px !important;
+      }
+      
+      .toolbar-button {
+        font-size: 1rem !important;
+        padding: 12px 15px !important;
+        min-width: 200px !important;
+      }
+    }
+    
+    /* ===== LANDSCAPE ORIENTATION ADJUSTMENTS ===== */
+    @media (orientation: landscape) and (max-height: 600px) {
+      #functionToolbar {
+        max-height: 40vh !important;
+        padding: 8px !important;
+      }
+      
+      .toolbar-button {
+        padding: 6px 8px !important;
+        font-size: 0.8rem !important;
+      }
+      
+      .summary-popup, .user-management-modal, #searchPopupContainer, #gullyFilterPopupContainer {
+        max-height: 90vh !important;
+      }
+    }
+    
+    /* ===== PORTRAIT ORIENTATION ADJUSTMENTS ===== */
+    @media (orientation: portrait) and (max-width: 767px) {
+      .toolbar-button span {
+        display: none !important;
+      }
+      
+      .toolbar-button {
+        min-width: 60px !important;
+        max-width: 80px !important;
+      }
+    }
+    
+    /* ===== TOUCH DEVICE OPTIMIZATIONS ===== */
+    @media (hover: none) and (pointer: coarse) {
+      /* Larger touch targets */
+      .toolbar-button {
+        min-height: 44px !important;
+        min-width: 44px !important;
+      }
+      
+      .btn {
+        min-height: 44px !important;
+        padding: 12px 16px !important;
+      }
+      
+      input, select, textarea {
+        min-height: 44px !important;
+        padding: 12px !important;
+      }
+      
+      /* Improved touch scrolling */
+      .ribbon-bar {
+        -webkit-overflow-scrolling: touch !important;
+      }
+      
+      /* Disable hover effects on touch devices */
+      .toolbar-button:hover,
+      .btn:hover,
+      .layer-item:hover {
+        transform: none !important;
+        box-shadow: none !important;
+      }
+    }
+    
+    /* ===== HIGH DPI DISPLAYS ===== */
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+      .toolbar-button,
+      .btn,
+      input,
+      select,
+      textarea {
+        border-width: 0.5px !important;
+      }
+    }
+    
+    /* ===== ACCESSIBILITY IMPROVEMENTS ===== */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+    
+    /* ===== DARK MODE SUPPORT ===== */
+    @media (prefers-color-scheme: dark) {
+      #functionToolbar {
+        background: rgba(30, 30, 30, 0.95) !important;
+        border-color: #444 !important;
+      }
+      
+      .toolbar-button {
+        background: rgba(50, 50, 50, 0.9) !important;
+        border-color: #666 !important;
+        color: #fff !important;
+      }
+      
+      .toolbar-button:hover {
+        background: rgba(70, 70, 70, 0.9) !important;
+      }
+    }
+    
+    /* ===== PRINT STYLES ===== */
+    @media print {
+      #functionToolbar,
+      .layer-control,
+      .summary-popup,
+      .user-management-modal {
+        display: none !important;
+      }
+      
+      #map {
+        height: 100vh !important;
+        position: static !important;
+      }
+    }
+  </style>
       #loginForm label.form-label {
         font-size: 0.98em !important;
       }
@@ -4568,6 +4999,16 @@ function showSearchPopup() {
 
   document.body.appendChild(container);
   
+  // Optimize popup for device
+  if (typeof positionPopupOptimally === 'function') {
+    positionPopupOptimally(container);
+  }
+  
+  // Enhance form for mobile
+  if (typeof enhanceFormForMobile === 'function') {
+    enhanceFormForMobile(container);
+  }
+  
   // Focus on search input
   setTimeout(() => {
     const searchInput = document.getElementById('searchInput');
@@ -4955,6 +5396,16 @@ function showGullyFilterPopup() {
   `;
 
   document.body.appendChild(container);
+  
+  // Optimize popup for device
+  if (typeof positionPopupOptimally === 'function') {
+    positionPopupOptimally(container);
+  }
+  
+  // Enhance form for mobile
+  if (typeof enhanceFormForMobile === 'function') {
+    enhanceFormForMobile(container);
+  }
   
   // Update counts
   updateGullyFilterCounts();
@@ -7876,6 +8327,291 @@ if (forgotLink) {
     }
 
     // Duplicate login function removed - using main login function instead
+
+    // ===== DEVICE COMPATIBILITY ENHANCEMENTS =====
+    
+    // Device detection and optimization
+    const deviceInfo = {
+      isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+      isTablet: /iPad|Android(?=.*\bMobile\b)(?=.*\bSafari\b)/i.test(navigator.userAgent),
+      isTouch: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+      isLandscape: window.innerWidth > window.innerHeight,
+      screenWidth: window.innerWidth,
+      screenHeight: window.innerHeight,
+      pixelRatio: window.devicePixelRatio || 1
+    };
+    
+    console.log('Device Info:', deviceInfo);
+    
+    // Optimize for different devices
+    function optimizeForDevice() {
+      const toolbar = document.getElementById('functionToolbar');
+      const map = document.getElementById('map');
+      
+      if (deviceInfo.isMobile) {
+        // Mobile optimizations
+        if (toolbar) {
+          toolbar.style.fontSize = '0.9rem';
+        }
+        
+        // Adjust map controls for mobile
+        if (window.map && window.map.zoomControl) {
+          window.map.zoomControl.setPosition('bottomright');
+        }
+        
+        // Enable touch gestures
+        enableTouchGestures();
+        
+      } else if (deviceInfo.isTablet) {
+        // Tablet optimizations
+        if (toolbar) {
+          toolbar.style.fontSize = '1rem';
+        }
+        
+        // Adjust map controls for tablet
+        if (window.map && window.map.zoomControl) {
+          window.map.zoomControl.setPosition('topright');
+        }
+        
+      } else {
+        // Desktop optimizations
+        if (toolbar) {
+          toolbar.style.fontSize = '1rem';
+        }
+        
+        // Adjust map controls for desktop
+        if (window.map && window.map.zoomControl) {
+          window.map.zoomControl.setPosition('topright');
+        }
+      }
+    }
+    
+    // Enable touch gestures for mobile/tablet
+    function enableTouchGestures() {
+      if (!deviceInfo.isTouch) return;
+      
+      // Add touch gesture support for map
+      if (window.map) {
+        // Enable double-tap zoom
+        window.map.doubleClickZoom.enable();
+        
+        // Enable touch zoom
+        window.map.tap.enable();
+        
+        // Optimize for touch interaction
+        window.map.options.tap = true;
+        window.map.options.tapTolerance = 15;
+      }
+      
+      // Add touch-friendly interactions for buttons
+      const buttons = document.querySelectorAll('.toolbar-button, .btn');
+      buttons.forEach(button => {
+        button.addEventListener('touchstart', function() {
+          this.style.transform = 'scale(0.95)';
+        });
+        
+        button.addEventListener('touchend', function() {
+          this.style.transform = 'scale(1)';
+        });
+      });
+    }
+    
+    // Handle orientation changes
+    function handleOrientationChange() {
+      deviceInfo.isLandscape = window.innerWidth > window.innerHeight;
+      deviceInfo.screenWidth = window.innerWidth;
+      deviceInfo.screenHeight = window.innerHeight;
+      
+      console.log('Orientation changed:', deviceInfo);
+      
+      // Re-optimize for new orientation
+      setTimeout(() => {
+        optimizeForDevice();
+        if (window.map) {
+          window.map.invalidateSize();
+        }
+      }, 100);
+    }
+    
+    // Handle window resize
+    function handleWindowResize() {
+      deviceInfo.screenWidth = window.innerWidth;
+      deviceInfo.screenHeight = window.innerHeight;
+      
+      // Re-optimize for new size
+      setTimeout(() => {
+        optimizeForDevice();
+        if (window.map) {
+          window.map.invalidateSize();
+        }
+      }, 100);
+    }
+    
+    // Enhanced popup positioning for different devices
+    function positionPopupOptimally(popupElement) {
+      if (!popupElement) return;
+      
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const popupRect = popupElement.getBoundingClientRect();
+      
+      if (deviceInfo.isMobile) {
+        // Mobile: center and make full width with margins
+        popupElement.style.width = '95vw';
+        popupElement.style.maxWidth = '95vw';
+        popupElement.style.left = '2.5vw';
+        popupElement.style.top = '50%';
+        popupElement.style.transform = 'translateY(-50%)';
+        
+      } else if (deviceInfo.isTablet) {
+        // Tablet: center with reasonable max width
+        popupElement.style.width = '90vw';
+        popupElement.style.maxWidth = '600px';
+        popupElement.style.left = '50%';
+        popupElement.style.top = '50%';
+        popupElement.style.transform = 'translate(-50%, -50%)';
+        
+      } else {
+        // Desktop: center with larger max width
+        popupElement.style.width = '80vw';
+        popupElement.style.maxWidth = '800px';
+        popupElement.style.left = '50%';
+        popupElement.style.top = '50%';
+        popupElement.style.transform = 'translate(-50%, -50%)';
+      }
+    }
+    
+    // Enhanced form handling for mobile devices
+    function enhanceFormForMobile(formElement) {
+      if (!deviceInfo.isMobile) return;
+      
+      const inputs = formElement.querySelectorAll('input, select, textarea');
+      inputs.forEach(input => {
+        // Prevent zoom on iOS
+        if (input.type === 'text' || input.type === 'email' || input.type === 'password') {
+          input.style.fontSize = '16px';
+        }
+        
+        // Add touch-friendly padding
+        input.style.padding = '12px';
+        input.style.minHeight = '44px';
+        
+        // Add focus styles for better UX
+        input.addEventListener('focus', function() {
+          this.style.borderColor = '#2196F3';
+          this.style.boxShadow = '0 0 0 2px rgba(33, 150, 243, 0.2)';
+        });
+        
+        input.addEventListener('blur', function() {
+          this.style.borderColor = '';
+          this.style.boxShadow = '';
+        });
+      });
+    }
+    
+    // Enhanced button handling for touch devices
+    function enhanceButtonsForTouch() {
+      if (!deviceInfo.isTouch) return;
+      
+      const buttons = document.querySelectorAll('.btn, .toolbar-button');
+      buttons.forEach(button => {
+        // Add touch feedback
+        button.addEventListener('touchstart', function() {
+          this.style.opacity = '0.7';
+          this.style.transform = 'scale(0.98)';
+        });
+        
+        button.addEventListener('touchend', function() {
+          this.style.opacity = '';
+          this.style.transform = '';
+        });
+        
+        // Ensure minimum touch target size
+        if (button.offsetHeight < 44 || button.offsetWidth < 44) {
+          button.style.minHeight = '44px';
+          button.style.minWidth = '44px';
+        }
+      });
+    }
+    
+    // Performance optimization for different devices
+    function optimizePerformance() {
+      if (deviceInfo.isMobile) {
+        // Reduce animations on mobile for better performance
+        document.documentElement.style.setProperty('--transition-duration', '0.2s');
+        
+        // Optimize map rendering
+        if (window.map) {
+          window.map.options.zoomAnimation = false;
+          window.map.options.fadeAnimation = false;
+        }
+        
+      } else {
+        // Full animations for desktop
+        document.documentElement.style.setProperty('--transition-duration', '0.3s');
+        
+        if (window.map) {
+          window.map.options.zoomAnimation = true;
+          window.map.options.fadeAnimation = true;
+        }
+      }
+    }
+    
+    // Accessibility enhancements
+    function enhanceAccessibility() {
+      // Add ARIA labels for better screen reader support
+      const buttons = document.querySelectorAll('.toolbar-button');
+      buttons.forEach(button => {
+        const icon = button.querySelector('i');
+        const text = button.querySelector('span');
+        
+        if (icon && text) {
+          button.setAttribute('aria-label', text.textContent);
+        }
+      });
+      
+      // Add keyboard navigation support
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          // Close any open popups
+          const popups = document.querySelectorAll('.modal-backdrop-custom');
+          if (popups.length > 0) {
+            popups[popups.length - 1].remove();
+          }
+        }
+      });
+    }
+    
+    // Initialize device optimizations
+    document.addEventListener('DOMContentLoaded', function() {
+      optimizeForDevice();
+      enableTouchGestures();
+      enhanceButtonsForTouch();
+      optimizePerformance();
+      enhanceAccessibility();
+      
+      // Add event listeners
+      window.addEventListener('orientationchange', handleOrientationChange);
+      window.addEventListener('resize', handleWindowResize);
+      
+      // Re-optimize after map initialization
+      if (typeof initMap === 'function') {
+        const originalInitMap = initMap;
+        initMap = function() {
+          originalInitMap();
+          setTimeout(() => {
+            optimizeForDevice();
+            enableTouchGestures();
+          }, 500);
+        };
+      }
+    });
+    
+    // Export device info for debugging
+    window.deviceInfo = deviceInfo;
+    window.optimizeForDevice = optimizeForDevice;
+    window.positionPopupOptimally = positionPopupOptimally;
+    window.enhanceFormForMobile = enhanceFormForMobile;
 
 </script>
 </body>
