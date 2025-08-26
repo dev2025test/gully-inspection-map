@@ -9533,8 +9533,10 @@ if (forgotLink) {
           window.map.zoomControl.setPosition('bottomright');
         }
         
-        // Enable touch gestures
-        enableTouchGestures();
+        // Enable touch gestures - delay until map is ready
+        setTimeout(() => {
+          enableTouchGestures();
+        }, 100);
         
       } else if (deviceInfo.isTablet) {
         // Tablet optimizations
@@ -9570,17 +9572,33 @@ if (forgotLink) {
     function enableTouchGestures() {
       if (!deviceInfo.isTouch) return;
       
-      // Add touch gesture support for map
-      if (window.map) {
-        // Enable double-tap zoom
-        window.map.doubleClickZoom.enable();
-        
-        // Enable touch zoom
-        window.map.tap.enable();
-        
-        // Optimize for touch interaction
-        window.map.options.tap = true;
-        window.map.options.tapTolerance = 15;
+      // Add touch gesture support for map - only if map is fully initialized
+      if (window.map && window.map.doubleClickZoom && typeof window.map.doubleClickZoom.enable === 'function') {
+        try {
+          // Enable double-tap zoom
+          window.map.doubleClickZoom.enable();
+        } catch (e) {
+          console.warn('enableTouchGestures: Could not enable doubleClickZoom:', e);
+        }
+      }
+      
+      if (window.map && window.map.tap && typeof window.map.tap.enable === 'function') {
+        try {
+          // Enable touch zoom
+          window.map.tap.enable();
+        } catch (e) {
+          console.warn('enableTouchGestures: Could not enable tap:', e);
+        }
+      }
+      
+      if (window.map && window.map.options) {
+        try {
+          // Optimize for touch interaction
+          window.map.options.tap = true;
+          window.map.options.tapTolerance = 15;
+        } catch (e) {
+          console.warn('enableTouchGestures: Could not set map options:', e);
+        }
       }
       
       // Add touch-friendly interactions for buttons
@@ -9765,7 +9783,6 @@ if (forgotLink) {
     // Initialize device optimizations
     document.addEventListener('DOMContentLoaded', function() {
       optimizeForDevice();
-      enableTouchGestures();
       enhanceButtonsForTouch();
       optimizePerformance();
       enhanceAccessibility();
