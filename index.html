@@ -3274,6 +3274,14 @@ function initMap() {
     }
   });
   console.log('initMap: Click handler for add mode initialized.');
+  
+  // Final check to ensure zoom controls are visible
+  setTimeout(() => {
+    if (window.map && !window.map.zoomControl) {
+      window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
+      console.log('initMap: Final zoom control creation');
+    }
+  }, 1000);
 }
 
 // Update the layer toggle function
@@ -9573,47 +9581,36 @@ if (forgotLink) {
       };
     }
 
-    // Add base layers for OSM and Esri Satellite
-    let osiLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Add base layers for OSM and Esri Satellite (global scope)
+    window.osiLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19
     });
-    let satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    window.satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       attribution: 'Tiles © Esri',
       maxZoom: 19
     });
-    let isSatellite = false;
+    window.isSatellite = false;
 
-    // Update initMap to use osiLayer as the default
-    function initMap() {
-      // ... existing code ...
-      window.map = L.map('map', {
-        center: [51.9, -8.5],
-        zoom: 13,
-        zoomControl: false,
-        attributionControl: false
-      });
-      osiLayer.addTo(window.map);
-      // ... rest of initMap ...
-    }
+    // Note: initMap function is defined earlier in the file
 
     // Add the toggleMapLayer function
     function toggleMapLayer() {
       if (!window.map) return;
-      if (isSatellite) {
-        window.map.removeLayer(satelliteLayer);
-        osiLayer.addTo(window.map);
+      if (window.isSatellite) {
+        window.map.removeLayer(window.satelliteLayer);
+        window.osiLayer.addTo(window.map);
         document.getElementById('toggleMapLayerBtn').innerHTML = '<i class="bi bi-globe"></i> Satellite';
       } else {
-        window.map.removeLayer(osiLayer);
-        satelliteLayer.addTo(window.map);
+        window.map.removeLayer(window.osiLayer);
+        window.satelliteLayer.addTo(window.map);
         document.getElementById('toggleMapLayerBtn').innerHTML = '<i class="bi bi-map"></i> Map';
       }
       // Ensure zoom control is present after switching layers
       if (!window.map.zoomControl) {
         window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
       }
-      isSatellite = !isSatellite;
+      window.isSatellite = !window.isSatellite;
     }
 
     // --- USER LOGIN/LOGOUT LOGGING ---
