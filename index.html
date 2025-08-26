@@ -3225,7 +3225,7 @@ function initMap() {
   
   console.log('initMap: Basemap layer added.'); 
   // Add zoom control
-  L.control.zoom({
+  window.map.zoomControl = L.control.zoom({
     position: 'topright'
   }).addTo(window.map);
   
@@ -3253,6 +3253,12 @@ function initMap() {
   // Explicitly set view to ensure full rendering
   window.map.setView([51.9, -8.5], 13); // Use the default center and zoom
   console.log('initMap: Map view explicitly set after invalidateSize.');
+  
+  // Ensure zoom control is present
+  if (!window.map.zoomControl) {
+    window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
+    console.log('initMap: Zoom control created and added to map');
+  }
 
   // Initialize click handler for add mode
   window.map.on('mousemove', (e) => {
@@ -9738,8 +9744,12 @@ if (forgotLink) {
         }
         
         // Adjust map controls for mobile
-        if (window.map && window.map.zoomControl) {
-          window.map.zoomControl.setPosition('bottomright');
+        if (window.map) {
+          if (!window.map.zoomControl) {
+            window.map.zoomControl = L.control.zoom({ position: 'bottomright' }).addTo(window.map);
+          } else {
+            window.map.zoomControl.setPosition('bottomright');
+          }
         }
         
         // Enable touch gestures - delay until map is ready
@@ -9754,8 +9764,12 @@ if (forgotLink) {
         }
         
         // Adjust map controls for tablet
-        if (window.map && window.map.zoomControl) {
-          window.map.zoomControl.setPosition('topright');
+        if (window.map) {
+          if (!window.map.zoomControl) {
+            window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
+          } else {
+            window.map.zoomControl.setPosition('topright');
+          }
         }
         
       } else {
@@ -9771,8 +9785,12 @@ if (forgotLink) {
         }
         
         // Adjust map controls for desktop
-        if (window.map && window.map.zoomControl) {
-          window.map.zoomControl.setPosition('topright');
+        if (window.map) {
+          if (!window.map.zoomControl) {
+            window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
+          } else {
+            window.map.zoomControl.setPosition('topright');
+          }
         }
       }
     }
@@ -10018,6 +10036,16 @@ if (forgotLink) {
     window.optimizeForDevice = optimizeForDevice;
     window.positionPopupOptimally = positionPopupOptimally;
     window.enhanceFormForMobile = enhanceFormForMobile;
+    
+    // Global function to ensure zoom controls are present
+    window.ensureZoomControls = function() {
+      if (window.map && !window.map.zoomControl) {
+        window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
+        console.log('ensureZoomControls: Zoom control created and added to map');
+        return true;
+      }
+      return false;
+    };
     
     // Simple fallback reset function
     window.simpleReset = function() {
