@@ -4630,6 +4630,79 @@ function exportData() {
   }
 }
 
+// Function to delete all photos from Firebase Storage
+async function deleteAllPhotosFromStorage() {
+  console.log('deleteAllPhotosFromStorage: Starting photo deletion from Firebase Storage...');
+  
+  try {
+    // Get all data from the database to find photo URLs
+    const dataSnapshot = await db.ref().once('value');
+    const allData = dataSnapshot.val() || {};
+    
+    const photoURLs = [];
+    
+    // Extract photo URLs from all asset types
+    const assetTypes = ['gullies', 'playgrounds', 'walkways', 'signage', 'lining'];
+    
+    assetTypes.forEach(assetType => {
+      if (allData[assetType]) {
+        Object.values(allData[assetType]).forEach(asset => {
+          // Check for photoURL in the asset
+          if (asset.photoURL) {
+            photoURLs.push(asset.photoURL);
+          }
+          // Check for photos in inspections
+          if (asset.inspections) {
+            Object.values(asset.inspections).forEach(inspection => {
+              if (inspection.photoURL) {
+                photoURLs.push(inspection.photoURL);
+              }
+            });
+          }
+        });
+      }
+    });
+    
+    console.log(`deleteAllPhotosFromStorage: Found ${photoURLs.length} photos to delete`);
+    
+    if (photoURLs.length === 0) {
+      console.log('deleteAllPhotosFromStorage: No photos found to delete');
+      return Promise.resolve();
+    }
+    
+    // Delete each photo using the enhanced photo upload functions
+    const deletePromises = photoURLs.map(async (photoURL) => {
+      try {
+        if (window.enhancedPhotoUpload && window.enhancedPhotoUpload.deletePhoto) {
+          // Extract gully ID and layer type from the URL
+          const urlParts = photoURL.split('/');
+          const fileName = urlParts[urlParts.length - 1].split('?')[0];
+          const gullyId = urlParts[urlParts.length - 2];
+          const layerType = urlParts[urlParts.length - 3];
+          
+          await window.enhancedPhotoUpload.deletePhoto(photoURL, gullyId, layerType);
+          console.log(`deleteAllPhotosFromStorage: Deleted photo: ${fileName}`);
+        } else {
+          // Fallback: delete directly using storage reference
+          const storageRef = storage.refFromURL(photoURL);
+          await storageRef.delete();
+          console.log(`deleteAllPhotosFromStorage: Deleted photo using fallback method: ${photoURL}`);
+        }
+      } catch (error) {
+        console.warn(`deleteAllPhotosFromStorage: Failed to delete photo ${photoURL}:`, error.message);
+        // Continue with other photos even if one fails
+      }
+    });
+    
+    await Promise.all(deletePromises);
+    console.log('deleteAllPhotosFromStorage: All photos deleted successfully');
+    
+  } catch (error) {
+    console.error('deleteAllPhotosFromStorage: Error deleting photos:', error);
+    // Don't throw error to prevent reset from failing
+  }
+}
+
 function resetMap() {
   console.log('resetMap: Starting complete data erasure...');
   if (!auth.currentUser) {
@@ -4648,7 +4721,7 @@ function resetMap() {
   auth.currentUser.reauthenticateWithCredential(credential)
     .then(() => {
       // Password correct, proceed with reset
-      const confirmReset = confirm('⚠️ WARNING: Complete Data Erasure ⚠️\n\nAre you sure you want to ERASE ALL DATA? This will:\n\n• DELETE ALL gullies, playgrounds, walkways, signage, and lining data\n• DELETE ALL audit logs and user activity logs\n• DELETE ALL inspection data, comments, and photos\n• DELETE ALL gully history and inspection records\n• Reset the map view to default\n\n⚠️ This action will PERMANENTLY DELETE ALL DATA and cannot be undone!');
+      const confirmReset = confirm('⚠️ WARNING: Complete Data Erasure ⚠️\n\nAre you sure you want to ERASE ALL DATA? This will:\n\n• DELETE ALL gullies, playgrounds, walkways, signage, and lining data\n• DELETE ALL audit logs and user activity logs\n• DELETE ALL inspection data, comments, and photos\n• DELETE ALL uploaded photos from Firebase Storage\n• DELETE ALL gully history and inspection records\n• Reset the map view to default\n\n⚠️ This action will PERMANENTLY DELETE ALL DATA and cannot be undone!');
       
       if (!confirmReset) {
         return;
@@ -4687,7 +4760,7 @@ function resetMap() {
       }
       
       // Final confirmation with data count
-      const finalConfirm = confirm('⚠️ FINAL WARNING ⚠️\n\nYou are about to PERMANENTLY DELETE ALL DATA from the database.\n\nThis includes:\n• All asset data (gullies, playgrounds, walkways, signage, lining)\n• All audit logs and user activity records\n• All inspection data and photos\n• All historical records\n\n⚠️ This action is IRREVERSIBLE and will result in complete data loss!\n\nAre you absolutely sure you want to proceed?');
+      const finalConfirm = confirm('⚠️ FINAL WARNING ⚠️\n\nYou are about to PERMANENTLY DELETE ALL DATA from the database and Firebase Storage.\n\nThis includes:\n• All asset data (gullies, playgrounds, walkways, signage, lining)\n• All audit logs and user activity records\n• All inspection data and photos\n• All uploaded photos from Firebase Storage\n• All historical records\n\n⚠️ This action is IRREVERSIBLE and will result in complete data loss!\n\nAre you absolutely sure you want to proceed?');
       if (!finalConfirm) {
         alert('Data erasure cancelled at final confirmation.');
         return;
@@ -4748,6 +4821,10 @@ function resetMap() {
           console.log(`resetMap: Erasing data from path: ${path}`);
           return db.ref(path).remove();
         });
+        
+        // Add photo deletion from Firebase Storage
+        const deletePhotosPromise = deleteAllPhotosFromStorage();
+        erasePromises.push(deletePhotosPromise);
         
         Promise.all(erasePromises)
           .then(() => {
@@ -4835,7 +4912,7 @@ function resetMap() {
         setTimeout(() => {
           loadingDiv.remove();
           console.log('resetMap: Complete data erasure finished.');
-          alert('⚠️ Complete Data Erasure Finished ⚠️\n\n✓ ALL DATA has been permanently deleted from the database\n✓ All gullies, playgrounds, walkways, signage, and lining data erased\n✓ All audit logs and user activity logs deleted\n✓ All inspection data, comments, and photos removed\n✓ All gully history and inspection records deleted\n✓ Map view reset to default\n✓ Database is now completely empty\n\n⚠️ This action cannot be undone!');
+          alert('⚠️ Complete Data Erasure Finished ⚠️\n\n✓ ALL DATA has been permanently deleted from the database\n✓ All gullies, playgrounds, walkways, signage, and lining data erased\n✓ All audit logs and user activity logs deleted\n✓ All inspection data, comments, and photos removed\n✓ All uploaded photos deleted from Firebase Storage\n✓ All gully history and inspection records deleted\n✓ Map view reset to default\n✓ Database is now completely empty\n\n⚠️ This action cannot be undone!');
         }, 1500);
 
       } catch (error) {
