@@ -6949,9 +6949,9 @@ async function loadInnerBoundariesOnly() {
       
       console.log('loadInnerBoundariesOnly: KML converted to GeoJSON:', geoJsonData);
       
-      if (geoJsonData.features && geoJsonData.features.length > 1) {
-        // Skip the first feature (outer boundary), take the rest (inner boundaries)
-        const innerBoundaryFeatures = geoJsonData.features.slice(1);
+      if (geoJsonData.features && geoJsonData.features.length > 0) {
+        // Include all features (all 5 electoral areas including North East)
+        const innerBoundaryFeatures = geoJsonData.features;
         
         if (innerBoundaryFeatures.length > 0) {
           corkInnerBoundariesLayer = L.layerGroup();
@@ -6959,7 +6959,7 @@ async function loadInnerBoundariesOnly() {
           // Define colors matching the ArcGIS map
           const electoralAreaColors = {
             'CORK CITY NORTH WEST LEA-6': '#2196F3',  // Blue
-            'CORK CITY NORTH EAST LEA-6': '#B71C1C',  // Red  
+            'CORK CITY NORTH EAST LEA-6': '#B71C1C',  // Much Darker Red  
             'CORK CITY SOUTH WEST LEA-7': '#FF9800',  // Orange
             'CORK CITY SOUTH EAST LEA-6': '#9C27B0',  // Purple
             'CORK CITY SOUTH CENTRAL LEA-6': '#4CAF50' // Green (center)
