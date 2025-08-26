@@ -6914,6 +6914,148 @@ function convertITMToWGS84(itmCoordinates) {
   return convertedCoordinates;
 }
 
+// Function to load only the outer boundary (no inner polygons)
+async function loadOuterBoundaryOnly() {
+  console.log('loadOuterBoundaryOnly: Loading Cork City Council outer boundary only...');
+  console.log('loadOuterBoundaryOnly: Current working directory:', window.location.href);
+  
+  try {
+    // Try to load from cork-city-boundary(1).kml file first
+    console.log('loadOuterBoundaryOnly: Attempting to fetch cork-city-boundary(1).kml file...');
+    const response = await fetch('./cork-city-boundary(1).kml');
+    
+    if (response.ok) {
+      const kmlText = await response.text();
+      console.log('loadOuterBoundaryOnly: cork-city-boundary(1).kml boundary data loaded, converting to GeoJSON...');
+      
+      // Parse KML and extract outer boundary only
+      const parser = new DOMParser();
+      const kmlDoc = parser.parseFromString(kmlText, 'text/xml');
+      const geoJsonData = toGeoJSON.kml(kmlDoc);
+      
+      console.log('loadOuterBoundaryOnly: KML converted to GeoJSON:', geoJsonData);
+      
+      if (geoJsonData.features && geoJsonData.features.length > 0) {
+        // Only take the first feature (outer boundary), ignore inner boundaries
+        const outerBoundaryFeature = geoJsonData.features[0];
+        
+        if (outerBoundaryFeature) {
+          corkOuterBoundaryLayer = L.geoJSON([outerBoundaryFeature], {
+            style: {
+              color: '#FF6B35',
+              weight: 4,
+              opacity: 0.9,
+              fillColor: 'transparent',
+              fillOpacity: 0,
+              dashArray: '8, 4'
+            }
+          }).bindPopup(`
+            <div style="text-align: center;">
+              <h5 style="color: #FF6B35; margin-bottom: 10px;">
+                <i class="bi bi-geo-alt"></i> Cork City Council
+              </h5>
+              <p style="margin: 0;"><strong>Official Administrative Boundary</strong></p>
+              <p style="margin: 5px 0; font-size: 0.9em;">
+                Cork City Council main administrative area from cork-city-boundary(1).kml file.
+              </p>
+            </div>
+          `);
+          console.log('loadOuterBoundaryOnly: Outer boundary layer created');
+          return;
+        }
+      }
+    } else {
+      console.warn('loadOuterBoundaryOnly: KML file response not OK, status:', response.status);
+      throw new Error('KML file not found');
+    }
+  } catch (error) {
+    console.warn('loadOuterBoundaryOnly: KML file failed, trying fallback options...', error);
+    
+    // Fallback to official CorkCity_Boundary.geojson with ITM coordinates
+    try {
+      const response = await fetch('./CorkCity_Boundary.geojson');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('loadOuterBoundaryOnly: Official CorkCity_Boundary.geojson loaded with ITM coordinates');
+        
+        if (data.type === 'MultiPolygon' && data.coordinates) {
+          // Convert ITM coordinates to WGS84
+          const convertedCoordinates = convertITMToWGS84(data.coordinates);
+          
+          const convertedGeoJSON = {
+            type: 'MultiPolygon',
+            coordinates: convertedCoordinates
+          };
+          
+          corkOuterBoundaryLayer = L.geoJSON(convertedGeoJSON, {
+            style: {
+              color: '#FF6B35',
+              weight: 4,
+              opacity: 0.9,
+              fillColor: 'transparent',
+              fillOpacity: 0,
+              dashArray: '8, 4'
+            }
+          }).bindPopup(`
+            <div style="text-align: center;">
+              <h5 style="color: #FF6B35; margin-bottom: 10px;">
+                <i class="bi bi-geo-alt"></i> Cork City Council
+              </h5>
+              <p style="margin: 0;"><strong>Official Administrative Boundary</strong></p>
+              <p style="margin: 5px 0; font-size: 0.9em;">
+                Cork City Council official administrative area from ITM coordinates.
+              </p>
+            </div>
+          `);
+          console.log('loadOuterBoundaryOnly: Official boundary created from ITM coordinates');
+          return;
+        }
+      }
+    } catch (fallbackError) {
+      console.warn('loadOuterBoundaryOnly: Official boundary failed, trying simple fallback...', fallbackError);
+      
+      // Try simple fallback
+      try {
+        const response = await fetch('./cork-city-boundary.geojson');
+        if (response.ok) {
+          const data = await response.json();
+          console.log('loadOuterBoundaryOnly: Simple fallback GeoJSON boundary data loaded');
+          
+          if (data.type === 'FeatureCollection' || data.type === 'Feature') {
+            corkOuterBoundaryLayer = L.geoJSON(data, {
+              style: {
+                color: '#FF6B35',
+                weight: 4,
+                opacity: 0.9,
+                fillColor: 'transparent',
+                fillOpacity: 0,
+                dashArray: '8, 4'
+              }
+            }).bindPopup(`
+              <div style="text-align: center;">
+                <h5 style="color: #FF6B35; margin-bottom: 10px;">
+                  <i class="bi bi-geo-alt"></i> Cork City Council
+                </h5>
+                <p style="margin: 0;"><strong>Administrative Boundary</strong></p>
+                <p style="margin: 5px 0; font-size: 0.9em;">
+                  Cork City Council administrative area (fallback data).
+                </p>
+              </div>
+            `);
+            console.log('loadOuterBoundaryOnly: Simple fallback outer boundary created');
+            return;
+          }
+        }
+      } catch (simpleFallbackError) {
+        console.warn('loadOuterBoundaryOnly: Simple fallback also failed, creating sample boundaries');
+      }
+    }
+    
+    // Final fallback - create sample boundaries
+    createSampleOuterBoundaryOnly();
+  }
+}
+
 // Function to load Cork City Council boundary
 async function loadCorkBoundaries() {
   console.log('loadCorkBoundaries: Loading Cork City Council boundaries...');
@@ -7138,6 +7280,51 @@ async function loadCorkBoundaries() {
     // Final fallback - create sample boundaries
     createSampleBoundaries();
   }
+}
+
+// Function to create sample outer boundary only (no inner polygons)
+function createSampleOuterBoundaryOnly() {
+  console.log('createSampleOuterBoundaryOnly: Creating sample Cork City outer boundary only');
+  console.log('createSampleOuterBoundaryOnly: Map object available:', !!window.map);
+  
+  // Approximate Cork City outer boundary coordinates
+  const outerBoundaryCoords = [
+    [51.8600, -8.5900], // Southwest
+    [51.8600, -8.4200], // Southeast  
+    [51.9200, -8.4200], // Northeast
+    [51.9400, -8.4800], // North
+    [51.9300, -8.5500], // Northwest
+    [51.9000, -8.5900], // West
+    [51.8600, -8.5900]  // Back to start
+  ];
+  
+  // Create outer boundary layer only
+  corkOuterBoundaryLayer = L.polygon(outerBoundaryCoords, {
+    color: '#FF6B35',
+    weight: 4,
+    opacity: 0.9,
+    fillColor: 'transparent',
+    fillOpacity: 0,
+    dashArray: '8, 4'
+  });
+  
+  corkOuterBoundaryLayer.bindPopup(`
+    <div style="text-align: center;">
+      <h5 style="color: #FF6B35; margin-bottom: 10px;">
+        <i class="bi bi-geo-alt"></i> Cork City Council
+      </h5>
+      <p style="margin: 0;"><strong>Outer Administrative Boundary</strong></p>
+      <p style="margin: 5px 0; font-size: 0.9em;">
+        This is an approximate representation of the Cork City Council administrative area.
+      </p>
+      <hr style="margin: 10px 0;">
+      <p style="margin: 0; font-size: 0.8em; color: #666;">
+        For official boundaries, please consult Cork City Council's GIS department.
+      </p>
+    </div>
+  `);
+  
+  console.log('createSampleOuterBoundaryOnly: Outer boundary layer created:', !!corkOuterBoundaryLayer);
 }
 
 // Function to create sample Cork City boundaries (approximate)
@@ -7507,12 +7694,12 @@ function toggleOuterBoundary() {
   
   if (!corkOuterBoundaryLayer) {
     console.log('toggleOuterBoundary: Boundary layers not loaded, loading now...');
-    loadCorkBoundaries().then(() => {
+    loadOuterBoundaryOnly().then(() => {
       if (corkOuterBoundaryLayer) {
         showOuterBoundary();
       } else {
         console.warn('toggleOuterBoundary: Still no boundary layer after loading, creating sample...');
-        createSampleBoundaries();
+        createSampleOuterBoundaryOnly();
         if (corkOuterBoundaryLayer) {
           showOuterBoundary();
         }
@@ -7570,6 +7757,11 @@ function showOuterBoundary() {
   if (!corkOuterBoundaryLayer || !window.map) {
     console.warn('showOuterBoundary: Cannot show boundary - layer or map missing');
     return;
+  }
+  
+  // Hide inner boundaries if they are visible
+  if (corkInnerBoundariesLayer && innerBoundariesVisible) {
+    hideInnerBoundaries();
   }
   
   console.log('showOuterBoundary: Adding outer boundary to map');
