@@ -8065,37 +8065,8 @@ function showOuterBoundary() {
     return;
   }
   
-  // Hide inner boundaries if they are visible
-  if (corkInnerBoundariesLayer && innerBoundariesVisible) {
-    hideInnerBoundaries();
-  }
-  
-  // Also force remove any inner boundaries from the map regardless of state
-  if (corkInnerBoundariesLayer && window.map.hasLayer(corkInnerBoundariesLayer)) {
-    console.log('showOuterBoundary: Force removing inner boundaries from map');
-    window.map.removeLayer(corkInnerBoundariesLayer);
-    innerBoundariesVisible = false;
-    
-    // Reset inner boundaries button appearance
-    const innerBoundaryBtn = document.getElementById('toggleInnerBoundariesBtn');
-    if (innerBoundaryBtn) {
-      innerBoundaryBtn.style.backgroundColor = '';
-      innerBoundaryBtn.style.color = '';
-      innerBoundaryBtn.style.borderColor = '';
-    }
-  }
-  
-  // Additional safety check: remove any layer that might be inner boundaries
-  if (window.map && window.map._layers) {
-    Object.keys(window.map._layers).forEach(layerId => {
-      const layer = window.map._layers[layerId];
-      if (layer && layer.options && layer.options.fillOpacity > 0 && layer.options.fillColor !== 'transparent') {
-        // This looks like a filled polygon (inner boundary), remove it
-        console.log('showOuterBoundary: Removing potential inner boundary layer:', layerId);
-        window.map.removeLayer(layer);
-      }
-    });
-  }
+  // Allow both outer boundary and inner boundaries to be shown together
+  // No longer hiding inner boundaries when showing outer boundary
   
   console.log('showOuterBoundary: Adding outer boundary to map');
   corkOuterBoundaryLayer.addTo(window.map);
@@ -8129,20 +8100,8 @@ function hideOuterBoundary() {
     boundaryBtn.style.borderColor = '';
   }
   
-  // Ensure inner boundaries are also hidden when outer boundary is hidden
-  if (corkInnerBoundariesLayer && window.map.hasLayer(corkInnerBoundariesLayer)) {
-    console.log('hideOuterBoundary: Also removing inner boundaries from map');
-    window.map.removeLayer(corkInnerBoundariesLayer);
-    innerBoundariesVisible = false;
-    
-    // Reset inner boundaries button appearance
-    const innerBoundaryBtn = document.getElementById('toggleInnerBoundariesBtn');
-    if (innerBoundaryBtn) {
-      innerBoundaryBtn.style.backgroundColor = '';
-      innerBoundaryBtn.style.color = '';
-      innerBoundaryBtn.style.borderColor = '';
-    }
-  }
+  // Allow inner boundaries to remain visible when outer boundary is hidden
+  // No longer hiding inner boundaries when hiding outer boundary
   
   console.log('hideOuterBoundary: Outer boundary layer hidden');
   showNotification('Cork City Council outer boundary hidden', 'info');
@@ -8159,25 +8118,8 @@ function showInnerBoundaries() {
     return;
   }
   
-  // Hide outer boundary if it is visible
-  if (corkOuterBoundaryLayer && outerBoundaryVisible) {
-    hideOuterBoundary();
-  }
-  
-  // Also force remove any outer boundary from the map regardless of state
-  if (corkOuterBoundaryLayer && window.map.hasLayer(corkOuterBoundaryLayer)) {
-    console.log('showInnerBoundaries: Force removing outer boundary from map');
-    window.map.removeLayer(corkOuterBoundaryLayer);
-    outerBoundaryVisible = false;
-    
-    // Reset outer boundary button appearance
-    const outerBoundaryBtn = document.getElementById('toggleOuterBoundaryBtn');
-    if (outerBoundaryBtn) {
-      outerBoundaryBtn.style.backgroundColor = '';
-      outerBoundaryBtn.style.color = '';
-      outerBoundaryBtn.style.borderColor = '';
-    }
-  }
+  // Allow both outer boundary and inner boundaries to be shown together
+  // No longer hiding outer boundary when showing inner boundaries
   
   console.log('showInnerBoundaries: Adding inner boundaries to map');
   corkInnerBoundariesLayer.addTo(window.map);
