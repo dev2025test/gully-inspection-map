@@ -6934,13 +6934,13 @@ async function loadInnerBoundariesOnly() {
   console.log('loadInnerBoundariesOnly: Current working directory:', window.location.href);
   
   try {
-    // Try to load from cork-city-boundary(1).kml file first
-    console.log('loadInnerBoundariesOnly: Attempting to fetch cork-city-boundary(1).kml file...');
-    const response = await fetch('./cork-city-boundary(1).kml');
+    // Try to load from corkcitylea.kml file first (electoral areas)
+    console.log('loadInnerBoundariesOnly: Attempting to fetch corkcitylea.kml file...');
+    const response = await fetch('./corkcitylea.kml');
     
     if (response.ok) {
       const kmlText = await response.text();
-      console.log('loadInnerBoundariesOnly: cork-city-boundary(1).kml boundary data loaded, converting to GeoJSON...');
+      console.log('loadInnerBoundariesOnly: corkcitylea.kml electoral areas data loaded, converting to GeoJSON...');
       
       // Parse KML and extract inner boundaries only
       const parser = new DOMParser();
