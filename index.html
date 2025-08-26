@@ -163,8 +163,6 @@
       transform: rotate(180deg);
     }
     .login-background {
-      background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
-                  url('cork_city_hall_night.jpg');
       background-size: cover;
       background-position: center;
     }
@@ -768,8 +766,7 @@
   align-items: center;
   justify-content: center;
 }
-<!DOCTYPE html>
-<html>
+</script>
 <head>
   <meta charset="utf-8">
   <title>Gully Inspection System</title>
@@ -933,8 +930,6 @@
       transform: rotate(180deg);
     }
     .login-background {
-      background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
-                  url('cork_city_hall_night.jpg');
       background-size: cover;
       background-position: center;
     }
@@ -2509,7 +2504,6 @@
   </style>
   <style>
     #loginScreen.login-background {
-      background: url('cork_city_hall_night.jpg') !important;
       background-size: cover !important;
       background-position: center !important;
       min-height: 100vh !important;
@@ -7411,6 +7405,43 @@ async function loadElectoralAreasFromKML() {
     throw error;
   }
 }
+
+// Function to set random background image for login screen
+function setRandomLoginBackground() {
+  const backgroundImages = [
+    'cork_city_hall_night.jpg',
+    'cork_city_hall_night.jpg.jpg',
+    'cork-city-council-logo.jpg',
+    'cork-city-council-logo.jpeg',
+    'cork-city-council-logo.png.jpeg',
+    'idwlauxnya_1751188773241.jpeg'
+  ];
+  
+  // Randomly select an image
+  const randomImage = backgroundImages[Math.floor(Math.random() * backgroundImages.length)];
+  
+  // Apply the background image to the login screen
+  const loginScreen = document.getElementById('loginScreen');
+  if (loginScreen) {
+    loginScreen.style.backgroundImage = `url('${randomImage}')`;
+  }
+}
+
+// Set random background when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  setRandomLoginBackground();
+});
+
+// Set random background when login screen is shown
+function showLoginScreen() {
+  setRandomLoginBackground();
+  const loginScreen = document.getElementById('loginScreen');
+  if (loginScreen) {
+    loginScreen.style.display = 'flex';
+  }
+}
+
+</script>
 
 // Function to load electoral areas from GeoJSON file
 async function loadElectoralAreasFromGeoJSON() {

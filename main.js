@@ -106,6 +106,10 @@ auth.onAuthStateChanged(user => {
       // Optionally call setupUIForRole(userData.role, userData.adminPrivileges);
     });
   } else {
+    // Set random background image for login screen
+    if (typeof setRandomLoginBackground === 'function') {
+      setRandomLoginBackground();
+    }
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('map').style.display = 'none';
     document.getElementById('functionToolbar').style.display = 'none';
@@ -114,6 +118,10 @@ auth.onAuthStateChanged(user => {
 
 function logout() {
   auth.signOut().then(() => {
+    // Set random background before reloading
+    if (typeof setRandomLoginBackground === 'function') {
+      setRandomLoginBackground();
+    }
     window.location.reload();
   }).catch(error => {
     console.error('Logout error:', error);
