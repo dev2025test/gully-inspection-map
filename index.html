@@ -9836,11 +9836,19 @@ if (forgotLink) {
         }
         
         // Adjust map controls for mobile
-        if (window.map) {
+        if (window.map && window.map.getMinZoom && typeof window.map.getMinZoom === 'function') {
           if (!window.map.zoomControl) {
-            window.map.zoomControl = L.control.zoom({ position: 'bottomright' }).addTo(window.map);
+            try {
+              window.map.zoomControl = L.control.zoom({ position: 'bottomright' }).addTo(window.map);
+            } catch (e) {
+              console.warn('optimizeForDevice: Could not create zoom control:', e);
+            }
           } else {
-            window.map.zoomControl.setPosition('bottomright');
+            try {
+              window.map.zoomControl.setPosition('bottomright');
+            } catch (e) {
+              console.warn('optimizeForDevice: Could not set zoom control position:', e);
+            }
           }
         }
         
@@ -9856,11 +9864,19 @@ if (forgotLink) {
         }
         
         // Adjust map controls for tablet
-        if (window.map) {
+        if (window.map && window.map.getMinZoom && typeof window.map.getMinZoom === 'function') {
           if (!window.map.zoomControl) {
-            window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
+            try {
+              window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
+            } catch (e) {
+              console.warn('optimizeForDevice: Could not create zoom control:', e);
+            }
           } else {
-            window.map.zoomControl.setPosition('topright');
+            try {
+              window.map.zoomControl.setPosition('topright');
+            } catch (e) {
+              console.warn('optimizeForDevice: Could not set zoom control position:', e);
+            }
           }
         }
         
@@ -9877,11 +9893,19 @@ if (forgotLink) {
         }
         
         // Adjust map controls for desktop
-        if (window.map) {
+        if (window.map && window.map.getMinZoom && typeof window.map.getMinZoom === 'function') {
           if (!window.map.zoomControl) {
-            window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
+            try {
+              window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
+            } catch (e) {
+              console.warn('optimizeForDevice: Could not create zoom control:', e);
+            }
           } else {
-            window.map.zoomControl.setPosition('topright');
+            try {
+              window.map.zoomControl.setPosition('topright');
+            } catch (e) {
+              console.warn('optimizeForDevice: Could not set zoom control position:', e);
+            }
           }
         }
       }
@@ -10131,10 +10155,15 @@ if (forgotLink) {
     
     // Global function to ensure zoom controls are present
     window.ensureZoomControls = function() {
-      if (window.map && !window.map.zoomControl) {
-        window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
-        console.log('ensureZoomControls: Zoom control created and added to map');
-        return true;
+      if (window.map && window.map.getMinZoom && typeof window.map.getMinZoom === 'function' && !window.map.zoomControl) {
+        try {
+          window.map.zoomControl = L.control.zoom({ position: 'topright' }).addTo(window.map);
+          console.log('ensureZoomControls: Zoom control created and added to map');
+          return true;
+        } catch (e) {
+          console.warn('ensureZoomControls: Could not create zoom control:', e);
+          return false;
+        }
       }
       return false;
     };
