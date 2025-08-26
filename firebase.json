@@ -81,5 +81,8 @@
         }
       }
     }
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 } 

@@ -1,8 +1,21 @@
 [
   {
-    "origin": ["*"],
+    "origin": [
+      "http://localhost:8000",
+      "http://localhost:3000",
+      "http://localhost:5000",
+      "https://gully-inspection-cccdev2025netlifyapp.netlify.app",
+      "https://gullytest3.firebaseapp.com",
+      "https://gullytest3.web.app"
+    ],
     "method": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
     "maxAgeSeconds": 3600,
-    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "User-Agent", "x-goog-resumable"]
+    "responseHeader": [
+      "Content-Type",
+      "Access-Control-Allow-Origin",
+      "Access-Control-Allow-Methods",
+      "Access-Control-Allow-Headers",
+      "Access-Control-Max-Age"
+    ]
   }
 ]
