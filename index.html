@@ -6914,6 +6914,110 @@ function convertITMToWGS84(itmCoordinates) {
   return convertedCoordinates;
 }
 
+// Function to load only the inner boundaries (electoral areas)
+async function loadInnerBoundariesOnly() {
+  console.log('loadInnerBoundariesOnly: Loading Cork City Council inner boundaries only...');
+  console.log('loadInnerBoundariesOnly: Current working directory:', window.location.href);
+  
+  try {
+    // Try to load from cork-city-boundary(1).kml file first
+    console.log('loadInnerBoundariesOnly: Attempting to fetch cork-city-boundary(1).kml file...');
+    const response = await fetch('./cork-city-boundary(1).kml');
+    
+    if (response.ok) {
+      const kmlText = await response.text();
+      console.log('loadInnerBoundariesOnly: cork-city-boundary(1).kml boundary data loaded, converting to GeoJSON...');
+      
+      // Parse KML and extract inner boundaries only
+      const parser = new DOMParser();
+      const kmlDoc = parser.parseFromString(kmlText, 'text/xml');
+      const geoJsonData = toGeoJSON.kml(kmlDoc);
+      
+      console.log('loadInnerBoundariesOnly: KML converted to GeoJSON:', geoJsonData);
+      
+      if (geoJsonData.features && geoJsonData.features.length > 1) {
+        // Skip the first feature (outer boundary), take the rest (inner boundaries)
+        const innerBoundaryFeatures = geoJsonData.features.slice(1);
+        
+        if (innerBoundaryFeatures.length > 0) {
+          corkInnerBoundariesLayer = L.layerGroup();
+          
+          // Define colors matching the ArcGIS map
+          const electoralAreaColors = {
+            'CORK CITY NORTH WEST LEA-6': '#2196F3',  // Blue
+            'CORK CITY NORTH EAST LEA-6': '#F44336',  // Red  
+            'CORK CITY SOUTH WEST LEA-7': '#FF9800',  // Orange
+            'CORK CITY SOUTH EAST LEA-6': '#9C27B0',  // Purple
+            'CORK CITY SOUTH CENTRAL LEA-6': '#4CAF50' // Green (center)
+          };
+          
+          innerBoundaryFeatures.forEach((feature, index) => {
+            // Try to get the area name from feature properties
+            let areaName = 'Unknown Electoral Area';
+            let areaColor = '#607D8B'; // Default gray
+            
+            if (feature.properties && feature.properties.ENGLISH) {
+              areaName = feature.properties.ENGLISH;
+              areaColor = electoralAreaColors[areaName] || '#607D8B';
+            } else {
+              // Fallback to index-based colors
+              const colors = ['#2196F3', '#F44336', '#FF9800', '#9C27B0', '#4CAF50'];
+              areaColor = colors[index % colors.length];
+            }
+            
+            const layer = L.geoJSON(feature, {
+              style: {
+                color: areaColor,
+                weight: 3,
+                opacity: 0.8,
+                fillColor: areaColor,
+                fillOpacity: 0.15,
+                dashArray: '5, 5'
+              }
+            }).bindPopup(`
+              <div style="text-align: center;">
+                <h6 style="color: ${areaColor}; margin-bottom: 8px;">
+                  <i class="bi bi-map"></i> Local Electoral Area
+                </h6>
+                <p style="margin: 0; font-size: 0.9em; font-weight: bold;">${areaName}</p>
+                <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
+                  Cork City Council Local Electoral Area
+                </p>
+                ${feature.properties && feature.properties.AREA ? 
+                  `<p style="margin: 5px 0; font-size: 0.7em; color: #888;">
+                    Area: ${(feature.properties.AREA / 1000000).toFixed(1)} km²
+                  </p>` : ''
+                }
+              </div>
+            `);
+            
+            corkInnerBoundariesLayer.addLayer(layer);
+          });
+          console.log('loadInnerBoundariesOnly: Inner boundaries layer created with', innerBoundaryFeatures.length, 'electoral areas');
+          return;
+        }
+      }
+    } else {
+      console.warn('loadInnerBoundariesOnly: KML file response not OK, status:', response.status);
+      throw new Error('KML file not found');
+    }
+  } catch (error) {
+    console.warn('loadInnerBoundariesOnly: KML file failed, trying fallback options...', error);
+    
+    // Try to load electoral areas from separate KML file
+    try {
+      await loadElectoralAreasFromKML();
+      console.log('loadInnerBoundariesOnly: Electoral areas loaded successfully from separate KML file');
+      return;
+    } catch (kmlError) {
+      console.warn('loadInnerBoundariesOnly: Separate KML electoral areas failed, creating sample boundaries...', kmlError);
+    }
+    
+    // Final fallback - create sample boundaries
+    createSampleInnerBoundariesOnly();
+  }
+}
+
 // Function to load only the outer boundary (no inner polygons)
 async function loadOuterBoundaryOnly() {
   console.log('loadOuterBoundaryOnly: Loading Cork City Council outer boundary only...');
@@ -7280,6 +7384,99 @@ async function loadCorkBoundaries() {
     // Final fallback - create sample boundaries
     createSampleBoundaries();
   }
+}
+
+// Function to create sample inner boundaries only (no outer boundary)
+function createSampleInnerBoundariesOnly() {
+  console.log('createSampleInnerBoundariesOnly: Creating sample Cork City inner boundaries only');
+  console.log('createSampleInnerBoundariesOnly: Map object available:', !!window.map);
+  
+  // Create sample inner boundaries (electoral areas)
+  corkInnerBoundariesLayer = L.layerGroup();
+  
+  // Sample electoral areas within Cork City (matching ArcGIS map colors)
+  const electoralAreas = [
+    {
+      name: "CORK CITY NORTH WEST LEA-6",
+      coords: [
+        [51.9000, -8.5900],
+        [51.9000, -8.5000],
+        [51.9200, -8.5000],
+        [51.9200, -8.5900],
+        [51.9000, -8.5900]
+      ],
+      color: '#2196F3'  // Blue
+    },
+    {
+      name: "CORK CITY NORTH EAST LEA-6", 
+      coords: [
+        [51.9000, -8.5000],
+        [51.9000, -8.4200],
+        [51.9200, -8.4200],
+        [51.9200, -8.5000],
+        [51.9000, -8.5000]
+      ],
+      color: '#F44336'  // Red
+    },
+    {
+      name: "CORK CITY SOUTH WEST LEA-7",
+      coords: [
+        [51.8600, -8.5900],
+        [51.8600, -8.5000],
+        [51.9000, -8.5000],
+        [51.9000, -8.5900],
+        [51.8600, -8.5900]
+      ],
+      color: '#FF9800'  // Orange
+    },
+    {
+      name: "CORK CITY SOUTH EAST LEA-6",
+      coords: [
+        [51.8600, -8.5000],
+        [51.8600, -8.4200],
+        [51.9000, -8.4200],
+        [51.9000, -8.5000],
+        [51.8600, -8.5000]
+      ],
+      color: '#9C27B0'  // Purple
+    },
+    {
+      name: "CORK CITY SOUTH CENTRAL LEA-6",
+      coords: [
+        [51.8700, -8.4800],
+        [51.8700, -8.4400],
+        [51.8900, -8.4400],
+        [51.8900, -8.4800],
+        [51.8700, -8.4800]
+      ],
+      color: '#4CAF50'  // Green
+    }
+  ];
+  
+  electoralAreas.forEach(area => {
+    const layer = L.polygon(area.coords, {
+      color: area.color,
+      weight: 3,
+      opacity: 0.8,
+      fillColor: area.color,
+      fillOpacity: 0.15,
+      dashArray: '5, 5'
+    }).bindPopup(`
+      <div style="text-align: center;">
+        <h6 style="color: ${area.color}; margin-bottom: 8px;">
+          <i class="bi bi-map"></i> Local Electoral Area
+        </h6>
+        <p style="margin: 0; font-size: 0.9em; font-weight: bold;">${area.name}</p>
+        <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
+          Cork City Council Local Electoral Area (Sample)
+        </p>
+      </div>
+    `);
+    
+    corkInnerBoundariesLayer.addLayer(layer);
+  });
+  
+  console.log('createSampleInnerBoundariesOnly: Inner boundaries layer created:', !!corkInnerBoundariesLayer);
 }
 
 // Function to create sample outer boundary only (no inner polygons)
@@ -7727,12 +7924,12 @@ function toggleInnerBoundaries() {
   
   if (!corkInnerBoundariesLayer) {
     console.log('toggleInnerBoundaries: Boundary layers not loaded, loading now...');
-    loadCorkBoundaries().then(() => {
+    loadInnerBoundariesOnly().then(() => {
       if (corkInnerBoundariesLayer) {
         showInnerBoundaries();
       } else {
         console.warn('toggleInnerBoundaries: Still no boundary layer after loading, creating sample...');
-        createSampleBoundaries();
+        createSampleInnerBoundariesOnly();
         if (corkInnerBoundariesLayer) {
           showInnerBoundaries();
         }
@@ -7777,6 +7974,18 @@ function showOuterBoundary() {
       innerBoundaryBtn.style.color = '';
       innerBoundaryBtn.style.borderColor = '';
     }
+  }
+  
+  // Additional safety check: remove any layer that might be inner boundaries
+  if (window.map && window.map._layers) {
+    Object.keys(window.map._layers).forEach(layerId => {
+      const layer = window.map._layers[layerId];
+      if (layer && layer.options && layer.options.fillOpacity > 0 && layer.options.fillColor !== 'transparent') {
+        // This looks like a filled polygon (inner boundary), remove it
+        console.log('showOuterBoundary: Removing potential inner boundary layer:', layerId);
+        window.map.removeLayer(layer);
+      }
+    });
   }
   
   console.log('showOuterBoundary: Adding outer boundary to map');
