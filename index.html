@@ -7024,7 +7024,16 @@ async function loadInnerBoundariesOnly() {
       console.log('loadInnerBoundariesOnly: Electoral areas loaded successfully from separate KML file');
       return;
     } catch (kmlError) {
-      console.warn('loadInnerBoundariesOnly: Separate KML electoral areas failed, creating sample boundaries...', kmlError);
+      console.warn('loadInnerBoundariesOnly: Separate KML electoral areas failed, trying GeoJSON...', kmlError);
+    }
+    
+    // Try to load electoral areas from GeoJSON file
+    try {
+      await loadElectoralAreasFromGeoJSON();
+      console.log('loadInnerBoundariesOnly: Electoral areas loaded successfully from GeoJSON file');
+      return;
+    } catch (geoJsonError) {
+      console.warn('loadInnerBoundariesOnly: GeoJSON electoral areas failed, creating sample boundaries...', geoJsonError);
     }
     
     // Final fallback - create sample boundaries
@@ -7386,13 +7395,22 @@ async function loadCorkBoundaries() {
       }
     }
     
-    // Load electoral areas from corkcitylea(4).kml file (button-controlled only)
+    // Load electoral areas from KML file (button-controlled only)
     try {
       await loadElectoralAreasFromKML();
-      console.log('loadCorkBoundaries: Electoral areas loaded successfully - use Electoral Areas button to show/hide');
+      console.log('loadCorkBoundaries: Electoral areas loaded successfully from KML - use Electoral Areas button to show/hide');
       return;
     } catch (kmlError) {
-      console.warn('loadCorkBoundaries: KML electoral areas failed, creating sample boundaries...', kmlError);
+      console.warn('loadCorkBoundaries: KML electoral areas failed, trying GeoJSON...', kmlError);
+    }
+    
+    // Try to load electoral areas from GeoJSON file
+    try {
+      await loadElectoralAreasFromGeoJSON();
+      console.log('loadCorkBoundaries: Electoral areas loaded successfully from GeoJSON - use Electoral Areas button to show/hide');
+      return;
+    } catch (geoJsonError) {
+      console.warn('loadCorkBoundaries: GeoJSON electoral areas failed, creating sample boundaries...', geoJsonError);
     }
     
     // Final fallback - create sample boundaries
@@ -7679,16 +7697,17 @@ function createSampleBoundaries() {
 
 // Function to load electoral areas from KML file
 async function loadElectoralAreasFromKML() {
-  console.log('loadElectoralAreasFromKML: Loading electoral areas from corkcitylea(4).kml file');
+  console.log('loadElectoralAreasFromKML: Loading electoral areas from corkcitylea.kml file');
   
   try {
-    const response = await fetch('./corkcitylea(4).kml');
+    const response = await fetch('./corkcitylea.kml');
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const kmlText = await response.text();
     console.log('loadElectoralAreasFromKML: KML data loaded, parsing...');
+    console.log('loadElectoralAreasFromKML: KML file size:', kmlText.length, 'characters');
     
     // Parse KML using DOMParser
     const parser = new DOMParser();
@@ -7698,6 +7717,77 @@ async function loadElectoralAreasFromKML() {
       throw new Error('Failed to parse KML XML');
     }
     
+    // Try using toGeoJSON library first (simpler approach)
+    try {
+      const geoJsonData = toGeoJSON.kml(kmlDoc);
+      console.log('loadElectoralAreasFromKML: toGeoJSON conversion successful:', geoJsonData);
+      
+      if (geoJsonData.features && geoJsonData.features.length > 0) {
+        // Create inner boundaries layer with real data
+        corkInnerBoundariesLayer = L.layerGroup();
+        
+        // Define colors matching the ArcGIS map
+        const electoralAreaColors = {
+          'CORK CITY NORTH WEST LEA-6': '#2196F3',  // Blue
+          'CORK CITY NORTH EAST LEA-6': '#F44336',  // Red  
+          'CORK CITY SOUTH WEST LEA-7': '#FF9800',  // Orange
+          'CORK CITY SOUTH EAST LEA-6': '#9C27B0',  // Purple
+          'CORK CITY SOUTH CENTRAL LEA-6': '#4CAF50' // Green (center)
+        };
+        
+        geoJsonData.features.forEach((feature, index) => {
+          // Get the area name from feature properties
+          let areaName = 'Unknown Electoral Area';
+          let areaColor = '#607D8B'; // Default gray
+          
+          if (feature.properties && feature.properties.name) {
+            areaName = feature.properties.name;
+            areaColor = electoralAreaColors[areaName] || '#607D8B';
+          } else if (feature.properties && feature.properties.ENGLISH) {
+            areaName = feature.properties.ENGLISH;
+            areaColor = electoralAreaColors[areaName] || '#607D8B';
+          } else {
+            // Fallback to index-based colors
+            const colors = ['#2196F3', '#F44336', '#FF9800', '#9C27B0', '#4CAF50'];
+            areaColor = colors[index % colors.length];
+          }
+          
+          const layer = L.geoJSON(feature, {
+            style: {
+              color: areaColor,
+              weight: 3,
+              opacity: 0.8,
+              fillColor: areaColor,
+              fillOpacity: 0.15,
+              dashArray: '5, 5'
+            }
+          }).bindPopup(`
+            <div style="text-align: center;">
+              <h6 style="color: ${areaColor}; margin-bottom: 8px;">
+                <i class="bi bi-map"></i> Local Electoral Area
+              </h6>
+              <p style="margin: 0; font-size: 0.9em; font-weight: bold;">${areaName}</p>
+              <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
+                Cork City Council Local Electoral Area
+              </p>
+              <p style="margin: 5px 0; font-size: 0.7em; color: #888;">
+                Complex boundary shape from KML data
+              </p>
+            </div>
+          `);
+          
+          corkInnerBoundariesLayer.addLayer(layer);
+        });
+        
+        console.log('loadElectoralAreasFromKML: Electoral areas layer created with', corkInnerBoundariesLayer.getLayers().length, 'sub-layers using toGeoJSON');
+        console.log('loadElectoralAreasFromKML: Electoral areas loaded but not shown - use Electoral Areas button to display');
+        return true;
+      }
+    } catch (toGeoJsonError) {
+      console.warn('loadElectoralAreasFromKML: toGeoJSON conversion failed, trying manual parsing:', toGeoJsonError);
+    }
+    
+    // Fallback to manual parsing
     // Extract Placemark elements
     const placemarks = kmlDoc.getElementsByTagName('Placemark');
     console.log('loadElectoralAreasFromKML: Found', placemarks.length, 'placemarks');
@@ -7815,13 +7905,18 @@ async function loadElectoralAreasFromGeoJSON() {
   console.log('loadElectoralAreasFromGeoJSON: Loading electoral areas from GeoJSON file');
   
   try {
-    const response = await fetch('./CorkCity_LEA.geojson');
+    const response = await fetch('./corkcity_lea.geojson');
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
     const data = await response.json();
     console.log('loadElectoralAreasFromGeoJSON: GeoJSON data loaded:', data);
+    console.log('loadElectoralAreasFromGeoJSON: Number of features:', data.features ? data.features.length : 'No features array');
+    if (data.features && data.features.length > 0) {
+      console.log('loadElectoralAreasFromGeoJSON: First feature properties:', data.features[0].properties);
+      console.log('loadElectoralAreasFromGeoJSON: First feature geometry type:', data.features[0].geometry.type);
+    }
     
     if (!data.features || data.features.length === 0) {
       throw new Error('No features found in GeoJSON data');
@@ -10042,6 +10137,37 @@ if (forgotLink) {
         return true;
       }
       return false;
+    };
+    
+    // Global function to test electoral area files
+    window.testElectoralAreaFiles = async function() {
+      console.log('testElectoralAreaFiles: Testing electoral area file accessibility...');
+      
+      // Test KML file
+      try {
+        const kmlResponse = await fetch('./corkcitylea.kml');
+        console.log('testElectoralAreaFiles: KML file status:', kmlResponse.status, kmlResponse.statusText);
+        if (kmlResponse.ok) {
+          const kmlText = await kmlResponse.text();
+          console.log('testElectoralAreaFiles: KML file size:', kmlText.length, 'characters');
+          console.log('testElectoralAreaFiles: KML file preview:', kmlText.substring(0, 200) + '...');
+        }
+      } catch (error) {
+        console.error('testElectoralAreaFiles: KML file error:', error);
+      }
+      
+      // Test GeoJSON file
+      try {
+        const geoJsonResponse = await fetch('./corkcity_lea.geojson');
+        console.log('testElectoralAreaFiles: GeoJSON file status:', geoJsonResponse.status, geoJsonResponse.statusText);
+        if (geoJsonResponse.ok) {
+          const geoJsonText = await geoJsonResponse.text();
+          console.log('testElectoralAreaFiles: GeoJSON file size:', geoJsonText.length, 'characters');
+          console.log('testElectoralAreaFiles: GeoJSON file preview:', geoJsonText.substring(0, 200) + '...');
+        }
+      } catch (error) {
+        console.error('testElectoralAreaFiles: GeoJSON file error:', error);
+      }
     };
     
     // Simple fallback reset function
