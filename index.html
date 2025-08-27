@@ -2030,12 +2030,19 @@
         z-index: 1000 !important;
         max-height: 60vh !important;
         overflow-y: auto !important;
+        transition: transform 0.3s ease-in-out !important;
       }
       
       .ribbon-bar {
         flex-wrap: wrap !important;
         gap: 4px !important;
         padding: 4px !important;
+      }
+      
+      .toolbar-content {
+        flex-direction: column !important;
+        width: 100% !important;
+        padding: 8px 0 !important;
       }
       
       .ribbon-group {
@@ -2049,30 +2056,42 @@
       
       .toolbar-button {
         font-size: 0.75rem !important;
-        padding: 8px 6px !important;
+        padding: 12px 8px !important;
         min-width: auto !important;
-        flex: 1 1 auto !important;
-        max-width: 100px !important;
+        flex: 1 1 100% !important;
+        max-width: 100% !important;
+        width: 100% !important;
         flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
         text-align: center !important;
         min-height: 60px !important;
+        margin-bottom: 4px !important;
+        border-radius: 8px !important;
+        touch-action: manipulation !important;
+      }
+      
+      .button-group {
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 4px !important;
+        padding: 0 8px !important;
       }
       
       .toolbar-button span {
         display: block !important;
-        font-size: 0.7rem !important;
-        line-height: 1.1 !important;
-        margin-top: 2px !important;
+        font-size: 0.8rem !important;
+        line-height: 1.2 !important;
+        margin-top: 4px !important;
         word-wrap: break-word !important;
         overflow-wrap: break-word !important;
         hyphens: auto !important;
+        font-weight: 500 !important;
       }
       
       .toolbar-button i {
-        font-size: 1.2rem !important;
-        margin-bottom: 2px !important;
+        font-size: 1.4rem !important;
+        margin-bottom: 4px !important;
       }
       
       /* Map adjustments */
@@ -10074,6 +10093,8 @@ if (forgotLink) {
       if (!deviceInfo.isTouch) return;
       
       const buttons = document.querySelectorAll('.btn, .toolbar-button');
+      let hideTimeout;
+      
       buttons.forEach(button => {
         // Add touch feedback
         button.addEventListener('touchstart', function() {
@@ -10086,12 +10107,101 @@ if (forgotLink) {
           this.style.transform = '';
         });
         
+        // Add click handler for mobile devices to hide buttons after use
+        button.addEventListener('click', function() {
+          if (deviceInfo.isMobile) {
+            // Don't auto-hide for critical buttons
+            const criticalButtons = ['logout', 'resetMap', 'enableDeleteMode'];
+            const isCriticalButton = criticalButtons.some(critical => 
+              this.getAttribute('onclick') && this.getAttribute('onclick').includes(critical)
+            );
+            
+            if (isCriticalButton) {
+              return; // Don't auto-hide for critical functions
+            }
+            
+            // Clear any existing timeout
+            if (hideTimeout) {
+              clearTimeout(hideTimeout);
+            }
+            
+            // Hide the toolbar after a short delay
+            hideTimeout = setTimeout(() => {
+              const toolbar = document.getElementById('functionToolbar');
+              if (toolbar) {
+                toolbar.style.transform = 'translateY(100%)';
+                toolbar.style.transition = 'transform 0.3s ease-in-out';
+                
+                // Create or update show indicator
+                let showIndicator = document.getElementById('toolbarShowIndicator');
+                if (!showIndicator) {
+                  showIndicator = document.createElement('div');
+                  showIndicator.id = 'toolbarShowIndicator';
+                  showIndicator.innerHTML = '👆 Tap to show toolbar';
+                  showIndicator.style.cssText = `
+                    position: fixed;
+                    bottom: 10px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(0, 0, 0, 0.7);
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                    z-index: 999;
+                    pointer-events: auto;
+                    transition: opacity 0.3s ease;
+                    cursor: pointer;
+                  `;
+                  
+                  // Add click handler to show toolbar
+                  showIndicator.addEventListener('click', function() {
+                    const toolbar = document.getElementById('functionToolbar');
+                    if (toolbar) {
+                      toolbar.style.transform = 'translateY(0)';
+                      this.style.opacity = '0';
+                      setTimeout(() => this.remove(), 300);
+                    }
+                  });
+                  
+                  document.body.appendChild(showIndicator);
+                }
+                showIndicator.style.opacity = '1';
+                
+                // Show toolbar again after 3 seconds or when user touches the screen
+                setTimeout(() => {
+                  toolbar.style.transform = 'translateY(0)';
+                  if (showIndicator) {
+                    showIndicator.style.opacity = '0';
+                    setTimeout(() => showIndicator.remove(), 300);
+                  }
+                }, 3000);
+              }
+            }, 500); // 500ms delay before hiding
+          }
+        });
+        
         // Ensure minimum touch target size
         if (button.offsetHeight < 44 || button.offsetWidth < 44) {
           button.style.minHeight = '44px';
           button.style.minWidth = '44px';
         }
       });
+      
+      // Add touch listener to show toolbar when user touches the screen
+      document.addEventListener('touchstart', function() {
+        const toolbar = document.getElementById('functionToolbar');
+        if (toolbar && toolbar.style.transform === 'translateY(100%)') {
+          toolbar.style.transform = 'translateY(0)';
+          
+          // Hide the show indicator
+          const showIndicator = document.getElementById('toolbarShowIndicator');
+          if (showIndicator) {
+            showIndicator.style.opacity = '0';
+            setTimeout(() => showIndicator.remove(), 300);
+          }
+        }
+      }, { passive: true });
     }
     
     // Performance optimization for different devices
