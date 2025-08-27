@@ -10171,12 +10171,18 @@ if (forgotLink) {
               const toolbar = document.getElementById('functionToolbar');
               if (toolbar) {
                 console.log('Hiding toolbar in mobile mode');
+                console.log('Toolbar current transform:', toolbar.style.transform);
+                console.log('Toolbar current position:', toolbar.getBoundingClientRect());
+                
                 toolbar.style.transform = 'translateY(100%)';
                 toolbar.style.transition = 'transform 0.3s ease-in-out';
+                
+                console.log('Toolbar transform set to:', toolbar.style.transform);
                 
                 // Create or update show indicator
                 let showIndicator = document.getElementById('toolbarShowIndicator');
                 if (!showIndicator) {
+                  console.log('Creating show indicator...');
                   showIndicator = document.createElement('div');
                   showIndicator.id = 'toolbarShowIndicator';
                   showIndicator.innerHTML = '👆 Tap to show toolbar';
@@ -10198,6 +10204,7 @@ if (forgotLink) {
                   
                   // Add click handler to show toolbar
                   showIndicator.addEventListener('click', function() {
+                    console.log('Show indicator clicked');
                     const toolbar = document.getElementById('functionToolbar');
                     if (toolbar) {
                       toolbar.style.transform = 'translateY(0)';
@@ -10207,17 +10214,22 @@ if (forgotLink) {
                   });
                   
                   document.body.appendChild(showIndicator);
+                  console.log('Show indicator added to DOM');
                 }
                 showIndicator.style.opacity = '1';
+                console.log('Show indicator opacity set to 1');
                 
                 // Show toolbar again after 3 seconds or when user touches the screen
                 setTimeout(() => {
+                  console.log('Auto-showing toolbar after 3 seconds');
                   toolbar.style.transform = 'translateY(0)';
                   if (showIndicator) {
                     showIndicator.style.opacity = '0';
                     setTimeout(() => showIndicator.remove(), 300);
                   }
                 }, 3000);
+              } else {
+                console.log('Toolbar not found when trying to hide');
               }
             }, 500); // 500ms delay before hiding
           }
@@ -10553,6 +10565,31 @@ if (forgotLink) {
       if (!found) {
         console.log('Button not found:', buttonText);
       }
+    };
+    
+    // Function to check toolbar state
+    window.checkToolbarState = function() {
+      const toolbar = document.getElementById('functionToolbar');
+      const showIndicator = document.getElementById('toolbarShowIndicator');
+      
+      console.log('=== Toolbar State Check ===');
+      console.log('Toolbar found:', !!toolbar);
+      if (toolbar) {
+        console.log('Toolbar transform:', toolbar.style.transform);
+        console.log('Toolbar position:', toolbar.getBoundingClientRect());
+        console.log('Toolbar visible:', toolbar.offsetParent !== null);
+        console.log('Toolbar display:', toolbar.style.display);
+        console.log('Toolbar visibility:', toolbar.style.visibility);
+      }
+      
+      console.log('Show indicator found:', !!showIndicator);
+      if (showIndicator) {
+        console.log('Show indicator opacity:', showIndicator.style.opacity);
+        console.log('Show indicator visible:', showIndicator.offsetParent !== null);
+      }
+      
+      console.log('Force mobile mode:', window.forceMobileMode);
+      console.log('========================');
     };
     window.optimizeForDevice = optimizeForDevice;
     window.positionPopupOptimally = positionPopupOptimally;
