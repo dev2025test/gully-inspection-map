@@ -10444,8 +10444,21 @@ if (forgotLink) {
         icon.style.marginBottom = '4px';
       });
       
-      // Apply mobile optimizations
-      enhanceButtonsForTouch();
+      // Force apply mobile optimizations with a delay to ensure DOM is ready
+      setTimeout(() => {
+        enhanceButtonsForTouch();
+        console.log('Mobile optimizations applied after delay');
+        
+        // Add a test click handler to verify functionality
+        const testButton = document.querySelector('.toolbar-button');
+        if (testButton) {
+          console.log('Test button found, adding test click handler');
+          testButton.addEventListener('click', function() {
+            console.log('Test button clicked!');
+          });
+        }
+      }, 100);
+      
       console.log('Mobile mode enabled for testing');
     };
     
@@ -10495,6 +10508,51 @@ if (forgotLink) {
       });
       
       console.log('Mobile mode disabled');
+    };
+    
+    // Simple test function to manually hide/show toolbar
+    window.testHideToolbar = function() {
+      console.log('Testing toolbar hide/show functionality...');
+      const toolbar = document.getElementById('functionToolbar');
+      if (toolbar) {
+        console.log('Hiding toolbar...');
+        toolbar.style.transform = 'translateY(100%)';
+        toolbar.style.transition = 'transform 0.3s ease-in-out';
+        
+        // Show after 3 seconds
+        setTimeout(() => {
+          console.log('Showing toolbar...');
+          toolbar.style.transform = 'translateY(0)';
+        }, 3000);
+      } else {
+        console.log('Toolbar not found!');
+      }
+    };
+    
+    // Function to manually trigger button click simulation
+    window.simulateButtonClick = function(buttonText) {
+      console.log('Simulating button click for:', buttonText);
+      const buttons = document.querySelectorAll('.toolbar-button');
+      let found = false;
+      
+      buttons.forEach(button => {
+        const span = button.querySelector('span');
+        if (span && span.textContent.includes(buttonText)) {
+          console.log('Found button:', buttonText);
+          found = true;
+          
+          // Trigger the click handler manually
+          if (button._clickHandler) {
+            button._clickHandler.call(button);
+          } else {
+            console.log('No click handler found for button');
+          }
+        }
+      });
+      
+      if (!found) {
+        console.log('Button not found:', buttonText);
+      }
     };
     window.optimizeForDevice = optimizeForDevice;
     window.positionPopupOptimally = positionPopupOptimally;
