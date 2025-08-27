@@ -10390,6 +10390,7 @@ if (forgotLink) {
     window.enableMobileMode = function() {
       console.log('Enabling mobile mode for testing...');
       window.forceMobileMode = true;
+      console.log('Force mobile mode set to:', window.forceMobileMode);
       
       // Apply mobile CSS
       const toolbar = document.getElementById('functionToolbar');
@@ -10590,6 +10591,22 @@ if (forgotLink) {
       
       console.log('Force mobile mode:', window.forceMobileMode);
       console.log('========================');
+    };
+    
+    // Function to force enable mobile mode and test immediately
+    window.forceEnableMobileMode = function() {
+      console.log('Force enabling mobile mode...');
+      window.forceMobileMode = true;
+      console.log('Force mobile mode set to:', window.forceMobileMode);
+      
+      // Apply mobile optimizations immediately
+      enhanceButtonsForTouch();
+      
+      // Test the functionality immediately
+      setTimeout(() => {
+        console.log('Testing mobile functionality...');
+        simulateButtonClick("Print");
+      }, 100);
     };
     window.optimizeForDevice = optimizeForDevice;
     window.positionPopupOptimally = positionPopupOptimally;
