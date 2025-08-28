@@ -11940,6 +11940,112 @@ function exportAuditHistoryAsCSV(entries, filenamePrefix) {
   alert(`Audit History Export Complete!\n\nFile: ${filename}\nTotal Records: ${entries.length}`);
 }
 
+// Comprehensive mobile fix function
+window.fixMobileIssues = function() {
+  console.log('=== Fixing Mobile Issues ===');
+  
+  // Force mobile detection
+  deviceInfo.isMobile = true;
+  deviceInfo.isTouch = true;
+  deviceInfo.screenWidth = window.innerWidth;
+  
+  // Ensure toolbar is visible
+  const toolbar = document.getElementById('functionToolbar');
+  if (toolbar) {
+    toolbar.style.display = 'block';
+    toolbar.style.visibility = 'visible';
+    toolbar.style.opacity = '1';
+    toolbar.style.transform = 'translateY(0)';
+    toolbar.style.width = '100%';
+    toolbar.style.left = '0';
+    toolbar.style.right = '0';
+    toolbar.style.position = 'fixed';
+    toolbar.style.bottom = '0';
+    toolbar.style.zIndex = '1000';
+    console.log('Toolbar made visible and positioned');
+  }
+  
+  // Remove any show indicator that might be blocking
+  const showIndicator = document.getElementById('toolbarShowIndicator');
+  if (showIndicator) {
+    showIndicator.remove();
+    console.log('Removed show indicator');
+  }
+  
+  // Apply full width to all buttons
+  const buttons = document.querySelectorAll('.toolbar-button');
+  console.log('Found buttons:', buttons.length);
+  buttons.forEach((button, index) => {
+    button.style.width = '100%';
+    button.style.maxWidth = '100%';
+    button.style.flexDirection = 'column';
+    button.style.alignItems = 'center';
+    button.style.justifyContent = 'center';
+    button.style.minHeight = '60px';
+    button.style.marginBottom = '4px';
+    button.style.fontSize = '0.75rem';
+    button.style.padding = '12px 8px';
+    button.style.borderRadius = '8px';
+    button.style.display = 'flex';
+    button.style.visibility = 'visible';
+    button.style.opacity = '1';
+    button.style.boxSizing = 'border-box';
+    button.style.marginLeft = '0';
+    button.style.marginRight = '0';
+    console.log(`Button ${index} (${button.textContent.trim()}): width = ${button.style.width}`);
+  });
+
+  // Update button groups
+  const buttonGroups = document.querySelectorAll('.button-group');
+  buttonGroups.forEach((group, index) => {
+    group.style.flexDirection = 'column';
+    group.style.width = '100%';
+    group.style.gap = '4px';
+    group.style.padding = '0';
+    group.style.margin = '0';
+    group.style.display = 'flex';
+    group.style.visibility = 'visible';
+    group.style.boxSizing = 'border-box';
+    console.log(`Button group ${index}: width = ${group.style.width}`);
+  });
+
+  // Update toolbar content
+  const toolbarContent = document.querySelector('.toolbar-content');
+  if (toolbarContent) {
+    toolbarContent.style.flexDirection = 'column';
+    toolbarContent.style.alignItems = 'stretch';
+    toolbarContent.style.gap = '4px';
+    toolbarContent.style.padding = '8px';
+    toolbarContent.style.overflowY = 'auto';
+    toolbarContent.style.overflowX = 'hidden';
+    toolbarContent.style.width = '100%';
+    toolbarContent.style.display = 'flex';
+    toolbarContent.style.visibility = 'visible';
+    toolbarContent.style.boxSizing = 'border-box';
+    console.log('Toolbar content updated');
+  }
+  
+  // Ensure toggle functionality works
+  const toggleIcon = document.getElementById('toolbarToggleIcon');
+  if (toggleIcon) {
+    toggleIcon.style.pointerEvents = 'auto';
+    toggleIcon.style.cursor = 'pointer';
+    toggleIcon.style.display = 'block';
+    toggleIcon.style.visibility = 'visible';
+    toggleIcon.style.opacity = '1';
+    console.log('Toggle icon made visible');
+  }
+  
+  console.log('Mobile issues fixed');
+};
+
+// Auto-apply fixes on mobile
+if (window.innerWidth <= 768) {
+  setTimeout(() => {
+    window.fixMobileIssues();
+  }, 500);
+}
+
 </script>
 
 <!-- Enhanced Photo Upload Script -->
