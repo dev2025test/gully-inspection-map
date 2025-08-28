@@ -10787,6 +10787,35 @@ if (forgotLink) {
       }
     };
     
+    // Mobile-specific function to force show toolbar
+    window.forceShowToolbarMobile = function() {
+      console.log('Force showing toolbar on mobile...');
+      
+      // Remove any existing show indicator
+      const existingIndicator = document.getElementById('toolbarShowIndicator');
+      if (existingIndicator) {
+        existingIndicator.remove();
+      }
+      
+      // Show toolbar
+      const toolbar = document.getElementById('functionToolbar');
+      if (toolbar) {
+        // Reset all possible hiding states
+        toolbar.style.transform = 'translateY(0)';
+        toolbar.style.opacity = '1';
+        toolbar.classList.remove('minimized');
+        toolbar.style.display = 'block';
+        toolbar.style.visibility = 'visible';
+        
+        console.log('Toolbar force shown on mobile');
+        console.log('Toolbar transform:', toolbar.style.transform);
+        console.log('Toolbar opacity:', toolbar.style.opacity);
+        console.log('Toolbar minimized:', toolbar.classList.contains('minimized'));
+      } else {
+        console.log('Toolbar not found');
+      }
+    };
+    
     // Function to manually hide the toolbar
     window.hideToolbar = function() {
       console.log('Manually hiding toolbar...');
@@ -10826,12 +10855,27 @@ if (forgotLink) {
           pointer-events: auto;
           transition: opacity 0.3s ease;
           cursor: pointer;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         `;
         
-        // Add click handler
+        // Add multiple event listeners for better mobile compatibility
         showIndicator.addEventListener('click', function(e) {
           e.stopPropagation();
+          e.preventDefault();
           console.log('Show indicator clicked');
+          showToolbar();
+        });
+        
+        showIndicator.addEventListener('touchstart', function(e) {
+          e.stopPropagation();
+          console.log('Show indicator touchstart');
+        });
+        
+        showIndicator.addEventListener('touchend', function(e) {
+          e.stopPropagation();
+          e.preventDefault();
+          console.log('Show indicator touchend');
           showToolbar();
         });
         
@@ -10841,6 +10885,26 @@ if (forgotLink) {
       
       showIndicator.style.opacity = '1';
       console.log('Show indicator should be visible now');
+    };
+    
+    // Simple mobile test function
+    window.testMobileSimple = function() {
+      console.log('=== Simple Mobile Test ===');
+      
+      // Check if we're on mobile
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+      console.log('Is mobile device:', isMobile);
+      
+      // Force show toolbar
+      forceShowToolbarMobile();
+      
+      // Test touch events
+      console.log('Testing touch events...');
+      document.addEventListener('touchstart', function(e) {
+        console.log('Touch detected at:', e.touches[0].clientX, e.touches[0].clientY);
+      }, { once: true });
+      
+      console.log('Tap anywhere on the screen to test touch detection');
     };
     
     // Function to force enable mobile mode and test immediately
