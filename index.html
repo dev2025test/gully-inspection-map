@@ -3529,6 +3529,9 @@ function handleLoginSuccess(userData) {
     if (typeof enhanceAccessibility === 'function') {
       enhanceAccessibility();
     }
+    if (typeof setupMobileToolbar === 'function') {
+      setupMobileToolbar();
+    }
     console.log('handleLoginSuccess: Mobile optimizations applied');
   }, 100);
   
@@ -10813,6 +10816,80 @@ if (forgotLink) {
         console.log('Toolbar minimized:', toolbar.classList.contains('minimized'));
       } else {
         console.log('Toolbar not found');
+      }
+    };
+    
+    // Mobile toolbar toggle function (like desktop version)
+    window.toggleMobileToolbar = function() {
+      console.log('Toggling mobile toolbar...');
+      const toolbar = document.getElementById('functionToolbar');
+      const toggleIcon = document.getElementById('toolbarToggleIcon');
+      
+      if (toolbar && toggleIcon) {
+        // Toggle minimized state
+        const isMinimized = toolbar.classList.contains('minimized');
+        
+        if (isMinimized) {
+          // Show toolbar
+          toolbar.classList.remove('minimized');
+          toolbar.style.transform = 'translateY(0)';
+          toggleIcon.textContent = '▼';
+          console.log('Mobile toolbar shown');
+        } else {
+          // Hide toolbar
+          toolbar.classList.add('minimized');
+          toolbar.style.transform = 'translateY(calc(100% - 40px))';
+          toggleIcon.textContent = '▲';
+          console.log('Mobile toolbar hidden');
+        }
+      } else {
+        console.log('Toolbar or toggle icon not found');
+      }
+    };
+    
+    // Setup mobile toolbar functionality
+    window.setupMobileToolbar = function() {
+      console.log('Setting up mobile toolbar...');
+      
+      // Ensure mobile detection is current
+      updateMobileDetection();
+      
+      if (deviceInfo.isMobile) {
+        console.log('Mobile device detected, setting up mobile toolbar...');
+        
+        // Apply mobile optimizations
+        optimizeForDevice();
+        enhanceButtonsForTouch();
+        
+        // Ensure toggle functionality works
+        const toolbar = document.getElementById('functionToolbar');
+        const toggleIcon = document.getElementById('toolbarToggleIcon');
+        
+        if (toolbar && toggleIcon) {
+          // Make sure toggle icon is clickable
+          toggleIcon.style.pointerEvents = 'auto';
+          toggleIcon.style.cursor = 'pointer';
+          toggleIcon.style.zIndex = '1001';
+          
+          // Add click handler to toggle icon
+          toggleIcon.onclick = function(e) {
+            e.stopPropagation();
+            toggleMobileToolbar();
+          };
+          
+          // Add click handler to toolbar header
+          const toolbarHeader = toolbar.querySelector('.toolbar-header');
+          if (toolbarHeader) {
+            toolbarHeader.onclick = function(e) {
+              e.stopPropagation();
+              toggleMobileToolbar();
+            };
+          }
+          
+          console.log('Mobile toolbar setup complete');
+        }
+      } else {
+        console.log('Not a mobile device');
       }
     };
     
