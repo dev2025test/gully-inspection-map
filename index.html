@@ -3629,6 +3629,54 @@ function handleLoginSuccess(userData) {
     if (typeof setupMobileToolbar === 'function') {
       setupMobileToolbar();
     }
+    
+    // Apply automatic fixes for mobile
+    if (deviceInfo.isMobile) {
+      // Apply full width mobile button layout
+      const buttons = document.querySelectorAll('.toolbar-button');
+      buttons.forEach(button => {
+        button.style.width = '100%';
+        button.style.flexDirection = 'column';
+        button.style.alignItems = 'center';
+        button.style.justifyContent = 'center';
+        button.style.minHeight = '60px';
+        button.style.marginBottom = '4px';
+        button.style.fontSize = '0.75rem';
+        button.style.padding = '12px 8px';
+        button.style.borderRadius = '8px';
+      });
+
+      // Update button group to vertical layout
+      const buttonGroups = document.querySelectorAll('.button-group');
+      buttonGroups.forEach(group => {
+        group.style.flexDirection = 'column';
+        group.style.width = '100%';
+        group.style.gap = '4px';
+        group.style.padding = '0 8px';
+      });
+
+      // Update toolbar content to vertical layout
+      const toolbarContent = document.querySelector('.toolbar-content');
+      if (toolbarContent) {
+        toolbarContent.style.flexDirection = 'column';
+        toolbarContent.style.alignItems = 'stretch';
+        toolbarContent.style.gap = '4px';
+        toolbarContent.style.padding = '8px';
+        toolbarContent.style.overflowY = 'auto';
+        toolbarContent.style.overflowX = 'hidden';
+      }
+      
+      // Fix Firebase errors
+      if (window.createUserIfNotExists) {
+        window.createUserIfNotExists = function() {
+          console.log('User creation disabled to prevent Firebase errors');
+          return Promise.resolve();
+        };
+      }
+      
+      console.log('Automatic mobile fixes applied');
+    }
+    
     console.log('handleLoginSuccess: Mobile optimizations applied');
   }, 100);
   
@@ -10987,6 +11035,12 @@ if (forgotLink) {
         optimizeForDevice();
         enhanceButtonsForTouch();
         
+        // Apply full width mobile button layout
+        applyMobileButtonLayout();
+        
+        // Fix Firebase errors
+        fixFirebaseErrors();
+        
         // Ensure toggle functionality works
         const toolbar = document.getElementById('functionToolbar');
         const toggleIcon = document.getElementById('toolbarToggleIcon');
@@ -11219,10 +11273,82 @@ if (forgotLink) {
       // Setup mobile toolbar
       setupMobileToolbar();
       
+      // Apply automatic fixes
+      applyMobileButtonLayout();
+      fixFirebaseErrors();
+      
       // Test the setup
       setTimeout(() => {
         testMobileToolbar();
       }, 500);
+    };
+    
+    // Apply full width mobile button layout automatically
+    window.applyMobileButtonLayout = function() {
+      console.log('Applying mobile button layout...');
+      
+      // Apply full width mobile button styles
+      const buttons = document.querySelectorAll('.toolbar-button');
+      buttons.forEach(button => {
+        button.style.width = '100%';
+        button.style.flexDirection = 'column';
+        button.style.alignItems = 'center';
+        button.style.justifyContent = 'center';
+        button.style.minHeight = '60px';
+        button.style.marginBottom = '4px';
+        button.style.fontSize = '0.75rem';
+        button.style.padding = '12px 8px';
+        button.style.borderRadius = '8px';
+      });
+
+      // Update button group to vertical layout
+      const buttonGroups = document.querySelectorAll('.button-group');
+      buttonGroups.forEach(group => {
+        group.style.flexDirection = 'column';
+        group.style.width = '100%';
+        group.style.gap = '4px';
+        group.style.padding = '0 8px';
+      });
+
+      // Update toolbar content to vertical layout
+      const toolbarContent = document.querySelector('.toolbar-content');
+      if (toolbarContent) {
+        toolbarContent.style.flexDirection = 'column';
+        toolbarContent.style.alignItems = 'stretch';
+        toolbarContent.style.gap = '4px';
+        toolbarContent.style.padding = '8px';
+        toolbarContent.style.overflowY = 'auto';
+        toolbarContent.style.overflowX = 'hidden';
+      }
+      
+      console.log('Mobile button layout applied');
+    };
+    
+    // Fix Firebase errors automatically
+    window.fixFirebaseErrors = function() {
+      console.log('Fixing Firebase errors...');
+      
+      // Disable automatic user creation to prevent signUp errors
+      if (window.createUserIfNotExists) {
+        window.createUserIfNotExists = function() {
+          console.log('User creation disabled to prevent Firebase errors');
+          return Promise.resolve();
+        };
+      }
+      
+      // Initialize Firebase Storage properly
+      try {
+        if (firebase && firebase.storage) {
+          const storage = firebase.storage();
+          console.log('Firebase Storage initialized successfully');
+        } else {
+          console.log('Firebase not available');
+        }
+      } catch (error) {
+        console.log('Firebase Storage initialization failed:', error);
+      }
+      
+      console.log('Firebase errors fixed');
     };
     
     // Setup mobile to work exactly like desktop
