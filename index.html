@@ -1971,6 +1971,11 @@
       backdrop-filter: blur(10px) !important;
       border-top: 1px solid #ddd !important;
       border-radius: 0 !important;
+      transition: transform 0.3s ease-in-out !important;
+    }
+    
+    #functionToolbar.minimized {
+      transform: translateY(calc(100% - 40px)) !important;
     }
     
     /* ===== LAYER CONTROL - CHECKBOX ONLY ===== */
@@ -3424,8 +3429,14 @@ function loadGullyData() {
 function toggleToolbar() {
   const toolbar = document.getElementById('functionToolbar');
   const icon = document.getElementById('toolbarToggleIcon');
-  toolbar.classList.toggle('minimized');
-  icon.textContent = toolbar.classList.contains('minimized') ? '▲' : '▼';
+  
+  if (toolbar) {
+    toolbar.classList.toggle('minimized');
+    icon.textContent = toolbar.classList.contains('minimized') ? '▲' : '▼';
+    console.log('Toolbar toggled, minimized:', toolbar.classList.contains('minimized'));
+  } else {
+    console.log('Toolbar not found');
+  }
 }
 
 function updateUserInfo(userData) {
@@ -10174,8 +10185,10 @@ if (forgotLink) {
                 console.log('Toolbar current transform:', toolbar.style.transform);
                 console.log('Toolbar current position:', toolbar.getBoundingClientRect());
                 
-                toolbar.style.transform = 'translateY(100%)';
-                toolbar.style.transition = 'transform 0.3s ease-in-out';
+                // Use both transform and opacity to ensure it's hidden
+                toolbar.style.transform = 'translateY(100vh)';
+                toolbar.style.opacity = '0';
+                toolbar.style.transition = 'transform 0.3s ease-in-out, opacity 0.3s ease-in-out';
                 
                 console.log('Toolbar transform set to:', toolbar.style.transform);
                 
@@ -10581,6 +10594,7 @@ if (forgotLink) {
         console.log('Toolbar visible:', toolbar.offsetParent !== null);
         console.log('Toolbar display:', toolbar.style.display);
         console.log('Toolbar visibility:', toolbar.style.visibility);
+        console.log('Toolbar minimized class:', toolbar.classList.contains('minimized'));
       }
       
       console.log('Show indicator found:', !!showIndicator);
@@ -10591,6 +10605,23 @@ if (forgotLink) {
       
       console.log('Force mobile mode:', window.forceMobileMode);
       console.log('========================');
+    };
+    
+    // Function to test the toggle button
+    window.testToggleButton = function() {
+      console.log('Testing toggle button functionality...');
+      const icon = document.getElementById('toolbarToggleIcon');
+      const toolbar = document.getElementById('functionToolbar');
+      
+      console.log('Toggle icon found:', !!icon);
+      console.log('Toggle icon text:', icon ? icon.textContent : 'N/A');
+      console.log('Toolbar minimized:', toolbar ? toolbar.classList.contains('minimized') : 'N/A');
+      
+      // Simulate clicking the toggle
+      if (toolbar) {
+        toggleToolbar();
+        console.log('Toggle clicked, toolbar minimized:', toolbar.classList.contains('minimized'));
+      }
     };
     
     // Function to force enable mobile mode and test immediately
@@ -10607,6 +10638,54 @@ if (forgotLink) {
         console.log('Testing mobile functionality...');
         simulateButtonClick("Print");
       }, 100);
+    };
+    
+    // Function to manually test toolbar hiding
+    window.testToolbarHide = function() {
+      console.log('Testing toolbar hide with 100vh...');
+      const toolbar = document.getElementById('functionToolbar');
+      if (toolbar) {
+        console.log('Current transform:', toolbar.style.transform);
+        toolbar.style.transform = 'translateY(100vh)';
+        toolbar.style.transition = 'transform 0.3s ease-in-out';
+        console.log('New transform:', toolbar.style.transform);
+        
+        // Show after 3 seconds
+        setTimeout(() => {
+          toolbar.style.transform = 'translateY(0)';
+          console.log('Toolbar shown again');
+        }, 3000);
+      }
+    };
+    
+    // Alternative hiding method using opacity and transform
+    window.testToolbarHideAlternative = function() {
+      console.log('Testing alternative toolbar hide method...');
+      const toolbar = document.getElementById('functionToolbar');
+      if (toolbar) {
+        console.log('Current state:', {
+          transform: toolbar.style.transform,
+          opacity: toolbar.style.opacity,
+          visibility: toolbar.style.visibility
+        });
+        
+        // Use both transform and opacity
+        toolbar.style.transform = 'translateY(100vh)';
+        toolbar.style.opacity = '0';
+        toolbar.style.transition = 'transform 0.3s ease-in-out, opacity 0.3s ease-in-out';
+        
+        console.log('New state:', {
+          transform: toolbar.style.transform,
+          opacity: toolbar.style.opacity
+        });
+        
+        // Show after 3 seconds
+        setTimeout(() => {
+          toolbar.style.transform = 'translateY(0)';
+          toolbar.style.opacity = '1';
+          console.log('Toolbar shown again');
+        }, 3000);
+      }
     };
     window.optimizeForDevice = optimizeForDevice;
     window.positionPopupOptimally = positionPopupOptimally;
