@@ -1978,38 +1978,137 @@
       transform: translateY(calc(100% - 40px)) !important;
     }
     
-    /* Mobile-specific toolbar optimizations */
+    /* Mobile devices - same layout as desktop */
     @media (max-width: 768px) {
       #functionToolbar {
-        max-height: 60vh !important;
-        overflow-y: auto !important;
+        /* Keep same layout as desktop */
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        z-index: 1000 !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(10px) !important;
+        border-top: 1px solid #ddd !important;
+        border-radius: 0 !important;
+        transition: transform 0.3s ease-in-out !important;
+        /* Allow horizontal scrolling for buttons */
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        max-height: none !important;
         padding: 8px !important;
       }
       
       #functionToolbar.minimized {
-        transform: translateY(calc(100% - 50px)) !important;
+        transform: translateY(calc(100% - 40px)) !important;
       }
       
       .toolbar-header {
-        padding: 8px 12px !important;
+        /* Keep same header layout */
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 8px 15px !important;
+        background: #f0f0f0 !important;
+        cursor: pointer !important;
         font-size: 0.9rem !important;
       }
       
       .toolbar-header h3 {
         font-size: 14px !important;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
       }
       
       #toolbarToggleIcon {
-        font-size: 16px !important;
-        padding: 4px !important;
+        /* Make toggle icon more touch-friendly */
+        font-size: 18px !important;
+        padding: 6px !important;
         background: rgba(255, 255, 255, 0.9) !important;
         border-radius: 50% !important;
-        width: 24px !important;
-        height: 24px !important;
+        width: 28px !important;
+        height: 28px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         cursor: pointer !important;
+        pointer-events: auto !important;
+        z-index: 1001 !important;
+      }
+      
+      .toolbar-content {
+        /* Keep horizontal layout like desktop */
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 10px !important;
+        padding: 10px 15px !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        background: none !important;
+        min-width: 0 !important;
+        flex-wrap: nowrap !important;
+        box-sizing: border-box !important;
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+      }
+      
+      .button-group {
+        /* Keep horizontal button layout */
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 8px !important;
+        padding: 0 10px !important;
+        border: none !important;
+        align-items: center !important;
+        margin: 0 !important;
+        flex-shrink: 0 !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        flex-wrap: nowrap !important;
+        width: 100% !important;
+        justify-content: flex-start !important;
+      }
+      
+      .toolbar-button {
+        /* Keep same button style as desktop but touch-friendly */
+        padding: 8px 15px !important;
+        border-radius: 4px !important;
+        background: #f8f8f8 !important;
+        border: 1px solid #ddd !important;
+        cursor: pointer !important;
+        white-space: nowrap !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        transition: all 0.2s ease !important;
+        /* Touch-friendly sizing */
+        min-height: 44px !important;
+        min-width: 44px !important;
+        font-size: 0.8rem !important;
+      }
+      
+      .toolbar-button span {
+        /* Keep text visible */
+        display: inline !important;
+        font-size: 0.8rem !important;
+        line-height: 1.2 !important;
+        margin: 0 !important;
+        word-wrap: normal !important;
+        overflow-wrap: normal !important;
+        hyphens: none !important;
+        font-weight: normal !important;
+      }
+      
+      .toolbar-button i {
+        /* Keep icon size */
+        font-size: 1rem !important;
+        margin: 0 !important;
       }
     }
     
@@ -11097,6 +11196,81 @@ if (forgotLink) {
       setTimeout(() => {
         testMobileToolbar();
       }, 500);
+    };
+    
+    // Setup mobile to work exactly like desktop
+    window.setupMobileLikeDesktop = function() {
+      console.log('=== Setting up mobile to work like desktop ===');
+      
+      // Force mobile detection
+      window.forceMobileMode = true;
+      deviceInfo.isMobile = true;
+      deviceInfo.isTouch = true;
+      
+      // Get elements
+      const toolbar = document.getElementById('functionToolbar');
+      const toggleIcon = document.getElementById('toolbarToggleIcon');
+      const toolbarHeader = toolbar ? toolbar.querySelector('.toolbar-header') : null;
+      
+      if (toolbar && toggleIcon) {
+        // Ensure toolbar has desktop-like layout
+        toolbar.style.overflowX = 'auto';
+        toolbar.style.overflowY = 'hidden';
+        toolbar.style.maxHeight = 'none';
+        
+        // Ensure toggle icon works like desktop
+        toggleIcon.style.pointerEvents = 'auto';
+        toggleIcon.style.cursor = 'pointer';
+        toggleIcon.style.zIndex = '1001';
+        toggleIcon.style.display = 'block';
+        toggleIcon.style.visibility = 'visible';
+        toggleIcon.style.opacity = '1';
+        
+        // Remove any existing event listeners
+        toggleIcon.onclick = null;
+        toggleIcon.ontouchstart = null;
+        if (toolbarHeader) {
+          toolbarHeader.onclick = null;
+          toolbarHeader.ontouchstart = null;
+        }
+        
+        // Add desktop-like toggle functionality
+        const toggleFunction = function(e) {
+          e.stopPropagation();
+          e.preventDefault();
+          console.log('Toggle triggered');
+          
+          const isMinimized = toolbar.classList.contains('minimized');
+          if (isMinimized) {
+            // Show toolbar
+            toolbar.classList.remove('minimized');
+            toolbar.style.transform = 'translateY(0)';
+            toggleIcon.textContent = '▼';
+            console.log('Toolbar shown');
+          } else {
+            // Hide toolbar
+            toolbar.classList.add('minimized');
+            toolbar.style.transform = 'translateY(calc(100% - 40px))';
+            toggleIcon.textContent = '▲';
+            console.log('Toolbar hidden');
+          }
+        };
+        
+        // Add event listeners for both click and touch
+        toggleIcon.addEventListener('click', toggleFunction);
+        toggleIcon.addEventListener('touchend', toggleFunction);
+        
+        if (toolbarHeader) {
+          toolbarHeader.addEventListener('click', toggleFunction);
+          toolbarHeader.addEventListener('touchend', toggleFunction);
+        }
+        
+        console.log('Mobile setup complete - should work like desktop');
+        console.log('Toggle icon text:', toggleIcon.textContent);
+        console.log('Toolbar minimized:', toolbar.classList.contains('minimized'));
+      } else {
+        console.log('Toolbar or toggle icon not found');
+      }
     };
     
     // Function to force enable mobile mode and test immediately
