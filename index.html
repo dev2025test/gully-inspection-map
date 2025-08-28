@@ -10317,13 +10317,24 @@ if (forgotLink) {
       });
       
       // Add touch listener to show toolbar when user touches the screen
-      document.addEventListener('touchstart', function() {
+      document.addEventListener('touchstart', function(e) {
+        console.log('Touch event detected');
         const toolbar = document.getElementById('functionToolbar');
-        if (toolbar && toolbar.style.transform === 'translateY(100%)') {
+        const showIndicator = document.getElementById('toolbarShowIndicator');
+        
+        // Check if toolbar is hidden (either by transform or minimized class)
+        const isHidden = (toolbar && (
+          toolbar.style.transform === 'translateY(100vh)' || 
+          toolbar.style.transform === 'translateY(100%)' ||
+          toolbar.classList.contains('minimized')
+        ));
+        
+        if (isHidden) {
+          console.log('Showing toolbar from touch event');
           toolbar.style.transform = 'translateY(0)';
+          toolbar.classList.remove('minimized');
           
           // Hide the show indicator
-          const showIndicator = document.getElementById('toolbarShowIndicator');
           if (showIndicator) {
             showIndicator.style.opacity = '0';
             setTimeout(() => showIndicator.remove(), 300);
@@ -10331,20 +10342,35 @@ if (forgotLink) {
         }
       }, { passive: true });
       
-      // Add click listener for desktop testing
+      // Add click listener for desktop testing and mobile fallback
       document.addEventListener('click', function(e) {
-        // Only trigger if we're in force mobile mode and clicked outside toolbar
-        if (window.forceMobileMode && !e.target.closest('#functionToolbar')) {
-          const toolbar = document.getElementById('functionToolbar');
-          if (toolbar && toolbar.style.transform === 'translateY(100%)') {
-            toolbar.style.transform = 'translateY(0)';
-            
-            // Hide the show indicator
-            const showIndicator = document.getElementById('toolbarShowIndicator');
-            if (showIndicator) {
-              showIndicator.style.opacity = '0';
-              setTimeout(() => showIndicator.remove(), 300);
-            }
+        console.log('Click event detected');
+        const toolbar = document.getElementById('functionToolbar');
+        const showIndicator = document.getElementById('toolbarShowIndicator');
+        
+        // Check if we should show the toolbar
+        const shouldShow = (
+          // Force mobile mode and clicked outside toolbar
+          (window.forceMobileMode && !e.target.closest('#functionToolbar')) ||
+          // Clicked on show indicator
+          e.target.closest('#toolbarShowIndicator') ||
+          // Mobile device and toolbar is hidden
+          (deviceInfo.isMobile && toolbar && (
+            toolbar.style.transform === 'translateY(100vh)' || 
+            toolbar.style.transform === 'translateY(100%)' ||
+            toolbar.classList.contains('minimized')
+          ))
+        );
+        
+        if (shouldShow) {
+          console.log('Showing toolbar from click event');
+          toolbar.style.transform = 'translateY(0)';
+          toolbar.classList.remove('minimized');
+          
+          // Hide the show indicator
+          if (showIndicator) {
+            showIndicator.style.opacity = '0';
+            setTimeout(() => showIndicator.remove(), 300);
           }
         }
       });
@@ -10740,6 +10766,81 @@ if (forgotLink) {
       }
       
       console.log('=== Test Complete ===');
+    };
+    
+    // Function to manually show the toolbar
+    window.showToolbar = function() {
+      console.log('Manually showing toolbar...');
+      const toolbar = document.getElementById('functionToolbar');
+      const showIndicator = document.getElementById('toolbarShowIndicator');
+      
+      if (toolbar) {
+        toolbar.style.transform = 'translateY(0)';
+        toolbar.classList.remove('minimized');
+        console.log('Toolbar shown');
+      }
+      
+      if (showIndicator) {
+        showIndicator.style.opacity = '0';
+        setTimeout(() => showIndicator.remove(), 300);
+        console.log('Show indicator hidden');
+      }
+    };
+    
+    // Function to manually hide the toolbar
+    window.hideToolbar = function() {
+      console.log('Manually hiding toolbar...');
+      const toolbar = document.getElementById('functionToolbar');
+      
+      if (toolbar) {
+        toolbar.style.transform = 'translateY(100vh)';
+        toolbar.classList.add('minimized');
+        console.log('Toolbar hidden');
+      }
+    };
+    
+    // Function to test show indicator functionality
+    window.testShowIndicator = function() {
+      console.log('Testing show indicator functionality...');
+      
+      // First hide the toolbar
+      hideToolbar();
+      
+      // Create show indicator
+      let showIndicator = document.getElementById('toolbarShowIndicator');
+      if (!showIndicator) {
+        showIndicator = document.createElement('div');
+        showIndicator.id = 'toolbarShowIndicator';
+        showIndicator.innerHTML = '👆 Tap to show toolbar';
+        showIndicator.style.cssText = `
+          position: fixed;
+          bottom: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(0, 0, 0, 0.7);
+          color: white;
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 12px;
+          z-index: 999;
+          pointer-events: auto;
+          transition: opacity 0.3s ease;
+          cursor: pointer;
+        `;
+        
+        // Add click handler
+        showIndicator.addEventListener('click', function(e) {
+          e.stopPropagation();
+          console.log('Show indicator clicked');
+          showToolbar();
+        });
+        
+        document.body.appendChild(showIndicator);
+        console.log('Show indicator created and added to DOM');
+      }
+      
+      showIndicator.style.opacity = '1';
+      console.log('Show indicator should be visible now');
     };
     
     // Function to force enable mobile mode and test immediately
