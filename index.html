@@ -10889,6 +10889,35 @@ if (forgotLink) {
       }
     };
     
+    // Function to remove show indicator and ensure toolbar is visible
+    window.fixMobileToolbar = function() {
+      console.log('Fixing mobile toolbar...');
+      
+      // Remove any existing show indicator
+      const showIndicator = document.getElementById('toolbarShowIndicator');
+      if (showIndicator) {
+        showIndicator.remove();
+        console.log('Show indicator removed');
+      }
+      
+      // Ensure toolbar is visible
+      const toolbar = document.getElementById('functionToolbar');
+      if (toolbar) {
+        toolbar.style.transform = 'translateY(0)';
+        toolbar.style.opacity = '1';
+        toolbar.classList.remove('minimized');
+        toolbar.style.display = 'block';
+        toolbar.style.visibility = 'visible';
+        console.log('Toolbar made visible');
+      }
+      
+      // Clear any existing timeouts
+      if (window.hideTimeout) {
+        clearTimeout(window.hideTimeout);
+        console.log('Hide timeout cleared');
+      }
+    };
+    
     // Mobile-specific function to force show toolbar
     window.forceShowToolbarMobile = function() {
       console.log('Force showing toolbar on mobile...');
