@@ -12039,12 +12039,70 @@ window.fixMobileIssues = function() {
   console.log('Mobile issues fixed');
 };
 
+// Force show toolbar function
+window.forceShowToolbar = function() {
+  console.log('=== Force Showing Toolbar ===');
+  
+  const toolbar = document.getElementById('functionToolbar');
+  if (toolbar) {
+    // Force visible state
+    toolbar.style.display = 'block';
+    toolbar.style.visibility = 'visible';
+    toolbar.style.opacity = '1';
+    toolbar.style.transform = 'translateY(0)';
+    toolbar.style.position = 'fixed';
+    toolbar.style.bottom = '0';
+    toolbar.style.left = '0';
+    toolbar.style.right = '0';
+    toolbar.style.width = '100%';
+    toolbar.style.zIndex = '1000';
+    toolbar.style.backgroundColor = '#fff';
+    toolbar.style.borderTop = '2px solid #007bff';
+    
+    // Remove any hidden classes
+    toolbar.classList.remove('minimized', 'hidden');
+    
+    console.log('Toolbar forced visible');
+  }
+  
+  // Remove any show indicators
+  const showIndicator = document.getElementById('toolbarShowIndicator');
+  if (showIndicator) {
+    showIndicator.remove();
+    console.log('Removed show indicator');
+  }
+  
+  // Ensure toggle icon is visible and working
+  const toggleIcon = document.getElementById('toolbarToggleIcon');
+  if (toggleIcon) {
+    toggleIcon.style.display = 'block';
+    toggleIcon.style.visibility = 'visible';
+    toggleIcon.style.opacity = '1';
+    toggleIcon.style.pointerEvents = 'auto';
+    toggleIcon.style.cursor = 'pointer';
+    toggleIcon.textContent = '▼'; // Show minimize icon
+    console.log('Toggle icon made visible');
+  }
+};
+
 // Auto-apply fixes on mobile
 if (window.innerWidth <= 768) {
   setTimeout(() => {
     window.fixMobileIssues();
+    window.forceShowToolbar();
   }, 500);
 }
+
+// Force mobile toolbar visibility on page load
+window.addEventListener('load', function() {
+  if (window.innerWidth <= 768) {
+    console.log('Page loaded on mobile, forcing toolbar visibility...');
+    setTimeout(() => {
+      window.fixMobileIssues();
+      window.forceShowToolbar();
+    }, 1000);
+  }
+});
 
 </script>
 
