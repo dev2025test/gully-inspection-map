@@ -10866,27 +10866,75 @@ if (forgotLink) {
         const toggleIcon = document.getElementById('toolbarToggleIcon');
         
         if (toolbar && toggleIcon) {
-          // Make sure toggle icon is clickable
+          // Make sure toggle icon is clickable and visible
           toggleIcon.style.pointerEvents = 'auto';
           toggleIcon.style.cursor = 'pointer';
           toggleIcon.style.zIndex = '1001';
+          toggleIcon.style.display = 'block';
+          toggleIcon.style.visibility = 'visible';
+          toggleIcon.style.opacity = '1';
           
-          // Add click handler to toggle icon
-          toggleIcon.onclick = function(e) {
+          // Remove any existing event listeners
+          toggleIcon.onclick = null;
+          toggleIcon.ontouchstart = null;
+          
+          // Add multiple event listeners for mobile compatibility
+          toggleIcon.addEventListener('click', function(e) {
             e.stopPropagation();
+            e.preventDefault();
+            console.log('Toggle icon clicked');
             toggleMobileToolbar();
-          };
+          });
+          
+          toggleIcon.addEventListener('touchstart', function(e) {
+            e.stopPropagation();
+            console.log('Toggle icon touchstart');
+          });
+          
+          toggleIcon.addEventListener('touchend', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            console.log('Toggle icon touchend');
+            toggleMobileToolbar();
+          });
           
           // Add click handler to toolbar header
           const toolbarHeader = toolbar.querySelector('.toolbar-header');
           if (toolbarHeader) {
-            toolbarHeader.onclick = function(e) {
+            // Remove existing event listeners
+            toolbarHeader.onclick = null;
+            toolbarHeader.ontouchstart = null;
+            
+            // Add new event listeners
+            toolbarHeader.addEventListener('click', function(e) {
               e.stopPropagation();
+              console.log('Toolbar header clicked');
               toggleMobileToolbar();
-            };
+            });
+            
+            toolbarHeader.addEventListener('touchstart', function(e) {
+              e.stopPropagation();
+              console.log('Toolbar header touchstart');
+            });
+            
+            toolbarHeader.addEventListener('touchend', function(e) {
+              e.stopPropagation();
+              e.preventDefault();
+              console.log('Toolbar header touchend');
+              toggleMobileToolbar();
+            });
           }
           
           console.log('Mobile toolbar setup complete');
+          console.log('Toggle icon styles:', {
+            pointerEvents: toggleIcon.style.pointerEvents,
+            cursor: toggleIcon.style.cursor,
+            zIndex: toggleIcon.style.zIndex,
+            display: toggleIcon.style.display,
+            visibility: toggleIcon.style.visibility
+          });
+        } else {
+          console.log('Toolbar or toggle icon not found');
         }
       } else {
         console.log('Not a mobile device');
@@ -10982,6 +11030,73 @@ if (forgotLink) {
       }, { once: true });
       
       console.log('Tap anywhere on the screen to test touch detection');
+    };
+    
+    // Mobile toolbar test function
+    window.testMobileToolbar = function() {
+      console.log('=== Mobile Toolbar Test ===');
+      
+      // Check device
+      updateMobileDetection();
+      console.log('Device info:', deviceInfo);
+      
+      // Check elements
+      const toolbar = document.getElementById('functionToolbar');
+      const toggleIcon = document.getElementById('toolbarToggleIcon');
+      const toolbarHeader = toolbar ? toolbar.querySelector('.toolbar-header') : null;
+      
+      console.log('Elements found:', {
+        toolbar: !!toolbar,
+        toggleIcon: !!toggleIcon,
+        toolbarHeader: !!toolbarHeader
+      });
+      
+      if (toolbar && toggleIcon) {
+        console.log('Toggle icon text:', toggleIcon.textContent);
+        console.log('Toolbar minimized:', toolbar.classList.contains('minimized'));
+        console.log('Toggle icon styles:', {
+          pointerEvents: toggleIcon.style.pointerEvents,
+          cursor: toggleIcon.style.cursor,
+          zIndex: toggleIcon.style.zIndex,
+          display: toggleIcon.style.display,
+          visibility: toggleIcon.style.visibility
+        });
+        
+        // Test toggle functionality
+        console.log('Testing toggle functionality...');
+        const wasMinimized = toolbar.classList.contains('minimized');
+        toggleMobileToolbar();
+        const isMinimized = toolbar.classList.contains('minimized');
+        console.log('Toggle result:', wasMinimized, '->', isMinimized);
+        
+        // Restore original state
+        if (wasMinimized !== isMinimized) {
+          setTimeout(() => {
+            toggleMobileToolbar();
+            console.log('Restored original state');
+          }, 1000);
+        }
+      }
+    };
+    
+    // Force mobile toolbar setup
+    window.forceMobileSetup = function() {
+      console.log('=== Force Mobile Setup ===');
+      
+      // Force mobile detection
+      window.forceMobileMode = true;
+      deviceInfo.isMobile = true;
+      deviceInfo.isTouch = true;
+      
+      console.log('Forced mobile mode enabled');
+      
+      // Setup mobile toolbar
+      setupMobileToolbar();
+      
+      // Test the setup
+      setTimeout(() => {
+        testMobileToolbar();
+      }, 500);
     };
     
     // Function to force enable mobile mode and test immediately
