@@ -3336,6 +3336,14 @@ function setupUIForRole(role, adminPrivileges = null) {
       element.disabled = true;
     });
   }
+  
+  // Apply full width button fix after UI setup
+  setTimeout(() => {
+    console.log('Applying full width button fix after UI setup...');
+    if (typeof window.applyFullWidthButtonFix === 'function') {
+      window.applyFullWidthButtonFix();
+    }
+  }, 100);
 }
 
 // Initialize layer groups
@@ -12851,6 +12859,14 @@ window.toggleToolbar = function() {
     icon.textContent = '▼';
     window.mobileAppState.toolbarMinimized = false;
     console.log('Toolbar expanded - function buttons visible');
+    
+    // Apply full width button fix when toolbar is expanded
+    setTimeout(() => {
+      console.log('Applying full width button fix after toolbar expansion...');
+      if (typeof window.applyFullWidthButtonFix === 'function') {
+        window.applyFullWidthButtonFix();
+      }
+    }, 200);
   } else {
     // Minimize toolbar - hide function buttons
     toolbar.classList.add('minimized');
@@ -12919,6 +12935,14 @@ window.onload = () => {
     console.log('window.onload: User system initialized');
     // Handle auto-login after initialization
     handleAutoLogin();
+    
+    // Apply full width button fix on page load
+    setTimeout(() => {
+      console.log('Applying full width button fix on page load...');
+      if (typeof window.applyFullWidthButtonFix === 'function') {
+        window.applyFullWidthButtonFix();
+      }
+    }, 1000);
   }).catch(error => {
     console.error('window.onload: Error during initialization:', error);
   });
