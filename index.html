@@ -10477,74 +10477,13 @@ if (forgotLink) {
         }
       });
       
-      // Add touch listener to show toolbar when user touches the screen
-      document.addEventListener('touchstart', function(e) {
-        console.log('Touch event detected');
-        const toolbar = document.getElementById('functionToolbar');
-        const showIndicator = document.getElementById('toolbarShowIndicator');
-        
-        // Check if toolbar is hidden (either by transform or minimized class)
-        const isHidden = (toolbar && (
-          toolbar.style.transform === 'translateY(100vh)' || 
-          toolbar.style.transform === 'translateY(100%)' ||
-          toolbar.classList.contains('minimized')
-        ));
-        
-        if (isHidden) {
-          console.log('Showing toolbar from touch event');
-          toolbar.style.transform = 'translateY(0)';
-          toolbar.classList.remove('minimized');
-          
-          // Hide the show indicator
-          if (showIndicator) {
-            showIndicator.style.opacity = '0';
-            setTimeout(() => showIndicator.remove(), 300);
-          }
-        }
-      }, { passive: true });
+      // DISABLED: Auto-show touch functionality removed to prevent interference
+      // The toolbar will now only respond to direct toggle touches, not general touches
+      console.log('Auto-show touch functionality disabled for mobile');
       
-      // Add click listener for desktop testing and mobile fallback
-      // Use a flag to prevent multiple executions
-      let clickHandlerAdded = false;
-      if (!clickHandlerAdded) {
-        document.addEventListener('click', function(e) {
-          // Only log once per click to reduce console spam
-          if (!this._lastClickTime || Date.now() - this._lastClickTime > 100) {
-            console.log('Click event detected');
-            this._lastClickTime = Date.now();
-          }
-          
-          const toolbar = document.getElementById('functionToolbar');
-          const showIndicator = document.getElementById('toolbarShowIndicator');
-          
-          // Check if we should show the toolbar
-          const shouldShow = (
-            // Force mobile mode and clicked outside toolbar
-            (window.forceMobileMode && !e.target.closest('#functionToolbar')) ||
-            // Clicked on show indicator
-            e.target.closest('#toolbarShowIndicator') ||
-            // Mobile device and toolbar is hidden
-            (deviceInfo.isMobile && toolbar && (
-              toolbar.style.transform === 'translateY(100vh)' || 
-              toolbar.style.transform === 'translateY(100%)' ||
-              toolbar.classList.contains('minimized')
-            ))
-          );
-          
-          if (shouldShow) {
-            console.log('Showing toolbar from click event');
-            toolbar.style.transform = 'translateY(0)';
-            toolbar.classList.remove('minimized');
-            
-            // Hide the show indicator
-            if (showIndicator) {
-              showIndicator.style.opacity = '0';
-              setTimeout(() => showIndicator.remove(), 300);
-            }
-          }
-        });
-        clickHandlerAdded = true;
-      }
+      // DISABLED: Auto-show functionality removed to prevent interference with toggle
+      // The toolbar will now only respond to direct toggle clicks, not general clicks
+      console.log('Auto-show functionality disabled for mobile');
     }
     
     // Performance optimization for different devices
@@ -12752,7 +12691,7 @@ window.resetMobileFunctionality = function() {
   deviceInfo.isMobile = true;
   deviceInfo.isTouch = true;
   
-  // 2. Ensure toolbar is visible and properly positioned
+  // 2. Ensure toolbar is properly positioned and minimized
   const toolbar = document.getElementById('functionToolbar');
   if (toolbar) {
     toolbar.style.cssText = `
@@ -12767,9 +12706,21 @@ window.resetMobileFunctionality = function() {
       display: block !important;
       visibility: visible !important;
       opacity: 1 !important;
-      transform: translateY(0) !important;
+      transform: translateY(calc(100% - 40px)) !important;
+      transition: transform 0.3s ease-in-out !important;
       box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
     `;
+    
+    // Force minimized state
+    toolbar.classList.add('minimized');
+    
+    // Update toggle icon
+    const toggleIcon = document.getElementById('toolbarToggleIcon');
+    if (toggleIcon) {
+      toggleIcon.textContent = '▲';
+    }
+    
+    console.log('Toolbar forced to minimized state');
   }
   
   // 3. Apply mobile button styles
@@ -12789,6 +12740,9 @@ window.resetMobileFunctionality = function() {
     clearTimeout(window.hideTimeout);
     window.hideTimeout = null;
   }
+  
+  // 7. Remove any auto-show event listeners
+  console.log('Auto-show functionality disabled');
   
   console.log('Mobile functionality completely reset and fixed');
 };
