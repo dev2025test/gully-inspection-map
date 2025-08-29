@@ -10371,7 +10371,7 @@ if (forgotLink) {
         button.addEventListener('touchstart', button._touchStartHandler);
         button.addEventListener('touchend', button._touchEndHandler);
         
-        // Add click handler for mobile devices to hide buttons after use
+        // Add click handler for mobile devices - DISABLED AUTO-HIDE
         button._clickHandler = function() {
           // Check if we're in mobile mode or testing mode
           const isMobileMode = deviceInfo.isMobile || window.forceMobileMode;
@@ -10379,90 +10379,29 @@ if (forgotLink) {
           if (isMobileMode) {
             console.log('Button clicked in mobile mode:', this.textContent);
             
-            // Don't auto-hide for critical buttons
-            const criticalButtons = ['logout', 'resetMap', 'enableDeleteMode'];
-            const isCriticalButton = criticalButtons.some(critical => 
-              this.getAttribute('onclick') && this.getAttribute('onclick').includes(critical)
-            );
+            // DISABLED: Auto-hide functionality removed to prevent interference
+            // The toolbar will now stay visible after button clicks
+            console.log('Mobile button clicked - toolbar will remain visible');
             
-            if (isCriticalButton) {
-              console.log('Critical button clicked, not hiding toolbar');
-              return; // Don't auto-hide for critical functions
+            // Clear any existing hide timeouts to prevent auto-hide
+            if (window.hideTimeout) {
+              clearTimeout(window.hideTimeout);
+              window.hideTimeout = null;
             }
             
-            // Clear any existing timeout
-            if (hideTimeout) {
-              clearTimeout(hideTimeout);
+            // Ensure toolbar stays visible
+            const toolbar = document.getElementById('functionToolbar');
+            if (toolbar) {
+              toolbar.style.transform = 'translateY(0)';
+              toolbar.style.opacity = '1';
+              toolbar.classList.remove('minimized');
             }
             
-            // Hide the toolbar after a short delay
-            hideTimeout = setTimeout(() => {
-              const toolbar = document.getElementById('functionToolbar');
-              if (toolbar) {
-                console.log('Hiding toolbar in mobile mode');
-                console.log('Toolbar current transform:', toolbar.style.transform);
-                console.log('Toolbar current position:', toolbar.getBoundingClientRect());
-                
-                // Use both transform and opacity to ensure it's hidden
-                toolbar.style.transform = 'translateY(100vh)';
-                toolbar.style.opacity = '0';
-                toolbar.style.transition = 'transform 0.3s ease-in-out, opacity 0.3s ease-in-out';
-                
-                console.log('Toolbar transform set to:', toolbar.style.transform);
-                
-                // Create or update show indicator
-                let showIndicator = document.getElementById('toolbarShowIndicator');
-                if (!showIndicator) {
-                  console.log('Creating show indicator...');
-                  showIndicator = document.createElement('div');
-                  showIndicator.id = 'toolbarShowIndicator';
-                  showIndicator.innerHTML = '👆 Tap to show toolbar';
-                  showIndicator.style.cssText = `
-                    position: fixed;
-                    bottom: 10px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: rgba(0, 0, 0, 0.7);
-                    color: white;
-                    padding: 8px 16px;
-                    border-radius: 20px;
-                    font-size: 12px;
-                    z-index: 999;
-                    pointer-events: auto;
-                    transition: opacity 0.3s ease;
-                    cursor: pointer;
-                  `;
-                  
-                  // Add click handler to show toolbar
-                  showIndicator.addEventListener('click', function() {
-                    console.log('Show indicator clicked');
-                    const toolbar = document.getElementById('functionToolbar');
-                    if (toolbar) {
-                      toolbar.style.transform = 'translateY(0)';
-                      this.style.opacity = '0';
-                      setTimeout(() => this.remove(), 300);
-                    }
-                  });
-                  
-                  document.body.appendChild(showIndicator);
-                  console.log('Show indicator added to DOM');
-                }
-                showIndicator.style.opacity = '1';
-                console.log('Show indicator opacity set to 1');
-                
-                // Show toolbar again after 3 seconds or when user touches the screen
-                setTimeout(() => {
-                  console.log('Auto-showing toolbar after 3 seconds');
-                  toolbar.style.transform = 'translateY(0)';
-                  if (showIndicator) {
-                    showIndicator.style.opacity = '0';
-                    setTimeout(() => showIndicator.remove(), 300);
-                  }
-                }, 3000);
-              } else {
-                console.log('Toolbar not found when trying to hide');
-              }
-            }, 500); // 500ms delay before hiding
+            // Remove any show indicators
+            const showIndicator = document.getElementById('toolbarShowIndicator');
+            if (showIndicator) {
+              showIndicator.remove();
+            }
           }
         };
         
@@ -12506,6 +12445,289 @@ window.createPermanentMobileToolbar = function() {
   }
   
   console.log('Permanent mobile toolbar created and working');
+};
+
+// Comprehensive mobile button functionality fix
+window.fixMobileButtonFunctionality = function() {
+  console.log('=== Fixing Mobile Button Functionality ===');
+  
+  // First, clean up any existing event listeners
+  const buttons = document.querySelectorAll('.toolbar-button');
+  buttons.forEach(button => {
+    // Remove all existing event listeners by cloning
+    const newButton = button.cloneNode(true);
+    button.parentNode.replaceChild(newButton, button);
+    
+    // Remove onclick attributes to prevent conflicts
+    newButton.removeAttribute('onclick');
+  });
+  
+  // Get the fresh buttons after cloning
+  const freshButtons = document.querySelectorAll('.toolbar-button');
+  
+  // Define the correct function mappings for mobile
+  const functionMappings = {
+    'Users': 'showUserManagement',
+    'Logout': 'logout',
+    'Edit': 'enableEditMode',
+    'Delete': 'enableDeleteMode',
+    'Add New Asset': 'enableAddMode',
+    'Print': 'printMap',
+    'Import CSV': 'handleImportFile',
+    'Export CSV': 'exportData',
+    'Backup': 'saveGullyData',
+    'Load Backup': 'loadFromBackup',
+    'Audit History': 'showAuditHistory',
+    'Satellite': 'toggleMapLayer',
+    'Outer Boundary': 'toggleOuterBoundary',
+    'Electoral Areas': 'toggleInnerBoundaries',
+    'Erase All Data': 'eraseAllData',
+    'Simple Reset': 'resetMap',
+    'Summary': 'showSummary',
+    'Layers': 'toggleLayers'
+  };
+  
+  // Add proper event listeners to each button
+  freshButtons.forEach(button => {
+    const buttonText = button.textContent.trim();
+    const span = button.querySelector('span');
+    const actualText = span ? span.textContent.trim() : buttonText;
+    
+    console.log(`Setting up button: "${actualText}"`);
+    
+    // Find the correct function name
+    let functionName = null;
+    for (const [key, value] of Object.entries(functionMappings)) {
+      if (actualText.includes(key)) {
+        functionName = value;
+        break;
+      }
+    }
+    
+    if (functionName) {
+      console.log(`  -> Mapping to function: ${functionName}`);
+      
+      // Add click event listener
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log(`Mobile button clicked: "${actualText}" -> calling ${functionName}`);
+        
+        // Check if function exists
+        if (typeof window[functionName] === 'function') {
+          try {
+            // Call the function
+            window[functionName]();
+            console.log(`Function ${functionName} called successfully`);
+          } catch (error) {
+            console.error(`Error calling ${functionName}:`, error);
+          }
+        } else {
+          console.error(`Function ${functionName} not found`);
+        }
+      });
+      
+      // Add touch event listener for mobile
+      button.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log(`Mobile button touched: "${actualText}"`);
+      });
+      
+    } else {
+      console.warn(`No function mapping found for button: "${actualText}"`);
+    }
+  });
+  
+  // Disable auto-hide functionality for mobile
+  if (window.hideTimeout) {
+    clearTimeout(window.hideTimeout);
+    window.hideTimeout = null;
+  }
+  
+  // Ensure toolbar stays visible
+  const toolbar = document.getElementById('functionToolbar');
+  if (toolbar) {
+    toolbar.style.transform = 'translateY(0)';
+    toolbar.classList.remove('minimized');
+  }
+  
+  console.log('Mobile button functionality fixed');
+  console.log(`Total buttons processed: ${freshButtons.length}`);
+};
+
+// Function to test mobile button functionality
+window.testMobileButtons = function() {
+  console.log('=== Testing Mobile Button Functionality ===');
+  
+  const buttons = document.querySelectorAll('.toolbar-button');
+  console.log(`Found ${buttons.length} buttons`);
+  
+  buttons.forEach((button, index) => {
+    const span = button.querySelector('span');
+    const text = span ? span.textContent.trim() : button.textContent.trim();
+    console.log(`Button ${index + 1}: "${text}"`);
+    
+    // Check if button has event listeners
+    const hasClickListeners = button.onclick || button._clickHandler;
+    console.log(`  -> Has click handlers: ${!!hasClickListeners}`);
+    
+    // Check if button is visible and clickable
+    const isVisible = button.style.display !== 'none' && 
+                     button.style.visibility !== 'hidden' && 
+                     button.style.opacity !== '0';
+    console.log(`  -> Is visible: ${isVisible}`);
+    
+    // Check button dimensions
+    const rect = button.getBoundingClientRect();
+    console.log(`  -> Dimensions: ${rect.width}x${rect.height}`);
+  });
+  
+  // Test specific functions
+  const testFunctions = ['showUserManagement', 'logout', 'enableEditMode', 'printMap'];
+  testFunctions.forEach(funcName => {
+    const exists = typeof window[funcName] === 'function';
+    console.log(`Function ${funcName}: ${exists ? 'EXISTS' : 'MISSING'}`);
+  });
+};
+
+// Function to apply mobile-optimized styles
+window.applyMobileButtonStyles = function() {
+  console.log('=== Applying Mobile Button Styles ===');
+  
+  const buttons = document.querySelectorAll('.toolbar-button');
+  buttons.forEach(button => {
+    // Apply mobile-optimized styles
+    button.style.cssText = `
+      width: 100% !important;
+      max-width: 100% !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-height: 60px !important;
+      margin-bottom: 8px !important;
+      font-size: 0.8rem !important;
+      padding: 12px 8px !important;
+      border-radius: 8px !important;
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      box-sizing: border-box !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      background: #f8f9fa !important;
+      border: 1px solid #dee2e6 !important;
+      cursor: pointer !important;
+      touch-action: manipulation !important;
+      user-select: none !important;
+      transition: background-color 0.2s ease !important;
+    `;
+    
+    // Style the icon
+    const icon = button.querySelector('i');
+    if (icon) {
+      icon.style.cssText = `
+        font-size: 1.2rem !important;
+        margin-bottom: 4px !important;
+        display: block !important;
+      `;
+    }
+    
+    // Style the text
+    const span = button.querySelector('span');
+    if (span) {
+      span.style.cssText = `
+        font-size: 0.75rem !important;
+        line-height: 1.2 !important;
+        text-align: center !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        display: block !important;
+        margin-top: 2px !important;
+      `;
+    }
+  });
+  
+  // Style button groups
+  const buttonGroups = document.querySelectorAll('.button-group');
+  buttonGroups.forEach(group => {
+    group.style.cssText = `
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 8px !important;
+      padding: 8px !important;
+      width: 100% !important;
+      align-items: stretch !important;
+    `;
+  });
+  
+  // Style toolbar content
+  const toolbarContent = document.querySelector('.toolbar-content');
+  if (toolbarContent) {
+    toolbarContent.style.cssText = `
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+      padding: 8px !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      max-height: 60vh !important;
+      width: 100% !important;
+    `;
+  }
+  
+  console.log('Mobile button styles applied');
+};
+
+// Function to completely reset and fix mobile functionality
+window.resetMobileFunctionality = function() {
+  console.log('=== Complete Mobile Functionality Reset ===');
+  
+  // 1. Fix mobile detection
+  deviceInfo.isMobile = true;
+  deviceInfo.isTouch = true;
+  
+  // 2. Ensure toolbar is visible and properly positioned
+  const toolbar = document.getElementById('functionToolbar');
+  if (toolbar) {
+    toolbar.style.cssText = `
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      background: white !important;
+      border-top: 2px solid #007bff !important;
+      z-index: 9999 !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      transform: translateY(0) !important;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+    `;
+  }
+  
+  // 3. Apply mobile button styles
+  applyMobileButtonStyles();
+  
+  // 4. Fix button functionality
+  fixMobileButtonFunctionality();
+  
+  // 5. Clean up any show indicators
+  const showIndicator = document.getElementById('toolbarShowIndicator');
+  if (showIndicator) {
+    showIndicator.remove();
+  }
+  
+  // 6. Clear any hide timeouts
+  if (window.hideTimeout) {
+    clearTimeout(window.hideTimeout);
+    window.hideTimeout = null;
+  }
+  
+  console.log('Mobile functionality completely reset and fixed');
 };
 
 // Auto-create permanent toolbar on mobile
