@@ -12962,19 +12962,88 @@ window.initializeMobileApp = function() {
     console.log('Mobile toolbar toggle functionality initialized');
   }
   
-  // Apply mobile button styles
+  // Apply mobile button styles - Permanent Full Width Fix
   const buttons = document.querySelectorAll('.toolbar-button');
   buttons.forEach(button => {
-    button.style.width = '100%';
-    button.style.flexDirection = 'column';
-    button.style.alignItems = 'center';
-    button.style.justifyContent = 'center';
-    button.style.minHeight = '60px';
-    button.style.marginBottom = '4px';
-    button.style.fontSize = '0.75rem';
-    button.style.padding = '12px 8px';
-    button.style.borderRadius = '8px';
+    // Remove all classes that might interfere
+    button.className = '';
+    
+    // Force full width with all possible properties
+    button.style.setProperty('width', '100%', 'important');
+    button.style.setProperty('max-width', '100%', 'important');
+    button.style.setProperty('min-width', '100%', 'important');
+    button.style.setProperty('display', 'block', 'important');
+    button.style.setProperty('flex-direction', 'column', 'important');
+    button.style.setProperty('align-items', 'center', 'important');
+    button.style.setProperty('justify-content', 'center', 'important');
+    button.style.setProperty('min-height', '60px', 'important');
+    button.style.setProperty('margin', '4px 0', 'important');
+    button.style.setProperty('font-size', '0.75rem', 'important');
+    button.style.setProperty('padding', '12px 8px', 'important');
+    button.style.setProperty('border-radius', '8px', 'important');
+    button.style.setProperty('box-sizing', 'border-box', 'important');
+    button.style.setProperty('float', 'none', 'important');
+    button.style.setProperty('position', 'static', 'important');
+    button.style.setProperty('clear', 'both', 'important');
+    
+    console.log('Button forced to full width:', button.textContent.trim());
   });
+  
+  // Force button groups to full width
+  const buttonGroups = document.querySelectorAll('.button-group');
+  buttonGroups.forEach(group => {
+    group.className = '';
+    group.style.setProperty('width', '100%', 'important');
+    group.style.setProperty('max-width', '100%', 'important');
+    group.style.setProperty('min-width', '100%', 'important');
+    group.style.setProperty('display', 'block', 'important');
+    group.style.setProperty('flex-direction', 'column', 'important');
+    group.style.setProperty('gap', '4px', 'important');
+    group.style.setProperty('padding', '8px', 'important');
+    group.style.setProperty('box-sizing', 'border-box', 'important');
+    group.style.setProperty('margin', '0', 'important');
+    group.style.setProperty('float', 'none', 'important');
+    group.style.setProperty('clear', 'both', 'important');
+    
+    console.log('Button group forced to full width');
+  });
+  
+  // Force toolbar content to full width
+  const toolbarContent = document.querySelector('.toolbar-content');
+  if (toolbarContent) {
+    toolbarContent.className = '';
+    toolbarContent.style.setProperty('width', '100%', 'important');
+    toolbarContent.style.setProperty('max-width', '100%', 'important');
+    toolbarContent.style.setProperty('min-width', '100%', 'important');
+    toolbarContent.style.setProperty('display', 'block', 'important');
+    toolbarContent.style.setProperty('flex-direction', 'column', 'important');
+    toolbarContent.style.setProperty('padding', '8px', 'important');
+    toolbarContent.style.setProperty('box-sizing', 'border-box', 'important');
+    toolbarContent.style.setProperty('margin', '0', 'important');
+    toolbarContent.style.setProperty('float', 'none', 'important');
+    toolbarContent.style.setProperty('clear', 'both', 'important');
+    
+    console.log('Toolbar content forced to full width');
+  }
+  
+  // Force toolbar to full width
+  const functionToolbar = document.getElementById('functionToolbar');
+  if (functionToolbar) {
+    functionToolbar.style.setProperty('width', '100%', 'important');
+    functionToolbar.style.setProperty('max-width', '100%', 'important');
+    functionToolbar.style.setProperty('min-width', '100%', 'important');
+    functionToolbar.style.setProperty('left', '0', 'important');
+    functionToolbar.style.setProperty('right', '0', 'important');
+    functionToolbar.style.setProperty('margin', '0', 'important');
+    functionToolbar.style.setProperty('padding', '0', 'important');
+    functionToolbar.style.setProperty('box-sizing', 'border-box', 'important');
+    
+    console.log('Function toolbar forced to full width');
+  }
+  
+  console.log('Permanent full width button fix applied');
+  console.log('Buttons processed:', buttons.length);
+  console.log('Button groups processed:', buttonGroups.length);
   
   console.log('Mobile app initialization complete');
 };
@@ -12985,6 +13054,100 @@ if (window.innerWidth <= 768) {
     initializeMobileApp();
   }, 500);
 }
+
+// Global function to apply full width button fix
+window.applyFullWidthButtonFix = function() {
+  console.log('=== Applying Full Width Button Fix ===');
+  
+  // Apply mobile button styles - Permanent Full Width Fix
+  const buttons = document.querySelectorAll('.toolbar-button');
+  buttons.forEach(button => {
+    // Remove all classes that might interfere
+    button.className = '';
+    
+    // Force full width with all possible properties
+    button.style.setProperty('width', '100%', 'important');
+    button.style.setProperty('max-width', '100%', 'important');
+    button.style.setProperty('min-width', '100%', 'important');
+    button.style.setProperty('display', 'block', 'important');
+    button.style.setProperty('flex-direction', 'column', 'important');
+    button.style.setProperty('align-items', 'center', 'important');
+    button.style.setProperty('justify-content', 'center', 'important');
+    button.style.setProperty('min-height', '60px', 'important');
+    button.style.setProperty('margin', '4px 0', 'important');
+    button.style.setProperty('font-size', '0.75rem', 'important');
+    button.style.setProperty('padding', '12px 8px', 'important');
+    button.style.setProperty('border-radius', '8px', 'important');
+    button.style.setProperty('box-sizing', 'border-box', 'important');
+    button.style.setProperty('float', 'none', 'important');
+    button.style.setProperty('position', 'static', 'important');
+    button.style.setProperty('clear', 'both', 'important');
+    
+    console.log('Button forced to full width:', button.textContent.trim());
+  });
+  
+  // Force button groups to full width
+  const buttonGroups = document.querySelectorAll('.button-group');
+  buttonGroups.forEach(group => {
+    group.className = '';
+    group.style.setProperty('width', '100%', 'important');
+    group.style.setProperty('max-width', '100%', 'important');
+    group.style.setProperty('min-width', '100%', 'important');
+    group.style.setProperty('display', 'block', 'important');
+    group.style.setProperty('flex-direction', 'column', 'important');
+    group.style.setProperty('gap', '4px', 'important');
+    group.style.setProperty('padding', '8px', 'important');
+    group.style.setProperty('box-sizing', 'border-box', 'important');
+    group.style.setProperty('margin', '0', 'important');
+    group.style.setProperty('float', 'none', 'important');
+    group.style.setProperty('clear', 'both', 'important');
+    
+    console.log('Button group forced to full width');
+  });
+  
+  // Force toolbar content to full width
+  const toolbarContent = document.querySelector('.toolbar-content');
+  if (toolbarContent) {
+    toolbarContent.className = '';
+    toolbarContent.style.setProperty('width', '100%', 'important');
+    toolbarContent.style.setProperty('max-width', '100%', 'important');
+    toolbarContent.style.setProperty('min-width', '100%', 'important');
+    toolbarContent.style.setProperty('display', 'block', 'important');
+    toolbarContent.style.setProperty('flex-direction', 'column', 'important');
+    toolbarContent.style.setProperty('padding', '8px', 'important');
+    toolbarContent.style.setProperty('box-sizing', 'border-box', 'important');
+    toolbarContent.style.setProperty('margin', '0', 'important');
+    toolbarContent.style.setProperty('float', 'none', 'important');
+    toolbarContent.style.setProperty('clear', 'both', 'important');
+    
+    console.log('Toolbar content forced to full width');
+  }
+  
+  // Force toolbar to full width
+  const functionToolbar = document.getElementById('functionToolbar');
+  if (functionToolbar) {
+    functionToolbar.style.setProperty('width', '100%', 'important');
+    functionToolbar.style.setProperty('max-width', '100%', 'important');
+    functionToolbar.style.setProperty('min-width', '100%', 'important');
+    functionToolbar.style.setProperty('left', '0', 'important');
+    functionToolbar.style.setProperty('right', '0', 'important');
+    functionToolbar.style.setProperty('margin', '0', 'important');
+    functionToolbar.style.setProperty('padding', '0', 'important');
+    functionToolbar.style.setProperty('box-sizing', 'border-box', 'important');
+    
+    console.log('Function toolbar forced to full width');
+  }
+  
+  console.log('Full width button fix applied successfully');
+  console.log('Buttons processed:', buttons.length);
+  console.log('Button groups processed:', buttonGroups.length);
+  
+  return {
+    buttons: buttons.length,
+    buttonGroups: buttonGroups.length,
+    success: true
+  };
+};
 
 // Function to force map reinitialization
 window.forceMapReinitialization = function() {
