@@ -12986,17 +12986,156 @@ if (window.innerWidth <= 768) {
   }, 500);
 }
 
+// Function to ensure map container is always available
+window.ensureMapContainer = function() {
+  console.log('=== Ensuring Map Container ===');
+  
+  let map = document.getElementById('map');
+  
+  if (!map) {
+    console.log('Map container not found - creating it');
+    map = document.createElement('div');
+    map.id = 'map';
+    map.style.cssText = `
+      width: 100% !important;
+      height: 100vh !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      z-index: 1 !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      min-height: 400px !important;
+    `;
+    
+    // Insert at the beginning of body to ensure it's behind other elements
+    document.body.insertBefore(map, document.body.firstChild);
+    console.log('Map container created and inserted');
+  } else {
+    console.log('Map container found, ensuring visibility');
+    map.style.display = 'block';
+    map.style.visibility = 'visible';
+    map.style.opacity = '1';
+    map.style.width = '100%';
+    map.style.height = '100vh';
+    map.style.position = 'absolute';
+    map.style.top = '0';
+    map.style.left = '0';
+    map.style.zIndex = '1';
+    map.style.minHeight = '400px';
+  }
+  
+  return map;
+};
+
+// Enhanced login success handler with guaranteed map container
+window.handleSuccessfulLogin = function(userData) {
+  console.log('=== Handling Successful Login ===');
+  
+  // Update mobile app state
+  window.mobileAppState.isLoggedIn = true;
+  window.mobileAppState.isOnLoginPage = false;
+  window.mobileAppState.toolbarMinimized = true;
+  
+  // Hide login screen
+  const loginScreen = document.getElementById('loginScreen');
+  if (loginScreen) {
+    loginScreen.style.display = 'none';
+    loginScreen.style.visibility = 'hidden';
+    loginScreen.style.opacity = '0';
+    console.log('Login screen hidden');
+  }
+  
+  // Ensure map container exists and is visible
+  const map = ensureMapContainer();
+  console.log('Map container ensured and visible');
+  
+  // Show toolbar in minimized state
+  const functionToolbar = document.getElementById('functionToolbar');
+  if (functionToolbar) {
+    // Reset toolbar state
+    functionToolbar.style.display = 'block';
+    functionToolbar.style.visibility = 'visible';
+    functionToolbar.style.opacity = '1';
+    functionToolbar.classList.remove('minimized');
+    
+    // Apply mobile toolbar styling - minimized
+    functionToolbar.style.cssText = `
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      background: white !important;
+      border-top: 2px solid #007bff !important;
+      z-index: 9999 !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      transform: translateY(calc(100% - 40px)) !important;
+      transition: transform 0.3s ease-in-out !important;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+    `;
+    
+    // Add minimized class
+    functionToolbar.classList.add('minimized');
+    
+    // Update toggle icon to show up arrow (minimized state)
+    const toggleIcon = document.getElementById('toolbarToggleIcon');
+    if (toggleIcon) {
+      toggleIcon.textContent = '▲';
+      toggleIcon.style.fontSize = '20px';
+      toggleIcon.style.fontWeight = 'bold';
+      toggleIcon.style.cursor = 'pointer';
+    }
+    
+    console.log('Toolbar shown in minimized state');
+  }
+  
+  // Update user info
+  if (userData) {
+    updateUserInfo(userData);
+    setupUIForRole(userData.role, userData.adminPrivileges);
+  }
+  
+  // Initialize map with enhanced handling
+  setTimeout(() => {
+    initializeMapForMobile();
+  }, 200);
+  
+  console.log('Successful login handled - map visible, toolbar minimized');
+};
+
 // Enhanced map initialization function for mobile
 window.initializeMapForMobile = function() {
   console.log('=== Initializing Map for Mobile ===');
   
-  const map = document.getElementById('map');
+  // First, ensure map container exists and is visible
+  let map = document.getElementById('map');
   if (!map) {
-    console.error('Map container not found');
-    return;
+    console.error('Map container not found - creating it');
+    // Create map container if it doesn't exist
+    map = document.createElement('div');
+    map.id = 'map';
+    map.style.cssText = `
+      width: 100% !important;
+      height: 100vh !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      z-index: 1 !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    `;
+    
+    // Insert map container into the body
+    document.body.appendChild(map);
+    console.log('Map container created and added to DOM');
   }
   
-  // Ensure map container is properly styled
+  // Ensure map container is properly styled and visible
   map.style.display = 'block';
   map.style.visibility = 'visible';
   map.style.opacity = '1';
@@ -13006,25 +13145,32 @@ window.initializeMapForMobile = function() {
   map.style.top = '0';
   map.style.left = '0';
   map.style.zIndex = '1';
+  map.style.minHeight = '400px';
   
-  console.log('Map container styled for mobile');
+  console.log('Map container styled and made visible');
+  console.log('Map container display:', map.style.display);
+  console.log('Map container visibility:', map.style.visibility);
+  console.log('Map container dimensions:', map.offsetWidth + 'x' + map.offsetHeight);
   
   // Initialize map if not already done
   if (!window.map) {
     console.log('No existing map instance, initializing new map...');
     if (typeof initMap === 'function') {
       try {
-        initMap();
-        window.mobileAppState.mapLoaded = true;
-        console.log('Map initialized successfully');
-        
-        // Invalidate map size after initialization
+        // Force a small delay to ensure DOM is ready
         setTimeout(() => {
-          if (window.map && typeof window.map.invalidateSize === 'function') {
-            window.map.invalidateSize();
-            console.log('Map size invalidated after initialization');
-          }
-        }, 300);
+          initMap();
+          window.mobileAppState.mapLoaded = true;
+          console.log('Map initialized successfully');
+          
+          // Invalidate map size after initialization
+          setTimeout(() => {
+            if (window.map && typeof window.map.invalidateSize === 'function') {
+              window.map.invalidateSize();
+              console.log('Map size invalidated after initialization');
+            }
+          }, 300);
+        }, 100);
       } catch (error) {
         console.error('Error initializing map:', error);
       }
