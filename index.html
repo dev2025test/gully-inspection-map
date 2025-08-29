@@ -12986,6 +12986,65 @@ if (window.innerWidth <= 768) {
   }, 500);
 }
 
+// Function to force map reinitialization
+window.forceMapReinitialization = function() {
+  console.log('=== Forcing Map Reinitialization ===');
+  
+  // 1. Ensure map container exists and is visible
+  const mapContainer = window.ensureMapContainer();
+  
+  // 2. Destroy existing map instance if it exists
+  if (window.map) {
+    console.log('Destroying existing map instance...');
+    try {
+      if (typeof window.map.remove === 'function') {
+        window.map.remove();
+        console.log('Existing map instance destroyed');
+      }
+    } catch (error) {
+      console.log('Error destroying map:', error);
+    }
+    window.map = null;
+    window.mobileAppState.mapLoaded = false;
+  }
+  
+  // 3. Clear any existing map elements
+  const mapElement = document.getElementById('map');
+  if (mapElement) {
+    // Remove all child elements (Leaflet creates its own)
+    while (mapElement.firstChild) {
+      mapElement.removeChild(mapElement.firstChild);
+    }
+    console.log('Map container cleared');
+  }
+  
+  // 4. Reinitialize map
+  setTimeout(() => {
+    if (typeof initMap === 'function') {
+      try {
+        console.log('Reinitializing map...');
+        initMap();
+        window.mobileAppState.mapLoaded = true;
+        console.log('Map reinitialized successfully');
+        
+        // Invalidate map size
+        setTimeout(() => {
+          if (window.map && typeof window.map.invalidateSize === 'function') {
+            window.map.invalidateSize();
+            console.log('Map size invalidated');
+          }
+        }, 300);
+      } catch (error) {
+        console.error('Error reinitializing map:', error);
+      }
+    } else {
+      console.error('initMap function not available');
+    }
+  }, 500);
+  
+  console.log('Map reinitialization process started');
+};
+
 // Function to ensure map container is always available
 window.ensureMapContainer = function() {
   console.log('=== Ensuring Map Container ===');
@@ -13152,7 +13211,7 @@ window.initializeMapForMobile = function() {
   console.log('Map container visibility:', map.style.visibility);
   console.log('Map container dimensions:', map.offsetWidth + 'x' + map.offsetHeight);
   
-  // Initialize map if not already done
+  // Initialize map - handle existing instances properly
   if (!window.map) {
     console.log('No existing map instance, initializing new map...');
     if (typeof initMap === 'function') {
@@ -13178,10 +13237,34 @@ window.initializeMapForMobile = function() {
       console.error('initMap function not available');
     }
   } else {
-    console.log('Map instance already exists, invalidating size...');
-    if (typeof window.map.invalidateSize === 'function') {
-      window.map.invalidateSize();
-      console.log('Existing map size invalidated');
+    console.log('Map instance already exists - destroying and recreating...');
+    try {
+      // Destroy existing map instance
+      if (typeof window.map.remove === 'function') {
+        window.map.remove();
+        console.log('Existing map instance destroyed');
+      }
+      window.map = null;
+      window.mobileAppState.mapLoaded = false;
+      
+      // Reinitialize map
+      setTimeout(() => {
+        if (typeof initMap === 'function') {
+          initMap();
+          window.mobileAppState.mapLoaded = true;
+          console.log('Map reinitialized successfully');
+          
+          // Invalidate map size after reinitialization
+          setTimeout(() => {
+            if (window.map && typeof window.map.invalidateSize === 'function') {
+              window.map.invalidateSize();
+              console.log('Map size invalidated after reinitialization');
+            }
+          }, 300);
+        }
+      }, 200);
+    } catch (error) {
+      console.error('Error destroying/recreating map:', error);
     }
   }
 };
