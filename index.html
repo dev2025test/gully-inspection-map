@@ -3663,7 +3663,11 @@ function handleLoginSuccess(userData) {
       // Show toolbar after login
       const functionToolbar = document.getElementById('functionToolbar');
       if (functionToolbar) {
+        // Reset toolbar state completely
         functionToolbar.style.display = 'block';
+        functionToolbar.style.visibility = 'visible';
+        functionToolbar.style.opacity = '1';
+        functionToolbar.classList.remove('minimized');
         
         // Style toolbar for mobile - start minimized
         functionToolbar.style.cssText = `
@@ -4599,39 +4603,7 @@ async function viewGullyHistory(gullyId) {
 // Flag to track if user has explicitly initiated login during this session
 let userExplicitlyLoggedIn = false;
 
-// Initialize auth state listener
-auth.onAuthStateChanged(user => {
-  console.log('Auth state changed, user:', user); 
-  console.log('Auth state changed: userExplicitlyLoggedIn flag:', userExplicitlyLoggedIn);
-  
-  if (user && userExplicitlyLoggedIn) {
-    console.log('Auth state changed: User authenticated and explicitly logged in');
-    // Don't fetch user data here - let the login function handle it
-    // This prevents permission errors since the login function has proper context
-  } else if (user && !userExplicitlyLoggedIn) {
-    console.log('Auth state changed: User authenticated but not explicitly logged in, signing out...');
-    // User has an existing session but hasn't explicitly logged in during this visit
-    // Force logout to require explicit login
-    auth.signOut().then(() => {
-      console.log('Auth state changed: Forced logout successful');
-    }).catch(error => {
-      console.error('Auth state changed: Error during forced logout:', error);
-    });
-  } else {
-    console.log('Auth state changed: No user logged in, showing login screen');
-    
-    // Add null checks for DOM elements
-    const loginScreen = document.getElementById('loginScreen');
-    const map = document.getElementById('map');
-    const functionToolbar = document.getElementById('functionToolbar');
-    const summary = document.getElementById('summary');
-    
-    if (loginScreen) loginScreen.style.display = 'flex';
-    if (map) map.style.display = 'none';
-    if (functionToolbar) functionToolbar.style.display = 'none';
-    if (summary) summary.style.display = 'none';
-  }
-});
+// Mobile app will handle auth state changes - see comprehensive mobile functionality implementation below
 
 // Update the summary display with descriptions
 function updateSummary() {
@@ -6266,36 +6238,7 @@ function showNotification(message, type = 'info') {
   }, 3000);
 }
 
-// Update the window.onload to include new initialization
-window.onload = () => {
-  const loginScreen = document.getElementById("loginScreen");
-  const functionToolbar = document.getElementById("functionToolbar");
-  const map = document.getElementById("map");
-  const summary = document.getElementById("summary");
-  
-  // Reset explicit login flag on page load
-  userExplicitlyLoggedIn = false;
-  console.log('window.onload: Reset userExplicitlyLoggedIn to false');
-  
-  // Ensure login screen is visible and other elements are hidden on initial load
-  if (loginScreen) loginScreen.style.display = "block";
-  if (functionToolbar) functionToolbar.style.display = "none";
-  if (map) map.style.display = "none";
-  if (summary) summary.style.display = "none";
-  
-  console.log('window.onload: Initial UI state set - login screen visible, toolbar hidden');
-  
-  // Initialize users
-  Promise.all([
-    ensureAllUsers()
-  ]).then(() => {
-    console.log('window.onload: User system initialized');
-    // Handle auto-login after initialization
-    handleAutoLogin();
-  }).catch(error => {
-    console.error('window.onload: Error during initialization:', error);
-  });
-};
+// Mobile app will handle window.onload - see comprehensive mobile functionality implementation below
 
 function togglePassword() {
   const passwordInput = document.getElementById('password');
@@ -12747,12 +12690,429 @@ window.resetMobileFunctionality = function() {
   console.log('Mobile functionality completely reset and fixed');
 };
 
-// Auto-create permanent toolbar on mobile
+// Hide toolbar on page load for mobile devices
+if (window.innerWidth <= 768) {
+  // Hide toolbar on page load
+  const functionToolbar = document.getElementById('functionToolbar');
+  if (functionToolbar) {
+    functionToolbar.style.display = 'none';
+    functionToolbar.style.visibility = 'hidden';
+    functionToolbar.style.opacity = '0';
+    functionToolbar.classList.remove('minimized');
+    functionToolbar.style.transform = '';
+    console.log('Toolbar hidden on page load for mobile');
+  }
+}
+
+// ============================================================================
+// COMPREHENSIVE MOBILE FUNCTIONALITY IMPLEMENTATION
+// ============================================================================
+// This ensures: Login page only -> After login: Map + minimized toggle bar -> After logout: Login page only
+
+// Global state management for mobile
+window.mobileAppState = {
+  isLoggedIn: false,
+  isOnLoginPage: true,
+  toolbarMinimized: true,
+  mapLoaded: false
+};
+
+// Function to set initial state - ONLY login page visible
+window.setInitialLoginState = function() {
+  console.log('=== Setting Initial Login State ===');
+  
+  // Reset mobile app state
+  window.mobileAppState = {
+    isLoggedIn: false,
+    isOnLoginPage: true,
+    toolbarMinimized: true,
+    mapLoaded: false
+  };
+  
+  // Hide everything except login screen
+  const loginScreen = document.getElementById('loginScreen');
+  const functionToolbar = document.getElementById('functionToolbar');
+  const map = document.getElementById('map');
+  const summary = document.getElementById('summary');
+  
+  if (loginScreen) {
+    loginScreen.style.display = 'flex';
+    loginScreen.style.visibility = 'visible';
+    loginScreen.style.opacity = '1';
+    console.log('Login screen made visible');
+  }
+  
+  if (functionToolbar) {
+    functionToolbar.style.display = 'none';
+    functionToolbar.style.visibility = 'hidden';
+    functionToolbar.style.opacity = '0';
+    functionToolbar.classList.remove('minimized');
+    functionToolbar.style.transform = '';
+    console.log('Toolbar completely hidden');
+  }
+  
+  if (map) {
+    map.style.display = 'none';
+    map.style.visibility = 'hidden';
+    map.style.opacity = '0';
+    console.log('Map completely hidden');
+  }
+  
+  if (summary) {
+    summary.style.display = 'none';
+    summary.style.visibility = 'hidden';
+    summary.style.opacity = '0';
+    console.log('Summary completely hidden');
+  }
+  
+  console.log('Initial login state set - only login page visible');
+};
+
+// This function is now replaced by the enhanced version below
+
+// Function to handle logout - return to login page only
+window.handleLogout = function() {
+  console.log('=== Handling Logout ===');
+  
+  // Update mobile app state
+  window.mobileAppState.isLoggedIn = false;
+  window.mobileAppState.isOnLoginPage = true;
+  window.mobileAppState.toolbarMinimized = true;
+  window.mobileAppState.mapLoaded = false;
+  
+  // Log logout event
+  if (auth.currentUser && auth.currentUser.email) {
+    logUserEvent('logout', auth.currentUser.email);
+  }
+  
+  // Reset user data
+  window.currentUserData = null;
+  userExplicitlyLoggedIn = false;
+  
+  // Properly hide and reset map
+  const map = document.getElementById('map');
+  if (map) {
+    map.style.display = 'none';
+    map.style.visibility = 'hidden';
+    map.style.opacity = '0';
+    console.log('Map hidden during logout');
+  }
+  
+  // Destroy existing map instance if it exists
+  if (window.map && typeof window.map.remove === 'function') {
+    try {
+      window.map.remove();
+      window.map = null;
+      console.log('Existing map instance destroyed');
+    } catch (error) {
+      console.log('Error destroying map:', error);
+    }
+  }
+  
+  // Sign out from Firebase
+  auth.signOut().then(() => {
+    console.log('Firebase sign out successful');
+    
+    // Return to initial login state
+    setInitialLoginState();
+    
+    console.log('Logout completed - returned to login page only');
+  }).catch(error => {
+    console.error('Logout error:', error);
+    alert('Error during logout: ' + error.message);
+  });
+};
+
+// Enhanced toggle toolbar function for mobile
+window.toggleToolbar = function() {
+  console.log('=== Toggling Toolbar ===');
+  
+  const toolbar = document.getElementById('functionToolbar');
+  const icon = document.getElementById('toolbarToggleIcon');
+  
+  if (!toolbar || !icon) {
+    console.log('Toolbar or icon not found');
+    return;
+  }
+  
+  // Prevent rapid toggles
+  if (this._lastToggleTime && Date.now() - this._lastToggleTime < 200) {
+    console.log('Toggle blocked - too rapid');
+    return;
+  }
+  this._lastToggleTime = Date.now();
+  
+  const isMinimized = toolbar.classList.contains('minimized');
+  
+  if (isMinimized) {
+    // Expand toolbar - show function buttons
+    toolbar.classList.remove('minimized');
+    toolbar.style.transform = 'translateY(0)';
+    icon.textContent = '▼';
+    window.mobileAppState.toolbarMinimized = false;
+    console.log('Toolbar expanded - function buttons visible');
+  } else {
+    // Minimize toolbar - hide function buttons
+    toolbar.classList.add('minimized');
+    toolbar.style.transform = 'translateY(calc(100% - 40px))';
+    icon.textContent = '▲';
+    window.mobileAppState.toolbarMinimized = true;
+    console.log('Toolbar minimized - function buttons hidden');
+  }
+};
+
+// Override the existing handleLoginSuccess function
+window.handleLoginSuccess = function(userData) {
+  console.log('handleLoginSuccess: Login successful, calling mobile handler...');
+  
+  // Use the new mobile login handler
+  handleSuccessfulLogin(userData);
+};
+
+// Override the existing logout function
+window.logout = function() {
+  console.log('logout: Calling mobile logout handler...');
+  
+  // Use the new mobile logout handler
+  handleLogout();
+};
+
+// Enhanced auth state listener
+auth.onAuthStateChanged(user => {
+  console.log('Auth state changed, user:', user);
+  console.log('Auth state changed: userExplicitlyLoggedIn flag:', userExplicitlyLoggedIn);
+  
+  if (user && userExplicitlyLoggedIn) {
+    console.log('Auth state changed: User authenticated and explicitly logged in');
+    // Don't do anything here - let the login function handle it
+  } else if (user && !userExplicitlyLoggedIn) {
+    console.log('Auth state changed: User authenticated but not explicitly logged in, signing out...');
+    // Force logout to require explicit login
+    auth.signOut().then(() => {
+      console.log('Auth state changed: Forced logout successful');
+    }).catch(error => {
+      console.error('Auth state changed: Error during forced logout:', error);
+    });
+  } else {
+    console.log('Auth state changed: No user logged in, setting initial login state');
+    
+    // Use the new mobile state handler
+    setInitialLoginState();
+  }
+});
+
+// Enhanced window.onload for mobile
+window.onload = () => {
+  console.log('=== Mobile App Initialization ===');
+  
+  // Reset explicit login flag on page load
+  userExplicitlyLoggedIn = false;
+  console.log('window.onload: Reset userExplicitlyLoggedIn to false');
+  
+  // Set initial login state - only login page visible
+  setInitialLoginState();
+  
+  // Initialize users
+  Promise.all([
+    ensureAllUsers()
+  ]).then(() => {
+    console.log('window.onload: User system initialized');
+    // Handle auto-login after initialization
+    handleAutoLogin();
+  }).catch(error => {
+    console.error('window.onload: Error during initialization:', error);
+  });
+};
+
+// Mobile-specific initialization function
+window.initializeMobileApp = function() {
+  console.log('=== Initializing Mobile App ===');
+  
+  // Set initial state
+  setInitialLoginState();
+  
+  // Ensure toolbar toggle works properly
+  const toolbar = document.getElementById('functionToolbar');
+  const toggleIcon = document.getElementById('toolbarToggleIcon');
+  const toolbarHeader = document.querySelector('.toolbar-header');
+  
+  if (toolbar && toggleIcon && toolbarHeader) {
+    // Remove any existing event listeners by cloning
+    const newToggleIcon = toggleIcon.cloneNode(true);
+    const newToolbarHeader = toolbarHeader.cloneNode(true);
+    
+    toggleIcon.parentNode.replaceChild(newToggleIcon, toggleIcon);
+    toolbarHeader.parentNode.replaceChild(newToolbarHeader, toolbarHeader);
+    
+    // Add event listeners
+    newToggleIcon.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Toggle icon clicked');
+      window.toggleToolbar();
+    });
+    
+    newToolbarHeader.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Toolbar header clicked');
+      window.toggleToolbar();
+    });
+    
+    console.log('Mobile toolbar toggle functionality initialized');
+  }
+  
+  // Apply mobile button styles
+  const buttons = document.querySelectorAll('.toolbar-button');
+  buttons.forEach(button => {
+    button.style.width = '100%';
+    button.style.flexDirection = 'column';
+    button.style.alignItems = 'center';
+    button.style.justifyContent = 'center';
+    button.style.minHeight = '60px';
+    button.style.marginBottom = '4px';
+    button.style.fontSize = '0.75rem';
+    button.style.padding = '12px 8px';
+    button.style.borderRadius = '8px';
+  });
+  
+  console.log('Mobile app initialization complete');
+};
+
+// Call mobile initialization
 if (window.innerWidth <= 768) {
   setTimeout(() => {
-    window.createPermanentMobileToolbar();
+    initializeMobileApp();
   }, 500);
 }
+
+// Enhanced map initialization function for mobile
+window.initializeMapForMobile = function() {
+  console.log('=== Initializing Map for Mobile ===');
+  
+  const map = document.getElementById('map');
+  if (!map) {
+    console.error('Map container not found');
+    return;
+  }
+  
+  // Ensure map container is properly styled
+  map.style.display = 'block';
+  map.style.visibility = 'visible';
+  map.style.opacity = '1';
+  map.style.width = '100%';
+  map.style.height = '100vh';
+  map.style.position = 'absolute';
+  map.style.top = '0';
+  map.style.left = '0';
+  map.style.zIndex = '1';
+  
+  console.log('Map container styled for mobile');
+  
+  // Initialize map if not already done
+  if (!window.map) {
+    console.log('No existing map instance, initializing new map...');
+    if (typeof initMap === 'function') {
+      try {
+        initMap();
+        window.mobileAppState.mapLoaded = true;
+        console.log('Map initialized successfully');
+        
+        // Invalidate map size after initialization
+        setTimeout(() => {
+          if (window.map && typeof window.map.invalidateSize === 'function') {
+            window.map.invalidateSize();
+            console.log('Map size invalidated after initialization');
+          }
+        }, 300);
+      } catch (error) {
+        console.error('Error initializing map:', error);
+      }
+    } else {
+      console.error('initMap function not available');
+    }
+  } else {
+    console.log('Map instance already exists, invalidating size...');
+    if (typeof window.map.invalidateSize === 'function') {
+      window.map.invalidateSize();
+      console.log('Existing map size invalidated');
+    }
+  }
+};
+
+// Enhanced login success handler with better map handling
+window.handleSuccessfulLogin = function(userData) {
+  console.log('=== Handling Successful Login ===');
+  
+  // Update mobile app state
+  window.mobileAppState.isLoggedIn = true;
+  window.mobileAppState.isOnLoginPage = false;
+  window.mobileAppState.toolbarMinimized = true;
+  
+  // Hide login screen
+  const loginScreen = document.getElementById('loginScreen');
+  if (loginScreen) {
+    loginScreen.style.display = 'none';
+    loginScreen.style.visibility = 'hidden';
+    loginScreen.style.opacity = '0';
+    console.log('Login screen hidden');
+  }
+  
+  // Show toolbar in minimized state
+  const functionToolbar = document.getElementById('functionToolbar');
+  if (functionToolbar) {
+    // Reset toolbar state
+    functionToolbar.style.display = 'block';
+    functionToolbar.style.visibility = 'visible';
+    functionToolbar.style.opacity = '1';
+    functionToolbar.classList.remove('minimized');
+    
+    // Apply mobile toolbar styling - minimized
+    functionToolbar.style.cssText = `
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      background: white !important;
+      border-top: 2px solid #007bff !important;
+      z-index: 9999 !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      transform: translateY(calc(100% - 40px)) !important;
+      transition: transform 0.3s ease-in-out !important;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+    `;
+    
+    // Add minimized class
+    functionToolbar.classList.add('minimized');
+    
+    // Update toggle icon to show up arrow (minimized state)
+    const toggleIcon = document.getElementById('toolbarToggleIcon');
+    if (toggleIcon) {
+      toggleIcon.textContent = '▲';
+      toggleIcon.style.fontSize = '20px';
+      toggleIcon.style.fontWeight = 'bold';
+      toggleIcon.style.cursor = 'pointer';
+    }
+    
+    console.log('Toolbar shown in minimized state');
+  }
+  
+  // Update user info
+  if (userData) {
+    updateUserInfo(userData);
+    setupUIForRole(userData.role, userData.adminPrivileges);
+  }
+  
+  // Initialize map with enhanced handling
+  setTimeout(() => {
+    initializeMapForMobile();
+  }, 200);
+  
+  console.log('Successful login handled - map visible, toolbar minimized');
+};
 
 </script>
 
