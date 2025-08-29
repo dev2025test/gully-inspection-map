@@ -12943,6 +12943,38 @@ window.onload = () => {
         window.applyFullWidthButtonFix();
       }
     }, 1000);
+    
+    // Apply map display fix on page load
+    setTimeout(() => {
+      console.log('Applying map display fix on page load...');
+      // Check if user is logged in
+      const loginScreen = document.getElementById('loginScreen');
+      const functionToolbar = document.getElementById('functionToolbar');
+      
+      if (loginScreen && loginScreen.style.display === 'none' && 
+          functionToolbar && functionToolbar.style.display !== 'none') {
+        console.log('User appears to be logged in - applying map fix on page load');
+        
+        // Ensure map container is visible
+        const mapContainer = window.ensureMapContainer();
+        
+        // Force map initialization
+        setTimeout(() => {
+          if (typeof initMap === 'function') {
+            console.log('Initializing map on page load...');
+            initMap();
+            
+            // Invalidate map size after initialization
+            setTimeout(() => {
+              if (window.map && typeof window.map.invalidateSize === 'function') {
+                window.map.invalidateSize();
+                console.log('Map size invalidated on page load');
+              }
+            }, 300);
+          }
+        }, 500);
+      }
+    }, 1500);
   }).catch(error => {
     console.error('window.onload: Error during initialization:', error);
   });
@@ -13416,6 +13448,14 @@ window.initializeMapForMobile = function() {
               console.log('Map size invalidated after initialization');
             }
           }, 300);
+          
+          // Apply full width button fix after map initialization
+          setTimeout(() => {
+            console.log('Applying full width button fix after map initialization...');
+            if (typeof window.applyFullWidthButtonFix === 'function') {
+              window.applyFullWidthButtonFix();
+            }
+          }, 400);
         }, 100);
       } catch (error) {
         console.error('Error initializing map:', error);
