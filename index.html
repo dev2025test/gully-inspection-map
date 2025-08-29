@@ -10502,37 +10502,47 @@ if (forgotLink) {
       }, { passive: true });
       
       // Add click listener for desktop testing and mobile fallback
-      document.addEventListener('click', function(e) {
-        console.log('Click event detected');
-        const toolbar = document.getElementById('functionToolbar');
-        const showIndicator = document.getElementById('toolbarShowIndicator');
-        
-        // Check if we should show the toolbar
-        const shouldShow = (
-          // Force mobile mode and clicked outside toolbar
-          (window.forceMobileMode && !e.target.closest('#functionToolbar')) ||
-          // Clicked on show indicator
-          e.target.closest('#toolbarShowIndicator') ||
-          // Mobile device and toolbar is hidden
-          (deviceInfo.isMobile && toolbar && (
-            toolbar.style.transform === 'translateY(100vh)' || 
-            toolbar.style.transform === 'translateY(100%)' ||
-            toolbar.classList.contains('minimized')
-          ))
-        );
-        
-        if (shouldShow) {
-          console.log('Showing toolbar from click event');
-          toolbar.style.transform = 'translateY(0)';
-          toolbar.classList.remove('minimized');
-          
-          // Hide the show indicator
-          if (showIndicator) {
-            showIndicator.style.opacity = '0';
-            setTimeout(() => showIndicator.remove(), 300);
+      // Use a flag to prevent multiple executions
+      let clickHandlerAdded = false;
+      if (!clickHandlerAdded) {
+        document.addEventListener('click', function(e) {
+          // Only log once per click to reduce console spam
+          if (!this._lastClickTime || Date.now() - this._lastClickTime > 100) {
+            console.log('Click event detected');
+            this._lastClickTime = Date.now();
           }
-        }
-      });
+          
+          const toolbar = document.getElementById('functionToolbar');
+          const showIndicator = document.getElementById('toolbarShowIndicator');
+          
+          // Check if we should show the toolbar
+          const shouldShow = (
+            // Force mobile mode and clicked outside toolbar
+            (window.forceMobileMode && !e.target.closest('#functionToolbar')) ||
+            // Clicked on show indicator
+            e.target.closest('#toolbarShowIndicator') ||
+            // Mobile device and toolbar is hidden
+            (deviceInfo.isMobile && toolbar && (
+              toolbar.style.transform === 'translateY(100vh)' || 
+              toolbar.style.transform === 'translateY(100%)' ||
+              toolbar.classList.contains('minimized')
+            ))
+          );
+          
+          if (shouldShow) {
+            console.log('Showing toolbar from click event');
+            toolbar.style.transform = 'translateY(0)';
+            toolbar.classList.remove('minimized');
+            
+            // Hide the show indicator
+            if (showIndicator) {
+              showIndicator.style.opacity = '0';
+              setTimeout(() => showIndicator.remove(), 300);
+            }
+          }
+        });
+        clickHandlerAdded = true;
+      }
     }
     
     // Performance optimization for different devices
@@ -10682,6 +10692,61 @@ if (forgotLink) {
       console.log('Touch Support:', 'ontouchstart' in window || navigator.maxTouchPoints > 0);
       console.log('Max Touch Points:', navigator.maxTouchPoints);
       console.log('=== End Debug ===');
+    };
+    
+    // Function to clean up event listeners and fix toolbar issues
+    window.cleanupToolbarEvents = function() {
+      console.log('=== Cleaning up toolbar events ===');
+      
+      const toolbar = document.getElementById('functionToolbar');
+      const toggleIcon = document.getElementById('toolbarToggleIcon');
+      const toolbarHeader = document.querySelector('.toolbar-header');
+      
+      if (toolbar) {
+        console.log('Found toolbar, cleaning up...');
+        
+        // Clone elements to remove all event listeners
+        if (toggleIcon) {
+          const newToggleIcon = toggleIcon.cloneNode(true);
+          toggleIcon.parentNode.replaceChild(newToggleIcon, toggleIcon);
+          console.log('Toggle icon event listeners cleared');
+        }
+        
+        if (toolbarHeader) {
+          const newToolbarHeader = toolbarHeader.cloneNode(true);
+          toolbarHeader.parentNode.replaceChild(newToolbarHeader, toolbarHeader);
+          console.log('Toolbar header event listeners cleared');
+        }
+        
+        // Add single event listener to toggle icon
+        const newToggleIcon = document.getElementById('toolbarToggleIcon');
+        if (newToggleIcon) {
+          newToggleIcon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            console.log('Toggle icon clicked (cleaned up)');
+            if (typeof window.toggleToolbar === 'function') {
+              window.toggleToolbar();
+            }
+          });
+        }
+        
+        // Add single event listener to toolbar header
+        const newToolbarHeader = document.querySelector('.toolbar-header');
+        if (newToolbarHeader) {
+          newToolbarHeader.addEventListener('click', function(e) {
+            e.stopPropagation();
+            console.log('Toolbar header clicked (cleaned up)');
+            if (typeof window.toggleToolbar === 'function') {
+              window.toggleToolbar();
+            }
+          });
+        }
+        
+        console.log('Toolbar events cleaned up successfully');
+      } else {
+        console.log('Toolbar not found');
+      }
     };
     
     // Function to enable mobile mode for testing on desktop
@@ -11032,31 +11097,13 @@ if (forgotLink) {
       }
     };
     
-    // Mobile toolbar toggle function (like desktop version)
+    // Mobile toolbar toggle function - use the original toggleToolbar to avoid conflicts
     window.toggleMobileToolbar = function() {
       console.log('Toggling mobile toolbar...');
-      const toolbar = document.getElementById('functionToolbar');
-      const toggleIcon = document.getElementById('toolbarToggleIcon');
-      
-      if (toolbar && toggleIcon) {
-        // Toggle minimized state
-        const isMinimized = toolbar.classList.contains('minimized');
-        
-        if (isMinimized) {
-          // Show toolbar
-          toolbar.classList.remove('minimized');
-          toolbar.style.transform = 'translateY(0)';
-          toggleIcon.textContent = '▼';
-          console.log('Mobile toolbar shown');
-        } else {
-          // Hide toolbar
-          toolbar.classList.add('minimized');
-          toolbar.style.transform = 'translateY(calc(100% - 40px))';
-          toggleIcon.textContent = '▲';
-          console.log('Mobile toolbar hidden');
-        }
+      if (typeof window.toggleToolbar === 'function') {
+        window.toggleToolbar();
       } else {
-        console.log('Toolbar or toggle icon not found');
+        console.log('Original toggleToolbar function not found');
       }
     };
     
@@ -11093,54 +11140,34 @@ if (forgotLink) {
           toggleIcon.style.visibility = 'visible';
           toggleIcon.style.opacity = '1';
           
-          // Remove any existing event listeners
-          toggleIcon.onclick = null;
-          toggleIcon.ontouchstart = null;
+          // Remove any existing event listeners by cloning the element
+          const newToggleIcon = toggleIcon.cloneNode(true);
+          toggleIcon.parentNode.replaceChild(newToggleIcon, toggleIcon);
           
-          // Add multiple event listeners for mobile compatibility
-          toggleIcon.addEventListener('click', function(e) {
+          // Add single event listener for mobile compatibility
+          newToggleIcon.addEventListener('click', function(e) {
             e.stopPropagation();
             e.preventDefault();
             console.log('Toggle icon clicked');
-            toggleMobileToolbar();
-          });
-          
-          toggleIcon.addEventListener('touchstart', function(e) {
-            e.stopPropagation();
-            console.log('Toggle icon touchstart');
-          });
-          
-          toggleIcon.addEventListener('touchend', function(e) {
-            e.stopPropagation();
-            e.preventDefault();
-            console.log('Toggle icon touchend');
-            toggleMobileToolbar();
+            if (typeof window.toggleToolbar === 'function') {
+              window.toggleToolbar();
+            }
           });
           
           // Add click handler to toolbar header
           const toolbarHeader = toolbar.querySelector('.toolbar-header');
           if (toolbarHeader) {
-            // Remove existing event listeners
-            toolbarHeader.onclick = null;
-            toolbarHeader.ontouchstart = null;
+            // Remove existing event listeners by cloning the element
+            const newToolbarHeader = toolbarHeader.cloneNode(true);
+            toolbarHeader.parentNode.replaceChild(newToolbarHeader, toolbarHeader);
             
-            // Add new event listeners
-            toolbarHeader.addEventListener('click', function(e) {
+            // Add single event listener
+            newToolbarHeader.addEventListener('click', function(e) {
               e.stopPropagation();
               console.log('Toolbar header clicked');
-              toggleMobileToolbar();
-            });
-            
-            toolbarHeader.addEventListener('touchstart', function(e) {
-              e.stopPropagation();
-              console.log('Toolbar header touchstart');
-            });
-            
-            toolbarHeader.addEventListener('touchend', function(e) {
-              e.stopPropagation();
-              e.preventDefault();
-              console.log('Toolbar header touchend');
-              toggleMobileToolbar();
+              if (typeof window.toggleToolbar === 'function') {
+                window.toggleToolbar();
+              }
             });
           }
           
@@ -12416,35 +12443,28 @@ window.createPermanentMobileToolbar = function() {
   const toolbarContent = document.getElementById('toolbarContent');
   const toggleIcon = document.getElementById('toolbarToggleIcon');
   
-  let isToolbarVisible = true;
+  // Use the existing global toggleToolbar function to avoid conflicts
+  // Remove existing event listeners by cloning elements
+  const newToolbarHeader = toolbarHeader.cloneNode(true);
+  const newToggleIcon = toggleIcon.cloneNode(true);
+  toolbarHeader.parentNode.replaceChild(newToolbarHeader, toolbarHeader);
+  toggleIcon.parentNode.replaceChild(newToggleIcon, toggleIcon);
   
-  function toggleToolbar() {
-    if (isToolbarVisible) {
-      // Hide toolbar
-      toolbarContent.style.display = 'none';
-      toggleIcon.textContent = '▲';
-      isToolbarVisible = false;
-      console.log('Toolbar hidden');
-    } else {
-      // Show toolbar
-      toolbarContent.style.display = 'block';
-      toggleIcon.textContent = '▼';
-      isToolbarVisible = true;
-      console.log('Toolbar shown');
-    }
-  }
-  
-  // Add click handlers for toggle
-  toolbarHeader.addEventListener('click', function(e) {
+  // Add single click handler for toggle using the global function
+  newToolbarHeader.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    toggleToolbar();
+    if (typeof window.toggleToolbar === 'function') {
+      window.toggleToolbar();
+    }
   });
   
-  toggleIcon.addEventListener('click', function(e) {
+  newToggleIcon.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    toggleToolbar();
+    if (typeof window.toggleToolbar === 'function') {
+      window.toggleToolbar();
+    }
   });
   
   // 8. Add button functionality
