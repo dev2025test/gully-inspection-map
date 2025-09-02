@@ -2674,6 +2674,21 @@
     #loginScreen.login-background ~ .toggle-layers {
       display: none !important;
     }
+    
+    /* Ensure map is visible when login screen is hidden */
+    #loginScreen[style*="display: none"] ~ #map,
+    #loginScreen[style*="display:none"] ~ #map {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      min-height: 400px !important;
+      z-index: 1 !important;
+    }
   </style>
 </head>
 <body>
@@ -3351,10 +3366,15 @@ window.dataLayers = {
 function initMap() {
   console.log('initMap: --- Starting map initialization process ---');
   
+  // Use utility function to ensure map container is ready
+  if (!ensureMapContainerReady()) {
+    console.error('initMap: Map container not ready, cannot initialize map.');
+    throw new Error('Map container not ready');
+  }
+  
   const mapDiv = document.getElementById('map');
   console.log('initMap: Map div element:', mapDiv); // Should show the actual DOM element
-  // REMOVED: mapDiv.style.display = 'block'; // This is now handled in handleLoginSuccess
-  console.log('initMap: Map div display is managed by handleLoginSuccess.');
+  console.log('initMap: Map div validated and ready. Dimensions:', mapDiv.offsetWidth + 'x' + mapDiv.offsetHeight);
   
   // Check if map instance already exists to prevent re-initialization issues
   if (window.map instanceof L.Map) {
@@ -3600,6 +3620,42 @@ function updateUserInfo(userData) {
   }
 }
 
+// Utility function to ensure map container is ready
+function ensureMapContainerReady() {
+  const mapDiv = document.getElementById('map');
+  if (!mapDiv) {
+    console.error('ensureMapContainerReady: Map container not found!');
+    return false;
+  }
+  
+  // Ensure map container has proper dimensions and visibility
+  if (mapDiv.offsetWidth === 0 || mapDiv.offsetHeight === 0) {
+    console.log('ensureMapContainerReady: Map container has zero dimensions, applying styles...');
+    mapDiv.style.display = 'block';
+    mapDiv.style.visibility = 'visible';
+    mapDiv.style.opacity = '1';
+    mapDiv.style.position = 'absolute';
+    mapDiv.style.top = '0';
+    mapDiv.style.left = '0';
+    mapDiv.style.width = '100vw';
+    mapDiv.style.height = '100vh';
+    mapDiv.style.minHeight = '400px';
+    mapDiv.style.zIndex = '1';
+    
+    // Force reflow
+    void mapDiv.offsetWidth;
+    
+    // Check again after reflow
+    if (mapDiv.offsetWidth === 0 || mapDiv.offsetHeight === 0) {
+      console.error('ensureMapContainerReady: Map container still has zero dimensions after styling');
+      return false;
+    }
+  }
+  
+  console.log('ensureMapContainerReady: Map container is ready. Dimensions:', mapDiv.offsetWidth + 'x' + mapDiv.offsetHeight);
+  return true;
+}
+
 // Update the login success handler
 function handleLoginSuccess(userData) {
   console.log('handleLoginSuccess: Login successful, preparing map initialization...');
@@ -3620,10 +3676,14 @@ function handleLoginSuccess(userData) {
     }
   }
   
-  // Make map container visible immediately
+  // Make map container visible and ensure it's properly positioned
+  if (!ensureMapContainerReady()) {
+    console.error('handleLoginSuccess: Map container not ready, cannot proceed.');
+    return;
+  }
+  
   const mapDiv = document.getElementById('map');
-  mapDiv.style.display = 'block';
-  console.log('handleLoginSuccess: Map div display set to block.');
+  console.log('handleLoginSuccess: Map div display set to block and properly positioned.');
 
   // Force browser reflow to ensure map div has correct dimensions before initMap
   void mapDiv.offsetWidth; // Accessing offsetWidth forces reflow
@@ -3752,21 +3812,69 @@ function handleLoginSuccess(userData) {
   // Initialize map and load data after a short delay to ensure the map container is rendered
   setTimeout(() => {
     console.log('handleLoginSuccess: Inside setTimeout. Calling initMap...');
-    const currentMapDiv = document.getElementById('map');
-    console.log(`handleLoginSuccess: Map div dimensions before initMap: Width=${currentMapDiv.offsetWidth}, Height=${currentMapDiv.offsetHeight}`);
-    initMap();
-    // Load latest gully data from Firebase after map is ready
-    loadGullyData();
-    // Load audit history
-    loadAuditHistory();
-    // Load boundary data
-    loadCorkBoundaries().then(() => {
-      console.log('handleLoginSuccess: Boundaries loaded successfully');
-    }).catch((error) => {
-      console.error('handleLoginSuccess: Error loading boundaries:', error);
-    });
-    console.log('handleLoginSuccess: Map initialized, gully data loaded, audit history loaded, and boundaries loaded.');
-    console.log('handleLoginSuccess: Map initialized. Waiting for user to load data.');
+    
+    // Ensure map container is ready before initialization
+    if (!ensureMapContainerReady()) {
+      console.log('handleLoginSuccess: Map container not ready, retrying after longer delay...');
+      setTimeout(() => {
+        if (ensureMapContainerReady()) {
+          try {
+            initMap();
+            // Load latest gully data from Firebase after map is ready
+            loadGullyData();
+            // Load audit history
+            loadAuditHistory();
+            // Load boundary data
+            loadCorkBoundaries().then(() => {
+              console.log('handleLoginSuccess: Boundaries loaded successfully');
+            }).catch((error) => {
+              console.error('handleLoginSuccess: Error loading boundaries:', error);
+            });
+            console.log('handleLoginSuccess: Map initialized on retry, gully data loaded, audit history loaded, and boundaries loaded.');
+          } catch (error) {
+            console.error('handleLoginSuccess: Map initialization failed on retry:', error);
+          }
+        } else {
+          console.error('handleLoginSuccess: Map container still not ready after retry');
+        }
+      }, 1000);
+      return;
+    }
+    
+    try {
+      initMap();
+      // Load latest gully data from Firebase after map is ready
+      loadGullyData();
+      // Load audit history
+      loadAuditHistory();
+      // Load boundary data
+      loadCorkBoundaries().then(() => {
+        console.log('handleLoginSuccess: Boundaries loaded successfully');
+      }).catch((error) => {
+        console.error('handleLoginSuccess: Error loading boundaries:', error);
+      });
+      console.log('handleLoginSuccess: Map initialized, gully data loaded, audit history loaded, and boundaries loaded.');
+      console.log('handleLoginSuccess: Map initialized. Waiting for user to load data.');
+    } catch (error) {
+      console.error('handleLoginSuccess: Map initialization failed:', error);
+      // Final retry attempt
+      setTimeout(() => {
+        try {
+          if (ensureMapContainerReady()) {
+            initMap();
+            loadGullyData();
+            loadAuditHistory();
+            loadCorkBoundaries().then(() => {
+              console.log('handleLoginSuccess: Final retry successful');
+            }).catch((error) => {
+              console.error('handleLoginSuccess: Final retry failed for boundaries:', error);
+            });
+          }
+        } catch (finalError) {
+          console.error('handleLoginSuccess: Final retry failed:', finalError);
+        }
+      }, 2000);
+    }
   }, 500);
   // Start inactivity tracking
   setupInactivityTracking();
@@ -8916,6 +9024,28 @@ document.addEventListener('DOMContentLoaded', function() {
       return false;
     });
   }
+  
+  // Ensure map container is properly initialized
+  const mapDiv = document.getElementById('map');
+  if (mapDiv) {
+    // Set initial styles for map container
+    mapDiv.style.position = 'absolute';
+    mapDiv.style.top = '0';
+    mapDiv.style.left = '0';
+    mapDiv.style.width = '100vw';
+    mapDiv.style.height = '100vh';
+    mapDiv.style.minHeight = '400px';
+    mapDiv.style.zIndex = '1';
+    
+    // Initially hide map until login is successful
+    mapDiv.style.display = 'none';
+    mapDiv.style.visibility = 'hidden';
+    mapDiv.style.opacity = '0';
+    
+    console.log('DOMContentLoaded: Map container initialized with proper styles');
+  } else {
+    console.error('DOMContentLoaded: Map container not found!');
+  }
 });
 
 // Add after updateMarkerStatus or near other popup/inspection functions
@@ -10531,8 +10661,32 @@ if (forgotLink) {
       }, 5000); // Increased interval to reduce frequency
     });
     
-    // Export device info for debugging
-    window.deviceInfo = deviceInfo;
+      // Export device info for debugging
+  window.deviceInfo = deviceInfo;
+  
+  // Global error handler for map initialization
+  window.addEventListener('error', function(event) {
+    if (event.error && event.error.message && event.error.message.includes('Map container not found')) {
+      console.error('Global error handler: Map container error detected');
+      console.error('Error details:', event.error);
+      
+      // Try to recover by ensuring map container is ready
+      setTimeout(() => {
+        if (typeof ensureMapContainerReady === 'function') {
+          if (ensureMapContainerReady()) {
+            console.log('Global error handler: Map container recovered, retrying initialization');
+            try {
+              if (typeof initMap === 'function') {
+                initMap();
+              }
+            } catch (retryError) {
+              console.error('Global error handler: Retry failed:', retryError);
+            }
+          }
+        }
+      }, 1000);
+    }
+  });
     
     // Global function to test mobile functionality
     window.testMobileFunctionality = function() {
@@ -13355,6 +13509,19 @@ window.initializeMapForMobile = function() {
     // Insert map container into the body
     document.body.appendChild(map);
     console.log('Map container created and added to DOM');
+  } else {
+    // Ensure existing map container is properly styled and visible
+    map.style.display = 'block';
+    map.style.visibility = 'visible';
+    map.style.opacity = '1';
+    map.style.position = 'absolute';
+    map.style.top = '0';
+    map.style.left = '0';
+    map.style.width = '100vw';
+    map.style.height = '100vh';
+    map.style.minHeight = '400px';
+    map.style.zIndex = '1';
+    console.log('Existing map container styled and made visible');
   }
   
   // Ensure map container is properly styled and visible
@@ -13381,20 +13548,43 @@ window.initializeMapForMobile = function() {
       try {
         // Force a small delay to ensure DOM is ready
         setTimeout(() => {
-          initMap();
-          window.mobileAppState.mapLoaded = true;
-          console.log('Map initialized successfully');
-          
-          // Invalidate map size after initialization
-          setTimeout(() => {
-            if (window.map && typeof window.map.invalidateSize === 'function') {
-              window.map.invalidateSize();
-              console.log('Map size invalidated after initialization');
+          try {
+            // Validate map container before calling initMap
+            const currentMapDiv = document.getElementById('map');
+            if (!currentMapDiv) {
+              throw new Error('Map container not found during initialization');
             }
-          }, 300);
+            if (currentMapDiv.offsetWidth === 0 || currentMapDiv.offsetHeight === 0) {
+              throw new Error('Map container has zero dimensions during initialization');
+            }
+            
+            initMap();
+            window.mobileAppState.mapLoaded = true;
+            console.log('Map initialized successfully');
+            
+            // Invalidate map size after initialization
+            setTimeout(() => {
+              if (window.map && typeof window.map.invalidateSize === 'function') {
+                window.map.invalidateSize();
+                console.log('Map size invalidated after initialization');
+              }
+            }, 300);
+          } catch (initError) {
+            console.error('Error during map initialization:', initError);
+            // Retry after a longer delay
+            setTimeout(() => {
+              try {
+                initMap();
+                window.mobileAppState.mapLoaded = true;
+                console.log('Map initialized successfully on retry');
+              } catch (retryError) {
+                console.error('Map initialization failed on retry:', retryError);
+              }
+            }, 1000);
+          }
         }, 100);
       } catch (error) {
-        console.error('Error initializing map:', error);
+        console.error('Error setting up map initialization:', error);
       }
     } else {
       console.error('initMap function not available');
