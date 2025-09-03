@@ -3684,11 +3684,17 @@ function handleLoginSuccess(userData) {
   // Show toolbar only after login
   const functionToolbar = document.getElementById('functionToolbar');
   if (functionToolbar) {
-    // Hide toolbar initially on mobile
-    if (deviceInfo.isMobile) {
-      functionToolbar.style.display = 'none';
+    // Always show toolbar initially, then apply mobile optimizations
+    functionToolbar.style.display = 'block';
+    functionToolbar.style.visibility = 'visible';
+    functionToolbar.style.opacity = '1';
+    
+    // Apply mobile optimizations if needed
+    if (deviceInfo && deviceInfo.isMobile) {
+      console.log('Mobile device detected - applying mobile toolbar styling');
+      // Mobile styling will be applied in the setTimeout below
     } else {
-      functionToolbar.style.display = 'block';
+      console.log('Desktop device - showing full toolbar');
     }
   }
   
@@ -3711,29 +3717,33 @@ function handleLoginSuccess(userData) {
   console.log('handleLoginSuccess: Setting up UI for role:', userData.role);
   setupUIForRole(userData.role, userData.adminPrivileges);
   
-  // Apply mobile optimizations after toolbar is created
-  setTimeout(() => {
-    if (typeof updateMobileDetection === 'function') {
-      updateMobileDetection();
-    }
-    if (typeof optimizeForDevice === 'function') {
-      optimizeForDevice();
-    }
-    if (typeof enhanceButtonsForTouch === 'function') {
-      enhanceButtonsForTouch();
-    }
-    if (typeof optimizePerformance === 'function') {
-      optimizePerformance();
-    }
-    if (typeof enhanceAccessibility === 'function') {
-      enhanceAccessibility();
-    }
-    if (typeof setupMobileToolbar === 'function') {
-      setupMobileToolbar();
-    }
+      // Apply mobile optimizations after toolbar is created
+    setTimeout(() => {
+      // Always try to call these functions if they exist
+      if (typeof updateMobileDetection === 'function') {
+        updateMobileDetection();
+      }
+      if (typeof optimizeForDevice === 'function') {
+        optimizeForDevice();
+      }
+      if (typeof enhanceButtonsForTouch === 'function') {
+        enhanceButtonsForTouch();
+      }
+      if (typeof optimizePerformance === 'function') {
+        optimizePerformance();
+      }
+      if (typeof enhanceAccessibility === 'function') {
+        enhanceAccessibility();
+      }
+      if (typeof setupMobileToolbar === 'function') {
+        setupMobileToolbar();
+      }
     
     // Apply automatic fixes for mobile
-    if (deviceInfo.isMobile) {
+    // Check if we're on a mobile device by screen width
+    const isMobileDevice = window.innerWidth <= 768;
+    
+    if (isMobileDevice) {
       console.log('Mobile device detected - initializing mobile toolbar after login');
       
       // Show toolbar after login
@@ -3818,9 +3828,28 @@ function handleLoginSuccess(userData) {
       }
       
       console.log('Automatic mobile fixes applied');
+    } else {
+      // Desktop device - ensure toolbar is visible
+      console.log('Desktop device detected - showing full toolbar');
+      const functionToolbar = document.getElementById('functionToolbar');
+      if (functionToolbar) {
+        functionToolbar.style.display = 'block';
+        functionToolbar.style.visibility = 'visible';
+        functionToolbar.style.opacity = '1';
+        functionToolbar.classList.remove('minimized');
+        functionToolbar.style.position = 'fixed';
+        functionToolbar.style.bottom = '0';
+        functionToolbar.style.left = '0';
+        functionToolbar.style.right = '0';
+        functionToolbar.style.width = '100%';
+        functionToolbar.style.background = 'white';
+        functionToolbar.style.borderTop = '2px solid #007bff';
+        functionToolbar.style.zIndex = '9999';
+        console.log('Desktop toolbar shown');
+      }
     }
     
-    console.log('handleLoginSuccess: Mobile optimizations applied');
+    console.log('handleLoginSuccess: Device optimizations applied');
   }, 100);
   
   console.log('handleLoginSuccess: Reached point before setTimeout.'); // New diagnostic log
