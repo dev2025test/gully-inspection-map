@@ -6084,18 +6084,20 @@ function showGullyFilterPopup() {
   container.id = 'gullyFilterPopupContainer';
   container.style.cssText = `
     position: fixed;
-    top: 15%;
+    top: 10%;
     left: 50%;
     transform: translateX(-50%);
     width: 90%;
     max-width: 400px;
+    max-height: 75vh;
     background: white;
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.15);
     border: 1px solid #e0e0e0;
     z-index: 3001;
     font-family: 'Segoe UI', Arial, sans-serif;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   `;
 
   container.innerHTML = `
@@ -6108,35 +6110,35 @@ function showGullyFilterPopup() {
         <i class="bi bi-x-lg"></i>
       </button>
     </div>
-    <div style="padding: 20px;">
-      <div style="margin-bottom: 16px;">
-        <label style="display: block; margin-bottom: 12px; font-weight: 600; color: #2c3e50;">Select gully status to filter:</label>
-        <div style="display: grid; gap: 8px;">
-          <button onclick="filterGulliesByStatus('All')" class="filter-btn" style="background: #6c757d; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+    <div style="padding: 20px; max-height: 60vh; overflow-y: auto;">
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 16px; font-weight: 600; color: #2c3e50; font-size: 15px;">Select gully status to filter:</label>
+        <div style="display: grid; gap: 10px;">
+          <button onclick="filterGulliesByStatus('All')" class="filter-btn" style="background: #6c757d; color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; min-height: 48px;">
             <span><i class="bi bi-eye-fill" style="margin-right: 8px;"></i>Show All Gullies</span>
             <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">All</span>
           </button>
-          <button onclick="filterGulliesByStatus('Clear')" class="filter-btn" style="background: #4CAF50; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+          <button onclick="filterGulliesByStatus('Clear')" class="filter-btn" style="background: #4CAF50; color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; min-height: 48px;">
             <span><i class="bi bi-check-circle-fill" style="margin-right: 8px;"></i>Clear Gullies</span>
             <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">0</span>
           </button>
-          <button onclick="filterGulliesByStatus('Blocked')" class="filter-btn" style="background: #FF9800; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+          <button onclick="filterGulliesByStatus('Blocked')" class="filter-btn" style="background: #FF9800; color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; min-height: 48px;">
             <span><i class="bi bi-exclamation-triangle-fill" style="margin-right: 8px;"></i>Blocked Gullies</span>
             <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">0</span>
           </button>
-          <button onclick="filterGulliesByStatus('Broken')" class="filter-btn" style="background: #f44336; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+          <button onclick="filterGulliesByStatus('Broken')" class="filter-btn" style="background: #f44336; color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; min-height: 48px;">
             <span><i class="bi bi-x-circle-fill" style="margin-right: 8px;"></i>Broken Gullies</span>
             <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">0</span>
           </button>
-          <button onclick="filterGulliesByStatus('Remediation')" class="filter-btn" style="background: #9C27B0; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+          <button onclick="filterGulliesByStatus('Remediation')" class="filter-btn" style="background: #9C27B0; color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; min-height: 48px;">
             <span><i class="bi bi-tools" style="margin-right: 8px;"></i>Remediation Gullies</span>
             <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">0</span>
           </button>
-          <button onclick="filterGulliesByStatus('Replacement')" class="filter-btn" style="background: #795548; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+          <button onclick="filterGulliesByStatus('Replacement')" class="filter-btn" style="background: #795548; color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; min-height: 48px;">
             <span><i class="bi bi-arrow-repeat" style="margin-right: 8px;"></i>Replacement Gullies</span>
             <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">0</span>
           </button>
-          <button onclick="filterGulliesByStatus('Unmarked')" class="filter-btn" style="background: #9E9E9E; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+          <button onclick="filterGulliesByStatus('Unmarked')" class="filter-btn" style="background: #9E9E9E; color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; min-height: 48px;">
             <span><i class="bi bi-question-circle-fill" style="margin-right: 8px;"></i>Unmarked Gullies</span>
             <span class="count-badge" style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">0</span>
           </button>
@@ -6148,11 +6150,11 @@ function showGullyFilterPopup() {
         <div id="currentFilterStatus" style="color: #6c757d; font-size: 0.9rem;">No filter applied</div>
       </div>
       
-      <div style="margin-top: 16px; display: flex; gap: 8px;">
-        <button onclick="clearGullyFilter()" style="flex: 1; padding: 10px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e0e0e0; display: flex; gap: 8px;">
+        <button onclick="clearGullyFilter()" style="flex: 1; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">
           <i class="bi bi-x-circle" style="margin-right: 6px;"></i>Clear Filter
         </button>
-        <button onclick="document.getElementById('gullyFilterPopupContainer').remove()" style="flex: 1; padding: 10px; background: #2196F3; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+        <button onclick="document.getElementById('gullyFilterPopupContainer').remove()" style="flex: 1; padding: 12px; background: #2196F3; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">
           <i class="bi bi-check" style="margin-right: 6px;"></i>Close
         </button>
       </div>
@@ -6160,6 +6162,19 @@ function showGullyFilterPopup() {
   `;
 
   document.body.appendChild(container);
+  
+  // Add CSS for filter button hover effects
+  const style = document.createElement('style');
+  style.textContent = `
+    .filter-btn:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+    }
+    .filter-btn:active {
+      transform: translateY(0) !important;
+    }
+  `;
+  document.head.appendChild(style);
   
   // Optimize popup for device
   if (typeof positionPopupOptimally === 'function') {
@@ -10476,24 +10491,30 @@ if (forgotLink) {
         popupElement.style.width = '95vw';
         popupElement.style.maxWidth = '95vw';
         popupElement.style.left = '2.5vw';
-        popupElement.style.top = '15%';
+        popupElement.style.top = '10%';
         popupElement.style.transform = 'none';
+        popupElement.style.maxHeight = '75vh';
+        popupElement.style.overflowY = 'auto';
         
       } else if (deviceInfo.isTablet) {
         // Tablet: position higher up with reasonable max width
         popupElement.style.width = '90vw';
         popupElement.style.maxWidth = '600px';
         popupElement.style.left = '50%';
-        popupElement.style.top = '15%';
+        popupElement.style.top = '10%';
         popupElement.style.transform = 'translateX(-50%)';
+        popupElement.style.maxHeight = '75vh';
+        popupElement.style.overflowY = 'auto';
         
       } else {
         // Desktop: position higher up with larger max width
         popupElement.style.width = '80vw';
         popupElement.style.maxWidth = '800px';
         popupElement.style.left = '50%';
-        popupElement.style.top = '15%';
+        popupElement.style.top = '10%';
         popupElement.style.transform = 'translateX(-50%)';
+        popupElement.style.maxHeight = '75vh';
+        popupElement.style.overflowY = 'auto';
       }
     }
     
