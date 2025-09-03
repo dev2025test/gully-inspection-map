@@ -2108,6 +2108,56 @@
         font-size: 1rem !important;
         margin: 0 !important;
       }
+      
+      /* Override Bootstrap button classes for mobile full-width */
+      .toolbar-button.btn,
+      .toolbar-button.btn-secondary,
+      .toolbar-button.d-inline-flex {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 0 8px 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      
+      /* Enhanced mobile styles for better touch experience */
+      @media (max-width: 480px) {
+        .toolbar-button {
+          min-height: 90px !important;
+          padding: 20px 16px !important;
+          font-size: 1rem !important;
+          margin-bottom: 12px !important;
+          border-radius: 16px !important;
+          border-width: 3px !important;
+          /* Ensure full width on small screens */
+          width: 100vw !important;
+          max-width: 100vw !important;
+          margin-left: calc(-50vw + 50%) !important;
+          margin-right: calc(-50vw + 50%) !important;
+        }
+        
+        .button-group {
+          padding: 0 16px !important;
+          gap: 12px !important;
+          width: 100% !important;
+        }
+        
+        .toolbar-content {
+          padding: 16px 0 !important;
+          width: 100% !important;
+        }
+      }
+      
+      /* Ensure buttons are full-width on all mobile orientations */
+      @media (max-width: 768px) and (orientation: landscape) {
+        .toolbar-button {
+          min-height: 70px !important;
+          padding: 14px 10px !important;
+          width: 100% !important;
+        }
+      }
     }
     
     /* ===== LAYER CONTROL - CHECKBOX ONLY ===== */
