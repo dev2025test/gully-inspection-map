@@ -6084,9 +6084,9 @@ function showGullyFilterPopup() {
   container.id = 'gullyFilterPopupContainer';
   container.style.cssText = `
     position: fixed;
-    top: 50%;
+    top: 15%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     width: 90%;
     max-width: 400px;
     background: white;
@@ -10472,28 +10472,28 @@ if (forgotLink) {
       const popupRect = popupElement.getBoundingClientRect();
       
       if (deviceInfo.isMobile) {
-        // Mobile: center and make full width with margins
+        // Mobile: position higher up and make full width with margins
         popupElement.style.width = '95vw';
         popupElement.style.maxWidth = '95vw';
         popupElement.style.left = '2.5vw';
-        popupElement.style.top = '50%';
-        popupElement.style.transform = 'translateY(-50%)';
+        popupElement.style.top = '15%';
+        popupElement.style.transform = 'none';
         
       } else if (deviceInfo.isTablet) {
-        // Tablet: center with reasonable max width
+        // Tablet: position higher up with reasonable max width
         popupElement.style.width = '90vw';
         popupElement.style.maxWidth = '600px';
         popupElement.style.left = '50%';
-        popupElement.style.top = '50%';
-        popupElement.style.transform = 'translate(-50%, -50%)';
+        popupElement.style.top = '15%';
+        popupElement.style.transform = 'translateX(-50%)';
         
       } else {
-        // Desktop: center with larger max width
+        // Desktop: position higher up with larger max width
         popupElement.style.width = '80vw';
         popupElement.style.maxWidth = '800px';
         popupElement.style.left = '50%';
-        popupElement.style.top = '50%';
-        popupElement.style.transform = 'translate(-50%, -50%)';
+        popupElement.style.top = '15%';
+        popupElement.style.transform = 'translateX(-50%)';
       }
     }
     
