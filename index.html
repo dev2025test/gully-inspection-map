@@ -8788,14 +8788,40 @@ function showUserManagement() {
   container.appendChild(content);
   document.body.appendChild(container);
 
-  // Fetch user data from Firebase
+  // Get user config from the page for primary user data
+  const userConfig = window.USER_CONFIG || {};
+  const configUsers = userConfig.users || [];
+  
+  console.log('showUserManagement: Config users:', configUsers);
+  
+  // Try to fetch additional user data from Firebase Realtime Database (if it exists)
+  // Note: Firebase Auth users cannot be listed from client-side due to security restrictions
   db.ref('users').once('value').then(snapshot => {
-    const users = snapshot.val() || {};
-    console.log('showUserManagement: Fetched users:', users);
-
-    // Get user config from the page for additional details
-    const userConfig = window.USER_CONFIG || {};
-    const configUsers = userConfig.users || [];
+    const dbUsers = snapshot.val() || {};
+    console.log('showUserManagement: Database users:', dbUsers);
+    
+    // Create a comprehensive list of all users from USER_CONFIG
+    const allUsers = [];
+    
+    // Process each user from USER_CONFIG
+    configUsers.forEach((configUser, index) => {
+      // Check if user exists in Firebase Auth by trying to find them in the database
+      const dbUser = Object.values(dbUsers).find(u => u.email === configUser.email);
+      
+      allUsers.push({
+        uid: dbUser ? Object.keys(dbUsers).find(key => dbUsers[key].email === configUser.email) : 'CONFIG_' + Math.random().toString(36).substr(2, 9),
+        source: dbUser ? 'firebase' : 'config',
+        ...configUser,
+        // Merge with database data if available
+        ...(dbUser && { 
+          emailVerified: dbUser.emailVerified || false,
+          lastLoginAt: dbUser.lastLoginAt || null,
+          metadata: dbUser.metadata || null
+        })
+      });
+    });
+    
+    console.log('showUserManagement: All users (Config + Firebase DB):', allUsers);
 
     let html = `
       <div style="margin-bottom: 20px;">
@@ -8805,7 +8831,7 @@ function showUserManagement() {
         </h4>
         <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; border-left: 4px solid #6c757d;">
           <div style="font-weight: 600; color: #2c3e50; margin-bottom: 8px;">Total Users: ${allUsers.length}</div>
-          <div style="color: #6c757d; font-size: 0.9rem;">Showing all users from Firebase (${Object.keys(users).length}) and System Configuration (${configUsers.length})</div>
+          <div style="color: #6c757d; font-size: 0.9rem;">Showing all configured users from USER_CONFIG with Firebase integration status</div>
         </div>
       </div>
     `;
@@ -8825,32 +8851,57 @@ function showUserManagement() {
           <tbody>
     `;
 
-    // Create a comprehensive list of all users from both Firebase and USER_CONFIG
-    const allUsers = [];
+    // Call the display function
+    displayUsers(allUsers, dbUsers, configUsers);
+
+  }).catch(error => {
+    console.error('showUserManagement: Error fetching Firebase database users:', error);
     
-    // Add Firebase users
-    Object.entries(users).forEach(([uid, user]) => {
-      allUsers.push({
-        uid: uid,
-        source: 'firebase',
-        ...user
-      });
-    });
+    // Even if Firebase database fails, we can still show users from USER_CONFIG
+    console.log('showUserManagement: Falling back to USER_CONFIG only');
     
-    // Add USER_CONFIG users that aren't in Firebase
-    configUsers.forEach(configUser => {
-      const existingUser = allUsers.find(u => u.email === configUser.email);
-      if (!existingUser) {
-        allUsers.push({
-          uid: 'CONFIG_' + Math.random().toString(36).substr(2, 9),
-          source: 'config',
-          ...configUser
-        });
-      }
-    });
+    const allUsers = configUsers.map((configUser, index) => ({
+      uid: 'CONFIG_' + Math.random().toString(36).substr(2, 9),
+      source: 'config',
+      ...configUser
+    }));
     
-    console.log('showUserManagement: All users (Firebase + Config):', allUsers);
+    console.log('showUserManagement: Using config users only:', allUsers);
     
+    // Continue with the display logic using config users only
+    displayUsers(allUsers, {}, configUsers);
+  });
+  
+  // Helper function to display users
+  function displayUsers(allUsers, dbUsers, configUsers) {
+    let html = `
+      <div style="margin-bottom: 20px;">
+        <h4 style="color: #2c3e50; margin-bottom: 16px; font-weight: 600;">
+          <i class="bi bi-info-circle" style="margin-right: 8px;"></i>
+          System Users Overview
+        </h4>
+        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; border-left: 4px solid #6c757d;">
+          <div style="font-weight: 600; color: #2c3e50; margin-bottom: 8px;">Total Users: ${allUsers.length}</div>
+          <div style="color: #6c757d; font-size: 0.9rem;">Showing all configured users from USER_CONFIG with Firebase integration status</div>
+        </div>
+      </div>
+    `;
+
+    // Create comprehensive user table
+    html += `
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <thead>
+            <tr style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white;">
+              <th style="padding: 16px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">User Details</th>
+              <th style="padding: 16px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">Role & Status</th>
+              <th style="padding: 16px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">Credentials & Permissions</th>
+              <th style="padding: 16px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">Admin Rights</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
     // Process each user
     allUsers.forEach((user, index) => {
       const isAdmin = user.role === 'admin' || user.isAdmin;
@@ -8944,7 +8995,8 @@ function showUserManagement() {
                     <i class="bi bi-check" style="margin-right: 6px; color: #28a745;"></i>
                     Data Management
                   </div>
-                  <div style="margin-right: 6px; color: #28a745;"></i>
+                  <div style="margin-bottom: 4px;">
+                    <i class="bi bi-check" style="margin-right: 6px; color: #28a745;"></i>
                     System Settings
                   </div>
                   <div style="margin-bottom: 4px;">
@@ -8985,26 +9037,26 @@ function showUserManagement() {
         </div>
         <div style="color: #6c757d; font-size: 0.9rem; line-height: 1.5;">
           • Total system users: <strong>${allUsers.length}</strong><br>
-          • Firebase users: <strong>${Object.keys(users).length}</strong><br>
-          • Config users: <strong>${configUsers.length}</strong><br>
+          • Firebase integrated: <strong>${allUsers.filter(u => u.source === 'firebase').length}</strong><br>
+          • Config only: <strong>${allUsers.filter(u => u.source === 'config').length}</strong><br>
           • Administrators: <strong>${allUsers.filter(u => u.role === 'admin' || u.isAdmin).length}</strong><br>
           • Standard users: <strong>${allUsers.filter(u => u.role !== 'admin' && !u.isAdmin).length}</strong><br>
           • Last updated: <strong>${new Date().toLocaleString()}</strong>
         </div>
       </div>
       
-      ${configUsers.length > Object.keys(users).length ? `
+      ${allUsers.filter(u => u.source === 'config').length > 0 ? `
         <div style="margin-top: 16px; padding: 16px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
           <div style="font-weight: 600; color: #856404; margin-bottom: 8px;">
             <i class="bi bi-exclamation-triangle" style="margin-right: 6px;"></i>
-            Action Required
+            Firebase Integration Required
           </div>
           <div style="color: #856404; font-size: 0.9rem; line-height: 1.5; margin-bottom: 12px;">
-            Some users are configured in the system but not yet created in Firebase. These users cannot log in until they are properly set up.
+            Some users are configured in the system but not yet integrated with Firebase. These users may have limited functionality.
           </div>
           <button onclick="setupMissingUsers()" class="btn btn-warning btn-sm">
             <i class="bi bi-tools" style="margin-right: 6px;"></i>
-            Setup Missing Users
+            Setup Firebase Integration
           </button>
         </div>
       ` : ''}
@@ -9022,20 +9074,7 @@ function showUserManagement() {
     if (typeof enhanceFormForMobile === 'function') {
       enhanceFormForMobile(container);
     }
-
-  }).catch(error => {
-    console.error('showUserManagement: Error fetching users:', error);
-    content.innerHTML = `
-      <div style="text-align: center; padding: 40px; color: #dc3545;">
-        <i class="bi bi-exclamation-triangle" style="font-size: 3rem; margin-bottom: 16px;"></i>
-        <h4>Error Loading Users</h4>
-        <p style="color: #6c757d;">Failed to load user data. Please try again.</p>
-        <button onclick="showUserManagement()" class="btn btn-primary" style="margin-top: 16px;">
-          <i class="bi bi-arrow-clockwise" style="margin-right: 6px;"></i>Retry
-        </button>
-      </div>
-    `;
-  });
+  }
 }
 
 // Function to setup missing users in Firebase
