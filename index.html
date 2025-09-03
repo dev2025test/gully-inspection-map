@@ -8789,10 +8789,43 @@ function showUserManagement() {
   document.body.appendChild(container);
 
   // Get user config from the page for primary user data
-  const userConfig = window.USER_CONFIG || {};
+  if (typeof USER_CONFIG === 'undefined') {
+    console.error('showUserManagement: USER_CONFIG is not defined!');
+    content.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #dc3545;">
+        <i class="bi bi-exclamation-triangle" style="font-size: 3rem; margin-bottom: 16px;"></i>
+        <h4>Configuration Error</h4>
+        <p style="color: #6c757d;">USER_CONFIG is not available. Please refresh the page.</p>
+        <button onclick="showUserManagement()" class="btn btn-primary" style="margin-top: 16px;">
+          <i class="bi bi-arrow-clockwise" style="margin-right: 6px;"></i>Retry
+        </button>
+      </div>
+    `;
+    return;
+  }
+  
+  const userConfig = USER_CONFIG || {};
   const configUsers = userConfig.users || [];
   
-  console.log('showUserManagement: Config users:', configUsers);
+  console.log('showUserManagement: USER_CONFIG object:', USER_CONFIG);
+  console.log('showUserManagement: userConfig variable:', userConfig);
+  console.log('showUserManagement: configUsers array:', configUsers);
+  console.log('showUserManagement: configUsers length:', configUsers ? configUsers.length : 'undefined');
+  
+  if (!configUsers || configUsers.length === 0) {
+    console.error('showUserManagement: No users found in config!');
+    content.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #dc3545;">
+        <i class="bi bi-exclamation-triangle" style="font-size: 3rem; margin-bottom: 16px;"></i>
+        <h4>No Users Found</h4>
+        <p style="color: #6c757d;">No users are configured in USER_CONFIG. Please check the configuration.</p>
+        <button onclick="showUserManagement()" class="btn btn-primary" style="margin-top: 16px;">
+          <i class="bi bi-arrow-clockwise" style="margin-right: 6px;"></i>Retry
+        </button>
+      </div>
+    `;
+    return;
+  }
   
   // Try to fetch additional user data from Firebase Realtime Database (if it exists)
   // Note: Firebase Auth users cannot be listed from client-side due to security restrictions
@@ -9089,7 +9122,7 @@ function setupMissingUsers() {
   // Get current Firebase users
   db.ref('users').once('value').then(snapshot => {
     const firebaseUsers = snapshot.val() || {};
-    const configUsers = window.USER_CONFIG?.users || [];
+    const configUsers = USER_CONFIG?.users || [];
     
     // Find users that are in config but not in Firebase
     const missingUsers = configUsers.filter(configUser => 
