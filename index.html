@@ -8710,44 +8710,269 @@ function saveGullyData() {
   });
 }
 
-// 2. User management modal
+// 2. User management modal - Enhanced with comprehensive user details
 function showUserManagement() {
+  console.log('showUserManagement: Opening user management popup...');
+  
   if (!auth.currentUser) {
     alert('Only administrators can view users');
     return;
   }
+
+  // Remove any existing user management popup
+  const existingPopup = document.getElementById('userManagementPopupContainer');
+  if (existingPopup) {
+    existingPopup.remove();
+  }
+
+  // Create user management popup container
+  const container = document.createElement('div');
+  container.id = 'userManagementPopupContainer';
+  container.style.cssText = `
+    position: fixed;
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 800px;
+    max-height: 75vh;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    border: 1px solid #e0e0e0;
+    z-index: 3001;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow: hidden;
+  `;
+
+  // Create header
+  const header = document.createElement('div');
+  header.style.cssText = `
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 12px 12px 0 0;
+  `;
+  header.innerHTML = `
+    <div style="display: flex; align-items: center;">
+      <i class="bi bi-people-fill" style="font-size: 1.2rem; margin-right: 12px;"></i>
+      <span style="font-size: 1.1rem; font-weight: 600;">User Management & Credentials</span>
+    </div>
+    <button onclick="document.getElementById('userManagementPopupContainer').remove()" style="background: none; border: none; color: white; font-size: 1.1rem; cursor: pointer;">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  `;
+
+  // Create content area
+  const content = document.createElement('div');
+  content.style.cssText = `
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+  `;
+
+  // Add loading message
+  content.innerHTML = `
+    <div style="text-align: center; padding: 40px;">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p style="margin-top: 16px; color: #6c757d;">Loading user data...</p>
+    </div>
+  `;
+
+  container.appendChild(header);
+  container.appendChild(content);
+  document.body.appendChild(container);
+
+  // Fetch user data from Firebase
   db.ref('users').once('value').then(snapshot => {
     const users = snapshot.val() || {};
-    let html = `<div style="max-height:60vh;overflow:auto;">
-      <h3>User Management</h3>
-      <table class='table table-striped table-bordered'>
-        <tr><th>User</th><th>Role</th></tr>`;
-    Object.values(users).forEach(user => {
-      html += `<tr><td>${user.name ? user.name + ' ' : ''}(${user.email || ''})</td><td>${user.role || ''}</td></tr>`;
+    console.log('showUserManagement: Fetched users:', users);
+
+    // Get user config from the page for additional details
+    const userConfig = window.USER_CONFIG || {};
+    const configUsers = userConfig.users || [];
+
+    let html = `
+      <div style="margin-bottom: 20px;">
+        <h4 style="color: #2c3e50; margin-bottom: 16px; font-weight: 600;">
+          <i class="bi bi-info-circle" style="margin-right: 8px;"></i>
+          System Users Overview
+        </h4>
+        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; border-left: 4px solid #6c757d;">
+          <div style="font-weight: 600; color: #2c3e50; margin-bottom: 8px;">Total Users: ${Object.keys(users).length}</div>
+          <div style="color: #6c757d; font-size: 0.9rem;">Showing all registered users with their current credentials and permissions</div>
+        </div>
+      </div>
+    `;
+
+    // Create comprehensive user table
+    html += `
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <thead>
+            <tr style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white;">
+              <th style="padding: 16px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">User Details</th>
+              <th style="padding: 16px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">Role & Status</th>
+              <th style="padding: 16px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">Credentials & Permissions</th>
+              <th style="padding: 16px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">Admin Rights</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    // Process each user
+    Object.entries(users).forEach(([uid, user], index) => {
+      // Find matching user in config for additional details
+      const configUser = configUsers.find(cu => cu.email === user.email);
+      
+      const isAdmin = user.role === 'admin' || user.isAdmin;
+      const adminClass = isAdmin ? 'admin-user' : 'regular-user';
+      const statusColor = isAdmin ? '#dc3545' : '#28a745';
+      const statusText = isAdmin ? 'Administrator' : 'Standard User';
+      
+      html += `
+        <tr style="border-bottom: 1px solid #dee2e6; ${index % 2 === 0 ? 'background: #f8f9fa;' : 'background: white;'}">
+          <td style="padding: 16px 12px; vertical-align: top;">
+            <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">
+              <i class="bi bi-person-circle" style="margin-right: 8px; color: ${statusColor};"></i>
+              ${user.name || 'N/A'}
+            </div>
+            <div style="color: #6c757d; font-size: 0.9rem; margin-bottom: 4px;">
+              <i class="bi bi-envelope" style="margin-right: 6px;"></i>
+              ${user.email || 'N/A'}
+            </div>
+            <div style="color: #6c757d; font-size: 0.8rem;">
+              <i class="bi bi-key" style="margin-right: 6px;"></i>
+              UID: ${uid.substring(0, 8)}...
+            </div>
+          </td>
+          <td style="padding: 16px 12px; vertical-align: top;">
+            <div style="margin-bottom: 8px;">
+              <span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">
+                ${statusText}
+              </span>
+            </div>
+            <div style="color: #6c757d; font-size: 0.9rem;">
+              <i class="bi bi-shield-check" style="margin-right: 6px;"></i>
+              Role: ${user.role || 'N/A'}
+            </div>
+            ${user.initials ? `
+              <div style="color: #6c757d; font-size: 0.9rem;">
+                <i class="bi bi-person-badge" style="margin-right: 6px;"></i>
+                Initials: ${user.initials}
+              </div>
+            ` : ''}
+          </td>
+          <td style="padding: 16px 12px; vertical-align: top;">
+            <div style="margin-bottom: 8px;">
+              <div style="color: #6c757d; font-size: 0.9rem; margin-bottom: 4px;">
+                <i class="bi bi-check-circle" style="margin-right: 6px; color: #28a745;"></i>
+                Email Verified: ${user.emailVerified ? 'Yes' : 'No'}
+              </div>
+              <div style="color: #6c757d; font-size: 0.9rem; margin-bottom: 4px;">
+                <i class="bi bi-clock" style="margin-right: 6px; color: #ffc107;"></i>
+                Last Login: ${user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
+              </div>
+              <div style="color: #6c757d; font-size: 0.9rem;">
+                <i class="bi bi-calendar" style="margin-right: 6px; color: #17a2b8;"></i>
+                Created: ${user.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A'}
+              </div>
+            </div>
+          </td>
+          <td style="padding: 16px 12px; vertical-align: top;">
+            ${isAdmin ? `
+              <div style="color: #dc3545; font-weight: 600; margin-bottom: 8px;">
+                <i class="bi bi-shield-fill" style="margin-right: 6px;"></i>
+                FULL ADMIN ACCESS
+              </div>
+              ${user.adminPrivileges ? `
+                <div style="font-size: 0.9rem; color: #6c757d;">
+                  <div style="margin-bottom: 4px;">
+                    <i class="bi bi-check" style="margin-right: 6px; color: #28a745;"></i>
+                    User Management
+                  </div>
+                  <div style="margin-bottom: 4px;">
+                    <i class="bi bi-check" style="margin-right: 6px; color: #28a745;"></i>
+                    Data Management
+                  </div>
+                  <div style="margin-right: 6px; color: #28a745;"></i>
+                    System Settings
+                  </div>
+                  <div style="margin-bottom: 4px;">
+                    <i class="bi bi-check" style="margin-right: 6px; color: #28a745;"></i>
+                    Audit Access
+                  </div>
+                </div>
+              ` : `
+                <div style="font-size: 0.9rem; color: #6c757d;">
+                  <i class="bi bi-exclamation-triangle" style="margin-right: 6px; color: #ffc107;"></i>
+                  Standard admin role
+                </div>
+              `}
+            ` : `
+              <div style="color: #6c757d; font-size: 0.9rem;">
+                <i class="bi bi-lock" style="margin-right: 6px;"></i>
+                Limited access only
+              </div>
+              <div style="color: #6c757d; font-size: 0.9rem; margin-top: 4px;">
+                <i class="bi bi-eye" style="margin-right: 6px;"></i>
+                View gully data
+              </div>
+            `}
+          </td>
+        </tr>
+      `;
     });
-    html += '</table>';
-    html += `<div class='text-end mt-3'><button class='btn btn-secondary' onclick='closeModal()'>Close</button></div></div>`;
 
-    // Create backdrop
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop-custom';
-    backdrop.onclick = function(e) {
-      if (e.target === backdrop) backdrop.remove();
-    };
+    html += `
+          </tbody>
+        </table>
+      </div>
+      
+      <div style="margin-top: 20px; padding: 16px; background: #e9ecef; border-radius: 8px; border-left: 4px solid #6c757d;">
+        <div style="font-weight: 600; color: #2c3e50; margin-bottom: 8px;">
+          <i class="bi bi-info-circle" style="margin-right: 6px;"></i>
+          System Information
+        </div>
+        <div style="color: #6c757d; font-size: 0.9rem; line-height: 1.5;">
+          • Total registered users: <strong>${Object.keys(users).length}</strong><br>
+          • Administrators: <strong>${Object.values(users).filter(u => u.role === 'admin' || u.isAdmin).length}</strong><br>
+          • Standard users: <strong>${Object.values(users).filter(u => u.role !== 'admin' && !u.isAdmin).length}</strong><br>
+          • Last updated: <strong>${new Date().toLocaleString()}</strong>
+        </div>
+      </div>
+    `;
 
-    // Create modal
-    const modal = document.createElement('div');
-    modal.className = 'user-management-modal card shadow p-4';
-    modal.innerHTML = html;
-    modal.style.maxWidth = '98vw';
-    modal.style.maxHeight = '90vh';
-    modal.style.overflow = 'auto';
+    // Update content
+    content.innerHTML = html;
 
-    backdrop.appendChild(modal);
-    document.body.appendChild(backdrop);
+    // Optimize popup for device
+    if (typeof positionPopupOptimally === 'function') {
+      positionPopupOptimally(container);
+    }
 
-    // Close helper
-    window.closeModal = () => backdrop.remove();
+    // Enhance for mobile
+    if (typeof enhanceFormForMobile === 'function') {
+      enhanceFormForMobile(container);
+    }
+
+  }).catch(error => {
+    console.error('showUserManagement: Error fetching users:', error);
+    content.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #dc3545;">
+        <i class="bi bi-exclamation-triangle" style="font-size: 3rem; margin-bottom: 16px;"></i>
+        <h4>Error Loading Users</h4>
+        <p style="color: #6c757d;">Failed to load user data. Please try again.</p>
+        <button onclick="showUserManagement()" class="btn btn-primary" style="margin-top: 16px;">
+          <i class="bi bi-arrow-clockwise" style="margin-right: 6px;"></i>Retry
+        </button>
+      </div>
+    `;
   });
 }
 
