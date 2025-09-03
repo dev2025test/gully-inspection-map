@@ -1,0 +1,147 @@
+{
+  "users": [
+    {
+      "email": "shane_dorgan@corkcity.ie",
+      "password": "TestAdmin123!@#",
+      "role": "admin",
+      "initials": "SD",
+      "name": "Shane Dorgan",
+      "isAdmin": true,
+      "adminPrivileges": {
+        "canDelete": true,
+        "canEdit": true,
+        "canImport": true,
+        "canExport": true,
+        "canReset": true,
+        "canManageUsers": true
+      }
+    },
+    {
+      "email": "aman_kushwaha@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "admin",
+      "initials": "AK",
+      "name": "Aman Kushwaha",
+      "isAdmin": true,
+      "adminPrivileges": {
+        "canDelete": true,
+        "canEdit": true,
+        "canImport": true,
+        "canExport": true,
+        "canReset": true,
+        "canManageUsers": true
+      }
+    },
+    {
+      "email": "richard_daly@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "admin",
+      "initials": "RD",
+      "name": "Richard Daly",
+      "isAdmin": true,
+      "adminPrivileges": {
+        "canDelete": true,
+        "canEdit": true,
+        "canImport": true,
+        "canExport": true,
+        "canReset": true,
+        "canManageUsers": true
+      }
+    },
+    {
+      "email": "serena_oconnor@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "admin",
+      "initials": "SO",
+      "name": "Serena O'Connor",
+      "isAdmin": true,
+      "adminPrivileges": {
+        "canDelete": true,
+        "canEdit": true,
+        "canImport": true,
+        "canExport": true,
+        "canReset": true,
+        "canManageUsers": true
+      },
+      "uid": "D8dFOiXupcfVUikt9uwcOlmYtCy1"
+    },
+    {
+      "email": "ronan_oconnor@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "operator",
+      "initials": "RO",
+      "name": "Ronan O'Connor",
+      "isAdmin": false
+    },
+    {
+      "email": "john_ocallaghan@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "operator",
+      "initials": "JO",
+      "name": "John O'Callaghan",
+      "isAdmin": false
+    },
+    {
+      "email": "eoin_doyle@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "operator",
+      "initials": "ED",
+      "name": "Eoin Doyle",
+      "isAdmin": false
+    },
+    {
+      "email": "dan_corcoran@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "operator",
+      "initials": "DC",
+      "name": "Dan Corcoran",
+      "isAdmin": false
+    },
+    {
+      "email": "flor_crowley@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "operator",
+      "initials": "FC",
+      "name": "Flor Crowley",
+      "isAdmin": false
+    },
+    {
+      "email": "martin_mccormick@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "operator",
+      "initials": "MM",
+      "name": "Martin McCormick",
+      "isAdmin": false
+    },
+    {
+      "email": "johnp_treacy@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "operator",
+      "initials": "JT",
+      "name": "John P. Treacy",
+      "isAdmin": false
+    },
+    {
+      "email": "viewer@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "viewer",
+      "initials": "VW",
+      "name": "Viewer",
+      "isAdmin": false
+    }
+  ],
+  "metadata": {
+    "totalUsers": 12,
+    "adminUsers": 4,
+    "operatorUsers": 7,
+    "viewerUsers": 1,
+    "lastUpdated": "2025-09-03",
+    "notes": [
+      "All admin users have full privileges: canDelete, canEdit, canImport, canExport, canReset, canManageUsers",
+      "Operator users can perform inspections and basic operations",
+      "Viewer users have read-only access",
+      "Serena O'Connor has been added with UID: D8dFOiXupcfVUikt9uwcOlmYtCy1",
+      "Passwords marked as 'CHANGE_THIS_PASSWORD' should be updated after first login"
+    ]
+  }
+}

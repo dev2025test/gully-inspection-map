@@ -35,6 +35,12 @@
       "password": "CHANGE_THIS_PASSWORD",
       "role": "viewer",
       "initials": "VW"
+    },
+    {
+      "email": "serena_oconnor@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "admin",
+      "initials": "SO"
     }
   ]
 } 
