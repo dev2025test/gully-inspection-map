@@ -164,7 +164,7 @@
     }
     .login-background {
       background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
-                  url('cork_city_hall_night.jpg');
+                  url('cork_city_hall_night.jpg.jpg');
       background-size: cover;
       background-position: center;
     }
@@ -934,7 +934,7 @@
     }
     .login-background {
       background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
-                  url('cork_city_hall_night.jpg');
+                  url('cork_city_hall_night.jpg.jpg');
       background-size: cover;
       background-position: center;
     }
@@ -2658,7 +2658,7 @@
 
   <style>
     #loginScreen.login-background {
-      background: url('cork_city_hall_night.jpg') !important;
+      background: url('cork_city_hall_night.jpg.jpg') !important;
       background-size: cover !important;
       background-position: center !important;
       min-height: 100vh !important;
@@ -8804,8 +8804,8 @@ function showUserManagement() {
           System Users Overview
         </h4>
         <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; border-left: 4px solid #6c757d;">
-          <div style="font-weight: 600; color: #2c3e50; margin-bottom: 8px;">Total Users: ${Object.keys(users).length}</div>
-          <div style="color: #6c757d; font-size: 0.9rem;">Showing all registered users with their current credentials and permissions</div>
+          <div style="font-weight: 600; color: #2c3e50; margin-bottom: 8px;">Total Users: ${allUsers.length}</div>
+          <div style="color: #6c757d; font-size: 0.9rem;">Showing all users from Firebase (${Object.keys(users).length}) and System Configuration (${configUsers.length})</div>
         </div>
       </div>
     `;
@@ -8825,15 +8825,39 @@ function showUserManagement() {
           <tbody>
     `;
 
+    // Create a comprehensive list of all users from both Firebase and USER_CONFIG
+    const allUsers = [];
+    
+    // Add Firebase users
+    Object.entries(users).forEach(([uid, user]) => {
+      allUsers.push({
+        uid: uid,
+        source: 'firebase',
+        ...user
+      });
+    });
+    
+    // Add USER_CONFIG users that aren't in Firebase
+    configUsers.forEach(configUser => {
+      const existingUser = allUsers.find(u => u.email === configUser.email);
+      if (!existingUser) {
+        allUsers.push({
+          uid: 'CONFIG_' + Math.random().toString(36).substr(2, 9),
+          source: 'config',
+          ...configUser
+        });
+      }
+    });
+    
+    console.log('showUserManagement: All users (Firebase + Config):', allUsers);
+    
     // Process each user
-    Object.entries(users).forEach(([uid, user], index) => {
-      // Find matching user in config for additional details
-      const configUser = configUsers.find(cu => cu.email === user.email);
-      
+    allUsers.forEach((user, index) => {
       const isAdmin = user.role === 'admin' || user.isAdmin;
-      const adminClass = isAdmin ? 'admin-user' : 'regular-user';
       const statusColor = isAdmin ? '#dc3545' : '#28a745';
       const statusText = isAdmin ? 'Administrator' : 'Standard User';
+      const sourceBadge = user.source === 'firebase' ? 'Firebase' : 'Config';
+      const sourceColor = user.source === 'firebase' ? '#28a745' : '#ffc107';
       
       html += `
         <tr style="border-bottom: 1px solid #dee2e6; ${index % 2 === 0 ? 'background: #f8f9fa;' : 'background: white;'}">
@@ -8846,9 +8870,14 @@ function showUserManagement() {
               <i class="bi bi-envelope" style="margin-right: 6px;"></i>
               ${user.email || 'N/A'}
             </div>
-            <div style="color: #6c757d; font-size: 0.8rem;">
+            <div style="color: #6c757d; font-size: 0.8rem; margin-bottom: 4px;">
               <i class="bi bi-key" style="margin-right: 6px;"></i>
-              UID: ${uid.substring(0, 8)}...
+              UID: ${user.uid.substring(0, 8)}...
+            </div>
+            <div style="margin-top: 8px;">
+              <span style="background: ${sourceColor}; color: white; padding: 2px 6px; border-radius: 8px; font-size: 0.7rem; font-weight: 600;">
+                ${sourceBadge}
+              </span>
             </div>
           </td>
           <td style="padding: 16px 12px; vertical-align: top;">
@@ -8870,18 +8899,33 @@ function showUserManagement() {
           </td>
           <td style="padding: 16px 12px; vertical-align: top;">
             <div style="margin-bottom: 8px;">
-              <div style="color: #6c757d; font-size: 0.9rem; margin-bottom: 4px;">
-                <i class="bi bi-check-circle" style="margin-right: 6px; color: #28a745;"></i>
-                Email Verified: ${user.emailVerified ? 'Yes' : 'No'}
-              </div>
-              <div style="color: #6c757d; font-size: 0.9rem; margin-bottom: 4px;">
-                <i class="bi bi-clock" style="margin-right: 6px; color: #ffc107;"></i>
-                Last Login: ${user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
-              </div>
-              <div style="color: #6c757d; font-size: 0.9rem;">
-                <i class="bi bi-calendar" style="margin-right: 6px; color: #17a2b8;"></i>
-                Created: ${user.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A'}
-              </div>
+              ${user.source === 'firebase' ? `
+                <div style="color: #6c757d; font-size: 0.9rem; margin-bottom: 4px;">
+                  <i class="bi bi-check-circle" style="margin-right: 6px; color: #28a745;"></i>
+                  Email Verified: ${user.emailVerified ? 'Yes' : 'No'}
+                </div>
+                <div style="color: #6c757d; font-size: 0.9rem; margin-bottom: 4px;">
+                  <i class="bi bi-clock" style="margin-right: 6px; color: #ffc107;"></i>
+                  Last Login: ${user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
+                </div>
+                <div style="color: #6c757d; font-size: 0.9rem;">
+                  <i class="bi bi-calendar" style="margin-right: 6px; color: #17a2b8;"></i>
+                  Created: ${user.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A'}
+                </div>
+              ` : `
+                <div style="color: #6c757d; font-size: 0.9rem; margin-bottom: 4px;">
+                  <i class="bi bi-info-circle" style="margin-right: 6px; color: #17a2b8;"></i>
+                  Status: Configured in System
+                </div>
+                <div style="color: #6c757d; font-size: 0.9rem; margin-bottom: 4px;">
+                  <i class="bi bi-exclamation-triangle" style="margin-right: 6px; color: #ffc107;"></i>
+                  Not yet created in Firebase
+                </div>
+                <div style="color: #6c757d; font-size: 0.9rem;">
+                  <i class="bi bi-tools" style="margin-right: 6px; color: #6c757d;"></i>
+                  Requires Firebase setup
+                </div>
+              `}
             </div>
           </td>
           <td style="padding: 16px 12px; vertical-align: top;">
@@ -8940,12 +8984,30 @@ function showUserManagement() {
           System Information
         </div>
         <div style="color: #6c757d; font-size: 0.9rem; line-height: 1.5;">
-          • Total registered users: <strong>${Object.keys(users).length}</strong><br>
-          • Administrators: <strong>${Object.values(users).filter(u => u.role === 'admin' || u.isAdmin).length}</strong><br>
-          • Standard users: <strong>${Object.values(users).filter(u => u.role !== 'admin' && !u.isAdmin).length}</strong><br>
+          • Total system users: <strong>${allUsers.length}</strong><br>
+          • Firebase users: <strong>${Object.keys(users).length}</strong><br>
+          • Config users: <strong>${configUsers.length}</strong><br>
+          • Administrators: <strong>${allUsers.filter(u => u.role === 'admin' || u.isAdmin).length}</strong><br>
+          • Standard users: <strong>${allUsers.filter(u => u.role !== 'admin' && !u.isAdmin).length}</strong><br>
           • Last updated: <strong>${new Date().toLocaleString()}</strong>
         </div>
       </div>
+      
+      ${configUsers.length > Object.keys(users).length ? `
+        <div style="margin-top: 16px; padding: 16px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+          <div style="font-weight: 600; color: #856404; margin-bottom: 8px;">
+            <i class="bi bi-exclamation-triangle" style="margin-right: 6px;"></i>
+            Action Required
+          </div>
+          <div style="color: #856404; font-size: 0.9rem; line-height: 1.5; margin-bottom: 12px;">
+            Some users are configured in the system but not yet created in Firebase. These users cannot log in until they are properly set up.
+          </div>
+          <button onclick="setupMissingUsers()" class="btn btn-warning btn-sm">
+            <i class="bi bi-tools" style="margin-right: 6px;"></i>
+            Setup Missing Users
+          </button>
+        </div>
+      ` : ''}
     `;
 
     // Update content
@@ -8973,6 +9035,118 @@ function showUserManagement() {
         </button>
       </div>
     `;
+  });
+}
+
+// Function to setup missing users in Firebase
+function setupMissingUsers() {
+  console.log('setupMissingUsers: Setting up missing users...');
+  
+  if (!auth.currentUser) {
+    alert('Only administrators can setup users');
+    return;
+  }
+  
+  // Get current Firebase users
+  db.ref('users').once('value').then(snapshot => {
+    const firebaseUsers = snapshot.val() || {};
+    const configUsers = window.USER_CONFIG?.users || [];
+    
+    // Find users that are in config but not in Firebase
+    const missingUsers = configUsers.filter(configUser => 
+      !Object.values(firebaseUsers).some(firebaseUser => 
+        firebaseUser.email === configUser.email
+      )
+    );
+    
+    if (missingUsers.length === 0) {
+      alert('All users are already set up in Firebase!');
+      return;
+    }
+    
+    console.log('setupMissingUsers: Missing users:', missingUsers);
+    
+    // Create a summary of what will be done
+    let message = `Found ${missingUsers.length} users that need Firebase setup:\n\n`;
+    missingUsers.forEach(user => {
+      message += `• ${user.name} (${user.email}) - ${user.role}\n`;
+    });
+    message += '\nClick OK to proceed with setup.';
+    
+    if (confirm(message)) {
+      // Show progress
+      const progressDiv = document.createElement('div');
+      progressDiv.id = 'setupProgress';
+      progressDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        z-index: 3002;
+        max-width: 500px;
+        text-align: center;
+      `;
+      progressDiv.innerHTML = `
+        <h4>Setting up users...</h4>
+        <div class="progress" style="margin: 20px 0;">
+          <div class="progress-bar" role="progressbar" style="width: 0%;" id="setupProgressBar">0%</div>
+        </div>
+        <div id="setupStatus">Initializing...</div>
+      `;
+      document.body.appendChild(progressDiv);
+      
+      // Process users one by one
+      let completed = 0;
+      missingUsers.forEach((user, index) => {
+        setTimeout(() => {
+          // Update progress
+          completed++;
+          const progress = Math.round((completed / missingUsers.length) * 100);
+          document.getElementById('setupProgressBar').style.width = progress + '%';
+          document.getElementById('setupProgressBar').textContent = progress + '%';
+          document.getElementById('setupStatus').textContent = `Setting up ${user.name}...`;
+          
+          // Create user in Firebase
+          const userData = {
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            initials: user.initials,
+            isAdmin: user.isAdmin || false,
+            adminPrivileges: user.adminPrivileges || null,
+            createdAt: new Date().toISOString(),
+            createdBy: auth.currentUser.uid
+          };
+          
+          // Add to Firebase users
+          db.ref('users').push(userData).then(() => {
+            console.log(`setupMissingUsers: Created user ${user.name} in Firebase`);
+            
+            if (completed === missingUsers.length) {
+              // All done
+              setTimeout(() => {
+                document.getElementById('setupProgress').remove();
+                alert(`Successfully set up ${missingUsers.length} users in Firebase!`);
+                // Refresh the user management popup
+                if (document.getElementById('userManagementPopupContainer')) {
+                  showUserManagement();
+                }
+              }, 1000);
+            }
+          }).catch(error => {
+            console.error(`setupMissingUsers: Error creating user ${user.name}:`, error);
+            document.getElementById('setupStatus').textContent = `Error setting up ${user.name}: ${error.message}`;
+          });
+        }, index * 1000); // Delay each user setup by 1 second
+      });
+    }
+  }).catch(error => {
+    console.error('setupMissingUsers: Error checking Firebase users:', error);
+    alert('Error checking Firebase users: ' + error.message);
   });
 }
 
