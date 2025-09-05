@@ -60,11 +60,11 @@
       },
       "audit_log": {
         ".read": "auth != null",
-        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'operator')"
+        ".write": "auth != null"
       },
       "user_logs": {
         ".read": "auth != null",
-        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'operator')"
+        ".write": "auth != null"
       },
       "gully_history": {
         ".read": "auth != null",

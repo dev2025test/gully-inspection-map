@@ -3040,7 +3040,7 @@ function validateAndNormalizeEmail(email) {
     } else if (['richard_daly@corkcity.ie','richard.daly@corkcity.ie','richarddaly@corkcity.ie'].some(variant => email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
       adminUser = USER_CONFIG.users[2];
     } else if (['serena_oconnor@corkcity.ie','serena.oconnor@corkcity.ie','serena_o_connor@corkcity.ie','serena.o.connor@corkcity.ie','serenaoconnor@corkcity.ie'].some(variant => email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
-      adminUser = USER_CONFIG.users[4];
+      adminUser = USER_CONFIG.users[9];
     }
     return {
       isValid: true,
@@ -7426,6 +7426,20 @@ async function loadAuditHistory() {
     console.log(`loadAuditHistory: Loaded ${auditLog.length} audit entries from Firebase`);
   } catch (error) {
     console.error('loadAuditHistory: Error loading audit history:', error);
+    
+    // If permission denied, initialize empty audit log and show warning
+    if (error.code === 'PERMISSION_DENIED' || error.message.includes('permission_denied')) {
+      console.warn('loadAuditHistory: Permission denied - initializing empty audit log');
+      auditLog = [];
+      
+      // Show a subtle notification to the user
+      if (window.currentUserData && window.currentUserData.role === 'admin') {
+        console.warn('loadAuditHistory: Admin user cannot access audit logs - check Firebase security rules');
+      }
+    } else {
+      // For other errors, still initialize empty array
+      auditLog = [];
+    }
   }
 }
 
