@@ -475,14 +475,14 @@
         left: 50%;
         transform: translate(-50%, -50%);
         background: white;
-        padding: 16px;
+        padding: 20px;
         border-radius: 12px;
         box-shadow: 0 8px 32px rgba(0,0,0,0.15);
         z-index: 2000;
-        width: 90%;
-        max-width: 1200px;
-        height: 90vh;
-        overflow: hidden;
+        width: 95%;
+        max-width: 1400px;
+        max-height: 90vh;
+        overflow-y: auto;
         border: 1px solid #e0e0e0;
         display: flex;
         flex-direction: column;
@@ -508,11 +508,11 @@
 
     .status-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
         margin-top: 8px;
         flex: 1;
-        overflow: hidden;
+        overflow: visible;
     }
 
     .status-item {
@@ -567,6 +567,13 @@
     }
     
     /* Responsive adjustments for summary popup */
+    @media (max-width: 1200px) {
+        .status-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+    }
+    
     @media (max-width: 768px) {
         .summary-popup {
             width: 95%;
@@ -575,7 +582,7 @@
         }
         
         .status-grid {
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 8px;
         }
         
@@ -1246,14 +1253,14 @@
         left: 50%;
         transform: translate(-50%, -50%);
         background: white;
-        padding: 16px;
+        padding: 20px;
         border-radius: 12px;
         box-shadow: 0 8px 32px rgba(0,0,0,0.15);
         z-index: 2000;
-        width: 90%;
-        max-width: 1200px;
-        height: 90vh;
-        overflow: hidden;
+        width: 95%;
+        max-width: 1400px;
+        max-height: 90vh;
+        overflow-y: auto;
         border: 1px solid #e0e0e0;
         display: flex;
         flex-direction: column;
@@ -1279,11 +1286,11 @@
 
     .status-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
         margin-top: 8px;
         flex: 1;
-        overflow: hidden;
+        overflow: visible;
     }
 
     .status-item {
@@ -1338,6 +1345,13 @@
     }
     
     /* Responsive adjustments for summary popup */
+    @media (max-width: 1200px) {
+        .status-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+    }
+    
     @media (max-width: 768px) {
         .summary-popup {
             width: 95%;
@@ -1346,7 +1360,7 @@
         }
         
         .status-grid {
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 8px;
         }
         
@@ -1581,20 +1595,17 @@
   </style>
   <style>
     /* Responsive improvements for summary popup on desktop/laptop */
-    @media (min-width: 900px) {
+    @media (min-width: 1200px) {
       .summary-popup {
-        max-width: 900px !important;
+        max-width: 1400px !important;
       }
       .summary-content {
-        display: flex !important;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 24px;
+        display: block !important;
       }
       .status-card {
-        min-width: 220px;
-        max-width: 260px;
-        flex: 1 1 220px;
+        min-width: auto;
+        max-width: none;
+        flex: none;
       }
     }
   </style>
@@ -5498,27 +5509,9 @@ function showSummaryPopup() {
     </div>
     
     <div class="summary-content">
-      <div class="d-flex gap-2 mb-2">
+      <div class="d-flex gap-2 mb-3">
         <button class="btn btn-primary flex-fill py-2" onclick="filterFromSummary('All')">
           <i class="bi bi-eye-fill me-2"></i> Show All Gully Layer Assets
-        </button>
-        <button class="btn btn-outline-secondary flex-fill py-2" onclick="refreshSummaryData()">
-          <i class="bi bi-arrow-clockwise me-2"></i> Refresh
-        </button>
-        <button class="btn btn-outline-warning flex-fill py-2" onclick="addTestGullyData()">
-          <i class="bi bi-plus-circle me-2"></i> Test Data
-        </button>
-        <button class="btn btn-outline-info flex-fill py-2" onclick="debugGullyData(); showSummaryPopup();">
-          <i class="bi bi-bug me-2"></i> Debug Data
-        </button>
-        <button class="btn btn-outline-success flex-fill py-2" onclick="validateGullyOnlySummary();">
-          <i class="bi bi-check-circle me-2"></i> Validate Assets
-        </button>
-        <button class="btn btn-outline-danger flex-fill py-2" onclick="cleanGullyData(); showSummaryPopup();">
-          <i class="bi bi-trash me-2"></i> Clean Data
-        </button>
-        <button class="btn btn-outline-warning flex-fill py-2" onclick="testFirebaseStorage();">
-          <i class="bi bi-cloud-upload me-2"></i> Test Storage
         </button>
       </div>
       
