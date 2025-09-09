@@ -37,16 +37,28 @@
       "initials": "VW"
     },
     {
-      "email": "serena_oconnor@corkcity.ie",
-      "password": "Corkcity2025!!",
-      "role": "admin",
-      "initials": "SO"
-    },
-    {
       "email": "nicola_celino@corkcity.ie",
       "password": "CHANGE_THIS_PASSWORD",
       "role": "operator",
       "initials": "NC"
+    },
+    {
+      "email": "placeholder8@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "viewer",
+      "initials": "P8"
+    },
+    {
+      "email": "placeholder9@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "viewer",
+      "initials": "P9"
+    },
+    {
+      "email": "serena_oconnor@corkcity.ie",
+      "password": "Corkcity2025!!",
+      "role": "admin",
+      "initials": "SO"
     }
   ]
 } 
