@@ -1,0 +1,55 @@
+{
+  "success": [
+    {
+      "email": "shane_dorgan@corkcity.ie",
+      "uid": "6iFNPATrL2OvD175JEuOSgfEH6j1",
+      "role": "admin"
+    },
+    {
+      "email": "aman_kushwaha@corkcity.ie",
+      "uid": "gPfA27cb3iaqIQE47XuucLHspA42",
+      "role": "admin"
+    },
+    {
+      "email": "richard_daly@corkcity.ie",
+      "uid": "rMmmUdzs0hX3qUJOkH0bqbTh5B72",
+      "role": "operator"
+    },
+    {
+      "email": "john_ocallaghan@corkcity.ie",
+      "uid": "Byi3gFSG3pfXOIevNbyntvd7ySE3",
+      "role": "operator"
+    },
+    {
+      "email": "ronan_oconnor@corkcity.ie",
+      "uid": "16GUuMdolTQeRgy7qNhVz3ICI7g2",
+      "role": "operator"
+    },
+    {
+      "email": "viewer@corkcity.ie",
+      "uid": "9Dqw5bZu2hVvHtVTJkLiuncsSiT2",
+      "role": "viewer"
+    },
+    {
+      "email": "nicola_celino@corkcity.ie",
+      "uid": "dlgKruH9GoYxZEyWr7T0lTtBzyp2",
+      "role": "operator"
+    },
+    {
+      "email": "placeholder8@corkcity.ie",
+      "uid": "uPkubrtWrvhNgXNM5l0arw1HdAy2",
+      "role": "viewer"
+    },
+    {
+      "email": "placeholder9@corkcity.ie",
+      "uid": "NYjC6xwG2zZDgUZV3FEGnF3TkEt2",
+      "role": "viewer"
+    },
+    {
+      "email": "serena_oconnor@corkcity.ie",
+      "uid": "LrM7kjNJWiWQiINxoaSEehuZHp32",
+      "role": "admin"
+    }
+  ],
+  "failures": []
+}
