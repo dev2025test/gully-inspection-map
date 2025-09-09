@@ -38,9 +38,15 @@
     },
     {
       "email": "serena_oconnor@corkcity.ie",
-      "password": "CHANGE_THIS_PASSWORD",
+      "password": "Corkcity2025!!",
       "role": "admin",
       "initials": "SO"
+    },
+    {
+      "email": "nicola_celino@corkcity.ie",
+      "password": "CHANGE_THIS_PASSWORD",
+      "role": "operator",
+      "initials": "NC"
     }
   ]
 } 
