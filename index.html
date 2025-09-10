@@ -2979,7 +2979,7 @@ const USER_CONFIG = {
       name: 'Serena O\'Connor',
       initials: 'SO',
       isAdmin: true,
-      uid: 'D8dFOiXupcfVUikt9uwcOlmYtCy1',
+      uid: 'LrM7kjNJWiWQiINxoaSEehuZHp32',
       adminPrivileges: {
         canDelete: true,
         canEdit: true,
@@ -3018,7 +3018,11 @@ function validateAndNormalizeEmail(email) {
     'serena.oconnor@corkcity.ie',
     'serena_o_connor@corkcity.ie',
     'serena.o.connor@corkcity.ie',
-    'serenaoconnor@corkcity.ie'
+    'serenaoconnor@corkcity.ie',
+    'serena-0c0nnor@corkcity.ie',
+    'serena.0c0nnor@corkcity.ie',
+    'serena_0c0nnor@corkcity.ie',
+    'serena0c0nnor@corkcity.ie'
   ];
   
   // Operator email variations
@@ -3043,14 +3047,14 @@ function validateAndNormalizeEmail(email) {
   
   // Check admin variations
   if (adminVariations.some(variant => 
-    email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+    email.replace(/[._-]/g, '').toLowerCase() === variant.replace(/[._-]/g, '').toLowerCase())) {
     // Determine which admin user
     let adminUser = USER_CONFIG.users[0];
     if (['aman_kushwaha@corkcity.ie','aman.kushwaha@corkcity.ie','nan_kushwaha@corkcity.ie','nan.kushwaha@corkcity.ie','aman_kushawaha@corkcity.ie','aman.kushawaha@corkcity.ie','amankushwaha@corkcity.ie','nankushwaha@corkcity.ie'].some(variant => email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
       adminUser = USER_CONFIG.users[1];
     } else if (['richard_daly@corkcity.ie','richard.daly@corkcity.ie','richarddaly@corkcity.ie'].some(variant => email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
       adminUser = USER_CONFIG.users[2];
-    } else if (['serena_oconnor@corkcity.ie','serena.oconnor@corkcity.ie','serena_o_connor@corkcity.ie','serena.o.connor@corkcity.ie','serenaoconnor@corkcity.ie'].some(variant => email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
+    } else if (['serena_oconnor@corkcity.ie','serena.oconnor@corkcity.ie','serena_o_connor@corkcity.ie','serena.o.connor@corkcity.ie','serenaoconnor@corkcity.ie','serena-0c0nnor@corkcity.ie','serena.0c0nnor@corkcity.ie','serena_0c0nnor@corkcity.ie','serena0c0nnor@corkcity.ie'].some(variant => email.replace(/[._-]/g, '').toLowerCase() === variant.replace(/[._-]/g, '').toLowerCase())) {
       adminUser = USER_CONFIG.users[9];
     }
     return {
