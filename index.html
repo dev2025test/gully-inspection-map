@@ -3055,7 +3055,7 @@ function validateAndNormalizeEmail(email) {
     } else if (['richard_daly@corkcity.ie','richard.daly@corkcity.ie','richarddaly@corkcity.ie'].some(variant => email.replace(/[._]/g, '').toLowerCase() === variant.replace(/[._]/g, '').toLowerCase())) {
       adminUser = USER_CONFIG.users[2];
     } else if (['serena_oconnor@corkcity.ie','serena.oconnor@corkcity.ie','serena_o_connor@corkcity.ie','serena.o.connor@corkcity.ie','serenaoconnor@corkcity.ie','serena-0c0nnor@corkcity.ie','serena.0c0nnor@corkcity.ie','serena_0c0nnor@corkcity.ie','serena0c0nnor@corkcity.ie'].some(variant => email.replace(/[._-]/g, '').toLowerCase() === variant.replace(/[._-]/g, '').toLowerCase())) {
-      adminUser = USER_CONFIG.users[9];
+      adminUser = USER_CONFIG.users[10];
     }
     return {
       isValid: true,
@@ -3250,6 +3250,8 @@ window.login = function login(isAutoLogin = false) {
     }
     
     console.log('login: Firebase auth is available, proceeding with sign in...');
+    console.log('login: Using normalized email:', validation.normalizedEmail);
+    console.log('login: Using password:', password);
 
     auth.signInWithEmailAndPassword(validation.normalizedEmail, password)
     .then(async userCredential => {
@@ -3307,6 +3309,11 @@ window.login = function login(isAutoLogin = false) {
     })
     .catch(error => {
       console.error('Login error:', error);
+      console.error('Login error code:', error.code);
+      console.error('Login error message:', error.message);
+      console.error('Login attempted with email:', validation.normalizedEmail);
+      console.error('Login attempted with password length:', password.length);
+      
       // Do not retry with default password
       document.getElementById("loginError").textContent = "❌ " + error.message;
       const loginScreen = document.getElementById("loginScreen");
